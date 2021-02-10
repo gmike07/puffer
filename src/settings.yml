@@ -12,26 +12,26 @@ postgres_connection:
   password: PUFFER_PORTAL_DB_KEY
 ws_base_port: 50000
 experiments:
-  - num_servers: 1
-    fingerprint:
-      abr: linear_bba
-      cc: cubic
-      abr_config:
-        upper_reservoir: 0.9
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: linear_bba
+  #     cc: cubic
+  #     abr_config:
+  #       upper_reservoir: 0.9
   - num_servers: 1
     fingerprint:
       abr: linear_bba
       cc: bbr
       abr_config:
         upper_reservoir: 0.9
-  - num_servers: 1
-    fingerprint:
-      abr: robust_mpc
-      cc: cubic
-  - num_servers: 1
-    fingerprint:
-      abr: robust_mpc
-      cc: bbr
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: robust_mpc
+  #     cc: cubic
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: robust_mpc
+  #     cc: bbr
   # - num_servers: 1
   #   fingerprint:
   #     abr: puffer_ttp
