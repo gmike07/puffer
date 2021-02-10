@@ -13,7 +13,7 @@ def run_offline_media_servers():
 def start_maimahi_clients(num_clients):
     plist = []
     try:
-        trace_dir = "/home/ubuntu/fcc_mahimahi_traces"
+        trace_dir = "/home/ofir/ubuntu/fcc_mahimahi_traces"
         #trace_dir = "/home/ubuntu/exact_train_traces_mm_fixed_fcc"
         # To test nowrway traces use: /home/ubuntu/norway_traces"
         files = os.listdir(trace_dir)

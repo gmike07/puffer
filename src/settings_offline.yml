@@ -12,7 +12,7 @@ postgres_connection:
   user: puffer
   password: PUFFER_PORTAL_DB_KEY
 enable_logging: True
-log_dir: /home/ubuntu/puffer/src/monitoring
+log_dir: /home/ofir/puffer/src/monitoring
 influxdb_connection:
   host: 127.0.0.1
   port: 8086
@@ -20,7 +20,7 @@ influxdb_connection:
   user: puffer
   password: INFLUXDB_PASSWORD
 enforce_moving_live_edge: false
-media_dir: /home/ubuntu/media-181230
+media_dir: /home/ofir/ubuntu/media-181230
 channels:
   - abc
   - nbc
