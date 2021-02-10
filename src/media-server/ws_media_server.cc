@@ -683,6 +683,9 @@ int run_websocket_server()
     throw runtime_error("Invalid server id for offline operation");
   }
   const uint16_t port = config["ws_port"].as<uint16_t>() + server_id_int;
+
+  cout << port << endl;
+
   WebSocketServer server {{ip, port}, cc_name};
 
   const bool portal_debug = config["portal_settings"]["debug"].as<bool>();

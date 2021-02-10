@@ -674,7 +674,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
         return urlparameter;
     }
 
-    var port = getUrlParam('wsport', '9360');
+    var port = getUrlParam('wsport', '9361');
     // should fail to connect to anything without url_param parsed correctly
     const ws_host_port = location.hostname + ':' + port;
     const ws_addr = nonsecure ? 'ws://' + ws_host_port
