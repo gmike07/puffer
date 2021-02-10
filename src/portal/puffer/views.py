@@ -41,7 +41,6 @@ def results(request, input_date=''):
     return render(request, 'puffer/results.html', context)
 
 
-@login_required(login_url='/accounts/login/')
 def player(request):
     # generate a random port or use a superuser-specified port
     port = None
@@ -54,8 +53,8 @@ def player(request):
         port = str(base_port + random.randint(1, total_servers))
 
     # parameters passed to Javascript stored in JSON
-    params = {'session_key': request.session.session_key,
-              'username': request.user.username,
+    params = {'session_key': 'fake',
+              'username': 'fake',
               'debug': settings.DEBUG,
               'port': port}
     context = {'params_json': json.dumps(params)}
