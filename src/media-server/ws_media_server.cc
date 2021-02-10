@@ -667,31 +667,40 @@ void validate_id(const string & id)
 int run_websocket_server()
 {
   /* read congestion control and ABR from experimental settings */
-  int server_id_int = stoi(server_id);
-  int cum_servers = 0;
-  YAML::Node fingerprint;
+  string cc_name = "cubic";
+  string abr_name = "linear_bba";
+  YAML::Node abr_config;
 
-  for (const auto & node : config["experiments"]) {
-    cum_servers += node["num_servers"].as<unsigned int>();
-    if (server_id_int <= cum_servers) {
-      fingerprint = node["fingerprint"];
-      break;
+  /* read congestion control and ABR from experimental settings */
+  int server_id_int = -1;
+  if (not server_id.empty()) {
+    int cum_servers = 0;
+    server_id_int = stoi(server_id);
+    YAML::Node fingerprint;
+
+    for (const auto & node : config["experiments"]) {
+      cum_servers += node["num_servers"].as<unsigned int>();
+      if (server_id_int <= cum_servers) {
+        fingerprint = node["fingerprint"];
+        break;
+      }
+    }
+
+    if (server_id_int > cum_servers) {
+      throw runtime_error("Invalid server ID " + server_id);
+    }
+
+    cc_name = fingerprint["cc"].as<string>();
+    abr_name = fingerprint["abr"].as<string>();
+    if (fingerprint["abr_config"]) {
+      abr_config = fingerprint["abr_config"];
     }
   }
 
-  if (server_id_int > cum_servers) {
-    throw runtime_error("Valid range for server ID is [1, " +
-                        to_string(cum_servers) + "]");
-  }
-
-  string cc_name = fingerprint["cc"].as<string>();
-  string abr_name = fingerprint["abr"].as<string>();
-  YAML::Node abr_config;
-  if (fingerprint["abr_config"]) {
-    abr_config = fingerprint["abr_config"];
-  }
-
   const string ip = "0.0.0.0";
+  if (server_id_int == -1) {
+    throw runtime_error("Invalid server id for offline operation");
+  }
   /* run each server on a different port */
   const uint16_t port = config["ws_base_port"].as<uint16_t>() + server_id_int;
 
