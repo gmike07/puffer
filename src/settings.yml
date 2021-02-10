@@ -1,0 +1,137 @@
+ws_port: 9361
+portal_settings:
+  allowed_hosts:
+    - '*'
+  debug: true
+  secret_key: PUFFER_PORTAL_SECRET_KEY
+postgres_connection:
+  host: 127.0.0.1
+  port: 5432
+  dbname: puffer
+  user: puffer
+  password: PUFFER_PORTAL_DB_KEY
+ws_base_port: 50000
+experiments:
+  - num_servers: 1
+    fingerprint:
+      abr: linear_bba
+      cc: cubic
+      abr_config:
+        upper_reservoir: 0.9
+  - num_servers: 1
+    fingerprint:
+      abr: linear_bba
+      cc: bbr
+      abr_config:
+        upper_reservoir: 0.9
+  - num_servers: 1
+    fingerprint:
+      abr: robust_mpc
+      cc: cubic
+  - num_servers: 1
+    fingerprint:
+      abr: robust_mpc
+      cc: bbr
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: puffer_ttp
+  #     abr_config:
+  #       model_dir: /home/ofir/puffer/ttp/models/bbr-20201204-1
+  #       rebuffer_length_coeff: 100
+  #       exp3_gamma: /home/ofir/puffer/boggart/inc_dec_gamma.json
+  #       exp3_weights: /home/ofir/puffer/boggart/inc_dec_weights.json
+  #     cc: cubic
+enable_logging: true
+log_dir: /home/ofir/puffer/src/monitoring
+influxdb_connection:  
+  host: 127.0.0.1
+  port: 8086
+  dbname: puffer
+  user: puffer
+  password: INFLUXDB_PASSWORD
+
+media_dir: /home/ofir/ubuntu/media-181230
+enforce_moving_live_edge: false
+channels:
+  - abc
+  - nbc
+  - fox
+  - pbs
+  - cbs
+  - univision
+channel_configs:
+  abc:
+    live: true
+    video:
+      1280x720: [20, 22, 24, 26]
+      854x480: [22, 24, 26]
+      640x360: [24, 26]
+      426x240: [26]
+    audio:
+      - 128k
+      - 64k
+      - 32k
+    present_delay_chunk: 300
+  nbc:
+    live: true
+    video:
+      1920x1080: [22, 24]
+      1280x720: [20, 22, 24, 26]
+      854x480: [24, 26]
+      640x360: [24]
+      426x240: [26]
+    audio:
+      - 128k
+      - 64k
+      - 32k
+    present_delay_chunk: 300
+  fox:
+    live: true
+    video:
+      1280x720: [20, 22, 24, 26]
+      854x480: [22, 24, 26]
+      640x360: [24, 26]
+      426x240: [26]
+    audio:
+      - 128k
+      - 64k
+      - 32k
+    present_delay_chunk: 300
+  pbs:
+    live: true
+    video:
+      1920x1080: [22, 24]
+      1280x720: [20, 22, 24, 26]
+      854x480: [24, 26]
+      640x360: [24]
+      426x240: [26]
+    audio:
+      - 128k
+      - 64k
+      - 32k
+    present_delay_chunk: 300
+  cbs:
+    live: true
+    video:
+      1920x1080: [22, 24] #crf x264 video encoder [codec] (less is better quality)
+      1280x720: [20, 22, 24, 26]
+      854x480: [24, 26]
+      640x360: [24]
+      426x240: [26]
+    audio:
+      - 128k
+      - 64k
+      - 32k
+    present_delay_chunk: 300
+  univision:
+    live: true
+    video:
+      1280x720: [20, 22, 24, 26]
+      854x480: [22, 24, 26]
+      640x360: [24, 26]
+      426x240: [26]
+    audio:
+      - 128k
+      - 64k
+      - 32k
+    present_delay_chunk: 300

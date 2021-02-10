@@ -1,0 +1,16 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "build",
+            "command": "sudo make -j CXXFLAGS='-DNONSECURE -g' CFLAGS='-g' && source ~/.bashrc",
+            "problemMatcher": []
+        },
+        {
+            "type": "shell",
+            "label": "clean",
+            "command": "clean"
+        }
+    ],
+    "version": "2.0.0"
+}

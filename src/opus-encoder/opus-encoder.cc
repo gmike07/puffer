@@ -262,7 +262,7 @@ public:
       audio_stream_(),
       header_written_( false )
   {
-    av_register_all();
+    // av_register_all();
 
     if ( output_filename.substr( output_filename.size() - 5 ) != ".webm" ) {
       throw runtime_error( "output filename must be a .webm" );
