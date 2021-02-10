@@ -17,12 +17,12 @@ experiments:
       cc: cubic
       abr_config:
         upper_reservoir: 0.9
-  - num_servers: 1
-    fingerprint:
-      abr: linear_bba
-      cc: bbr
-      abr_config:
-        upper_reservoir: 0.9
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: linear_bba
+  #     cc: bbr
+  #     abr_config:
+  #       upper_reservoir: 0.9
   # - num_servers: 1
   #   fingerprint:
   #     abr: robust_mpc

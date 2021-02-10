@@ -1,4 +1,10 @@
-AM_CPPFLAGS = -I$(srcdir)/../net $(CXX17_FLAGS)
+AM_CPPFLAGS = -I$(srcdir)/../net $(CXX17_FLAGS) \
+	-isystem$(srcdir)/../../third_party/json.upstream/single_include/nlohmann \
+	-isystem$(srcdir)/../../third_party/libtorch/include \
+	-isystem$(srcdir)/../../third_party/libtorch/include/torch/csrc/api/include \
+    -I/usr/include/python3.7 \
+	-I/home/ofir/.local/lib/python3.7/site-packages/pybind11/include
+	
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 noinst_LIBRARIES = libutil.a
@@ -28,4 +34,11 @@ libutil_a_SOURCES = \
 	ipc_socket.hh ipc_socket.cc \
 	pid.hh pid.cc \
 	media_formats.hh media_formats.cc \
-	yaml.hh yaml.cc
+	yaml.hh yaml.cc \
+	reinforce.hh reinforce.cc
+
+libutil_a_LDFLAGS = -L../../third_party/libtorch/lib \
+	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib' \
+	../../third_party/libtorch/lib/libtorch.so \
+	../../third_party/libtorch/lib/libcaffe2.so \
+	../../third_party/libtorch/lib/libc10.so 
