@@ -2,7 +2,10 @@ AM_CPPFLAGS = $(CXX17_FLAGS) $(SSL_CFLAGS) $(POSTGRES_CFLAGS) \
 	-I$(srcdir)/../util -I$(srcdir)/../net -I$(srcdir)/../notifier \
 	-I$(srcdir)/../monitoring -I$(srcdir)/../abr \
 	-isystem$(srcdir)/../../third_party/json.upstream/single_include/nlohmann \
-	-isystem$(srcdir)/../../third_party/libtorch/include
+	-isystem$(srcdir)/../../third_party/libtorch/include \
+	-isystem$(srcdir)/../../third_party/libtorch/include/torch/csrc/api/include \
+    -I/usr/include/python3.7 \
+	-I/home/ofir/.local/lib/python3.7/site-packages/pybind11/include
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 bin_PROGRAMS = run_servers maintenance_server ws_media_server
@@ -19,6 +22,8 @@ ws_media_server_SOURCES = ws_media_server.cc \
 	../abr/puffer.hh ../abr/puffer.cc \
 	../abr/puffer_raw.hh ../abr/puffer_raw.cc \
 	../abr/puffer_ttp.cc ../abr/puffer_ttp.hh \
+	../abr/puffer_reinforce.cc ../abr/puffer_reinforce.hh \
+	../abr/reinforce_policy.cc ../abr/reinforce_policy.hh \
 	../../third_party/json.upstream/single_include/nlohmann/json.hpp
 ws_media_server_LDFLAGS = -L../../third_party/libtorch/lib \
 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib'

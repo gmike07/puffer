@@ -1,7 +1,7 @@
 #ifndef REINFORCE
 #define REINFORCE
 
-#include <torch/extension.h>
+#include <torch/torch.h>
 #include <random>
 
 class Reinforce : torch::nn::Module
@@ -9,7 +9,8 @@ class Reinforce : torch::nn::Module
 public:
   Reinforce(int64_t num_input, int64_t num_actions);
   torch::Tensor forward(torch::Tensor x);
-  std::tuple<double, torch::Tensor> get_action(std::vector<double> state);
+  size_t get_action(double state[20][21]);
+  void update_policy(std::vector<double> rewards, std::vector<double> log_probs);
 private:
   torch::nn::Linear fc1_{nullptr};
   int64_t num_input_;
