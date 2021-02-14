@@ -9,7 +9,7 @@ class Reinforce : torch::nn::Module
 {
 public:
   Reinforce(int64_t num_input, int64_t num_actions);
-  at::Tensor forward(at::Tensor x);
+  torch::Tensor forward(torch::Tensor x);
   size_t get_action(double state[20][64]);
   void update_policy(std::vector<double> rewards, std::vector<double> log_probs);
 private:

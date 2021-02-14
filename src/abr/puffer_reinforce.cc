@@ -137,8 +137,7 @@ void PufferReinforce::reinit_sending_time()
 
     for (size_t j = 0; j < num_formats_; j++) {
       for (size_t k = 0; k < HIDDEN_SIZE; k++) {
-        double tmp = output[j][k].item<double>();
-        sending_time_prob_[i][j][k] = tmp;
+        sending_time_prob_[i][j][k] = output[j][k].item<double>();;
       }
     }
 
