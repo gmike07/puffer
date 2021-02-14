@@ -133,64 +133,75 @@ void PufferReinforce::reinit_sending_time()
                            {(int) num_formats_, (int)ttp_input_dim_},
                            torch::kF64));
 
-    at::Tensor output = torch::softmax(ttp_modules_[i - 1]->forward(torch_inputs)
-                                       .toTensor(), 1);
-
-    assert((size_t) output.sizes()[1] > dis_sending_time_);
-
-    /* extract distribution from the output */
-    bool is_all_ban = true;
+    at::Tensor output = ttp_modules_[i-1]->forward(torch_inputs).toTensor();
 
     for (size_t j = 0; j < num_formats_; j++) {
-      if (curr_sizes_[i][j] < 0) {
-        is_ban_[i][j] = true;
-        continue;
-      }
-
-      if (is_mle_) {
-        is_all_ban = false;
-
-        size_t max_k = dis_sending_time_;
-        double max_value = 0;
-        for (size_t k = 0; k < dis_sending_time_; k++) {
-          double tmp = output[j][k].item<double>();
-
-          if (max_k == dis_sending_time_ or tmp > max_value) {
-            max_k = k;
-            max_value = tmp;
-          }
-        }
-
-        for (size_t k = 0; k < dis_sending_time_; k++) {
-          sending_time_prob_[i][j][k] = (k == max_k);
-        }
-      }
-
-      double good_prob = 0;
-
-      for (size_t k = 0; k < dis_sending_time_; k++) {
+      for (size_t k = 0; k < HIDDEN_SIZE; k++) {
         double tmp = output[j][k].item<double>();
-
-        if (tmp < st_prob_eps_) {
-          continue;
-        }
-
         sending_time_prob_[i][j][k] = tmp;
-        good_prob += tmp;
-      }
-
-      sending_time_prob_[i][j][dis_sending_time_] = 1 - good_prob;
-
-      if (good_prob < ban_prob_) {
-        is_ban_[i][j] = true;
-      } else {
-        is_ban_[i][j] = false;
-        is_all_ban = false;
       }
     }
 
-    if (is_all_ban) {
-      deal_all_ban(i);
-    }
+
+
+    // at::Tensor output = torch::softmax(ttp_modules_[i - 1]->forward(torch_inputs)
+    //                                    .toTensor(), 1);
+
+    // assert((size_t) output.sizes()[1] > dis_sending_time_);
+
+    // /* extract distribution from the output */
+    // bool is_all_ban = true;
+
+    // for (size_t j = 0; j < num_formats_; j++) {
+    //   if (curr_sizes_[i][j] < 0) {
+    //     is_ban_[i][j] = true;
+    //     continue;
+    //   }
+
+    //   if (is_mle_) {
+    //     is_all_ban = false;
+
+    //     size_t max_k = dis_sending_time_;
+    //     double max_value = 0;
+    //     for (size_t k = 0; k < dis_sending_time_; k++) {
+    //       double tmp = output[j][k].item<double>();
+
+    //       if (max_k == dis_sending_time_ or tmp > max_value) {
+    //         max_k = k;
+    //         max_value = tmp;
+    //       }
+    //     }
+
+    //     for (size_t k = 0; k < dis_sending_time_; k++) {
+    //       sending_time_prob_[i][j][k] = (k == max_k);
+    //     }
+    //   }
+
+    //   double good_prob = 0;
+
+    //   for (size_t k = 0; k < dis_sending_time_; k++) {
+    //     double tmp = output[j][k].item<double>();
+
+    //     if (tmp < st_prob_eps_) {
+    //       continue;
+    //     }
+
+    //     sending_time_prob_[i][j][k] = tmp;
+    //     good_prob += tmp;
+    //   }
+
+    //   sending_time_prob_[i][j][dis_sending_time_] = 1 - good_prob;
+
+    //   if (good_prob < ban_prob_) {
+    //     is_ban_[i][j] = true;
+    //   } else {
+    //     is_ban_[i][j] = false;
+    //     is_all_ban = false;
+    //   }
+    // }
+
+    // if (is_all_ban) {
+    //   deal_all_ban(i);
+    // }
   }
 }

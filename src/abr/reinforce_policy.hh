@@ -26,6 +26,7 @@ protected:
   static constexpr double UNIT_BUF_LENGTH = 0.5;
   static constexpr size_t MAX_DIS_SENDING_TIME = 20;
   static constexpr double ST_PROB_EPS = 1e-5;
+  static constexpr size_t HIDDEN_SIZE = 64;
 
   /* past chunks and max number of them */
   size_t max_num_past_chunks_ {MAX_NUM_PAST_CHUNKS};
@@ -62,7 +63,7 @@ protected:
 
   /* the estimation of sending time given the timestamp and format */
   double sending_time_prob_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS]
-                           [MAX_DIS_SENDING_TIME + 1] {};
+                           [HIDDEN_SIZE] {};
 
   /* denote whether a chunk is abandoned */
   bool is_ban_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS] {};

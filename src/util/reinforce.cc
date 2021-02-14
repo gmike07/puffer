@@ -6,31 +6,33 @@
 Reinforce::Reinforce(int64_t num_input, int64_t num_actions) : num_input_(num_input), num_actions_(num_actions), 
     optimizer_(torch::optim::Adam(this->parameters(), 1e-3))
 {
-    fc1_ = register_module("fc1", torch::nn::Linear(num_input, num_actions));
+    fc1_ = register_module("fc1", torch::nn::Linear(20 * num_input_, num_actions));
 
     // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     // generator_ = std::default_random_engine(seed);
 }
 
-torch::Tensor Reinforce::forward(torch::Tensor x)
+at::Tensor Reinforce::forward(at::Tensor x)
 {
-    x = torch::relu(fc1_->forward(x.reshape({x.size(0), num_input_})));
-    x = torch::softmax(x, 0.5);
-    return x;
+    auto fc1 = at::relu(fc1_->forward(x));
+    return fc1;
 }
 
-size_t Reinforce::get_action(double state[20][21])
+size_t Reinforce::get_action(double state[20][64])
 {
     // assert(state.size() == num_input_);
 
-    torch::Tensor state_tensor = torch::from_blob(state, {20, num_input_});
+    at::Tensor state_tensor = torch::from_blob(state, {1, 20 * num_input_});
 
-    torch::Tensor probs = forward(state_tensor);
-    probs = probs.squeeze();
-    // std::vector<double> data = probs.detach().item<std::vector<double>>();
+    at::Tensor preds = forward(state_tensor);
+    preds = preds.squeeze();
 
-    // return std::distance(data.begin(), std::max_element(data.begin(), data.end()));
-    return 1;
+    std::vector<double> preds_vec;
+    for (size_t j = 0; j < num_actions_; j++) {
+        preds_vec.push_back(preds[j].item<double>());
+    }
+
+    return std::distance(preds_vec.begin(), std::max_element(preds_vec.begin(), preds_vec.end()));
 }
 
 void Reinforce::update_policy(std::vector<double> rewards, std::vector<double> log_probs)

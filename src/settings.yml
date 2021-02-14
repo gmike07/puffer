@@ -11,21 +11,21 @@ postgres_connection:
   user: puffer
   password: PUFFER_PORTAL_DB_KEY
 experiments:
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: puffer_ttp
-  #     abr_config:
-  #       model_dir: /home/ofir/puffer/ttp/models/bbr-20201204-1
-  #       rebuffer_length_coeff: 100
-  #       exp3_gamma: /home/ofir/puffer/boggart/inc_dec_gamma.json
-  #       exp3_weights: /home/ofir/puffer/boggart/inc_dec_weights.json
-  #     cc: cubic
   - num_servers: 1
     fingerprint:
-      abr: linear_bba
-      cc: cubic
+      abr: puffer_reinforce
+      abr_name: puffer_reinforce
       abr_config:
-        upper_reservoir: 0.9
+        model_dir: /home/ofir/Desktop/Lab/Experimants/puffer_original/puffer/ttp/models/bbr-20210114-1
+        rebuffer_length_coeff: 100
+        max_lookahead_horizon: 1
+      cc: bbr
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: linear_bba
+  #     cc: cubic
+  #     abr_config:
+  #       upper_reservoir: 0.9
   # - num_servers: 1
   #   fingerprint:
   #     abr: linear_bba

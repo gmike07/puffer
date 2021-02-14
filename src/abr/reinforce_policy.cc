@@ -11,7 +11,7 @@ using json = nlohmann::json;
 
 ReinforcePolicy::ReinforcePolicy(const WebSocketClient & client,
                const string & abr_name, const YAML::Node & abr_config)
-  : ABRAlgo(client, abr_name), rl_model_(Reinforce(dis_sending_time_ + 1, num_formats_))
+  : ABRAlgo(client, abr_name), rl_model_(Reinforce(HIDDEN_SIZE, 10))
 {
   if (abr_config["max_lookahead_horizon"]) {
     max_lookahead_horizon_ = min(
@@ -44,7 +44,7 @@ VideoFormat ReinforcePolicy::select_video_format()
   reinit();
 
   // getting only the next chunk sending time porb
-  auto& next_sending_time = sending_time_prob_[0];
+  auto& next_sending_time = sending_time_prob_[1];
 
   size_t ret_format = rl_model_.get_action(next_sending_time);
   last_format_ = ret_format;
