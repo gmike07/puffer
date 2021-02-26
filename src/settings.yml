@@ -50,7 +50,7 @@ experiments:
   #       exp3_weights: /home/ofir/puffer/boggart/inc_dec_weights.json
   #     cc: cubic
 enable_logging: true
-log_dir: /home/ofir/Desktop/Lab/Experimants/puffer_original/puffer/src/monitoring
+log_dir: /home/ofir/puffer/src/monitoring
 influxdb_connection:  
   host: 127.0.0.1
   port: 8086
