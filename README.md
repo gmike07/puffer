@@ -50,3 +50,18 @@ In order to use ttp we must omit it last layer:
 - In each `ccp-{}.pt` (may depend on the horizon):  
     - edit the file `model.json` and delete the last layer  
     - edit the file `code/ccp-{}.py` and delete the last layer  
+
+# Postgress
+psotgress quick guide:
+* connect: 
+	- `psql "host=127.0.0.1 port=5432 dbname=puffer user=puffer password=$PUFFER_PORTAL_DB_KEY"`
+	- `psql "host=127.0.0.1 port=5432 dbname=puffer user=puffer password=123456"`
+* exit: `\q`
+* use db: `use puffer`
+* show tables: `\dt`
+* execute commands: `SELECT * FROM puffer_experiment;` (note for the semicolon)
+
+
+influx paths: 
+* data: `/var/lib/influxdb`
+* config: `/etc/influxdb/influxdb.conf`
