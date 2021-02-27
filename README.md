@@ -51,6 +51,8 @@ In order to use ttp we must omit it last layer:
     - edit the file `model.json` and delete the last layer  
     - edit the file `code/ccp-{}.py` and delete the last layer  
 
+In order to train a new model: `python3 src/scripts/ttp.py src/settings_offline.yml --save-model ttp/models/fcc/`
+
 # Postgress
 psotgress quick guide:
 * connect: 

@@ -41,7 +41,7 @@ expt_id_cache = {}
 
 class Model:
     PAST_CHUNKS = 8
-    FUTURE_CHUNKS = 5
+    FUTURE_CHUNKS = 1
     DIM_IN = 62
     BIN_SIZE = 0.5  # seconds
     BIN_MAX = 20
@@ -304,6 +304,17 @@ def create_time_clause(time_start, time_end):
 
     return time_clause
 
+def get_expt_id(pt):
+    expt_id = pt['expt_id']
+
+    if expt_id is not None:
+        return expt_id
+    for i in range(1, 3, 1):
+        expt_id = pt['expt_id_'+str(i)]
+        if expt_id is not None:
+            return expt_id
+    return None
+
 
 def calculate_trans_times(video_sent_results, video_acked_results,
                           cc, postgres_cursor):
@@ -311,7 +322,7 @@ def calculate_trans_times(video_sent_results, video_acked_results,
     last_video_ts = {}
 
     for pt in video_sent_results['video_sent']:
-        expt_id = int(pt['expt_id'])
+        expt_id = int(get_expt_id(pt))
         session = (pt['user'], int(pt['init_id']),
                    pt['channel'], expt_id)
 
@@ -346,7 +357,7 @@ def calculate_trans_times(video_sent_results, video_acked_results,
         dsv['rtt'] = float(pt['rtt']) / MILLION  # us -> s
 
     for pt in video_acked_results['video_acked']:
-        expt_id = int(pt['expt_id'])
+        expt_id = int(get_expt_id(pt))
         session = (pt['user'], int(pt['init_id']),
                    pt['channel'], expt_id)
 

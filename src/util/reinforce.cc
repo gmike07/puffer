@@ -32,7 +32,9 @@ size_t Reinforce::get_action(double state[10][64])
         preds_vec.push_back(preds[j].item<double>());
     }
 
-    return std::distance(preds_vec.begin(), std::max_element(preds_vec.begin(), preds_vec.end()));
+    size_t highest_prob_action = std::distance(preds_vec.begin(), std::max_element(preds_vec.begin(), preds_vec.end()));
+
+    return highest_prob_action;
 }
 
 void Reinforce::update_policy(std::vector<double> rewards, std::vector<double> log_probs)

@@ -18,7 +18,7 @@ public:
 
 protected:
   static constexpr size_t MAX_NUM_PAST_CHUNKS = 8;
-  static constexpr size_t MAX_LOOKAHEAD_HORIZON = 5;
+  static constexpr size_t MAX_LOOKAHEAD_HORIZON = 1;
   static constexpr size_t MAX_DIS_BUF_LENGTH = 100;
   static constexpr double REBUFFER_LENGTH_COEFF = 20;
   static constexpr double SSIM_DIFF_COEFF = 1;
