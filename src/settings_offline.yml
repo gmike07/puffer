@@ -1,4 +1,4 @@
-ws_port: 9361
+ws_port: 9360
 portal_settings:
   secret_key: PUFFER_PORTAL_SECRET_KEY
   debug: true
@@ -117,14 +117,14 @@ experiments:
       cc: bbr
       abr_config:
         upper_reservoir: 0.9
-  - num_servers: 1
-    fingerprint:
-      abr: robust_mpc
-      cc: cubic
-  - num_servers: 1
-    fingerprint:
-      abr: robust_mpc
-      cc: bbr
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: robust_mpc
+  #     cc: cubic
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: robust_mpc
+  #     cc: bbr
 #  - num_servers: 1
 #    fingerprint:
 #      abr: pensieve

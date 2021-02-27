@@ -24,7 +24,7 @@ static fs::path src_path;  /* path to puffer/src directory */
 
 void print_usage(const string & program_name)
 {
-  cerr << "Usage: " << program_name << " <YAML configuration>" << endl;
+  cerr << "Usage: " << program_name << " <YAML configuration> [--maintenance]" << endl;
 }
 
 string sha256(const string & input)
@@ -38,31 +38,81 @@ string sha256(const string & input)
   return digest;
 }
 
-int main(int argc, char * argv[])
+int retrieve_expt_id(const string & json_str)
 {
-  if (argc < 1) {
-    abort();
+  try {
+    /* compute SHA-256 */
+    string hash = sha256(json_str);
+
+    /* connect to PostgreSQL */
+    string db_conn_str = postgres_connection_string(config["postgres_connection"]);
+    pqxx::connection db_conn(db_conn_str);
+
+    /* create table if not exists */
+    pqxx::work create_table(db_conn);
+    create_table.exec("CREATE TABLE IF NOT EXISTS puffer_experiment "
+                      "(id SERIAL PRIMARY KEY,"
+                      " hash VARCHAR(64) UNIQUE NOT NULL,"
+                      " data jsonb);");
+    create_table.commit();
+
+    /* prepare two statements */
+    db_conn.prepare("select_id",
+      "SELECT id FROM puffer_experiment WHERE hash = $1;");
+    db_conn.prepare("insert_json",
+      "INSERT INTO puffer_experiment (hash, data) VALUES ($1, $2) RETURNING id;");
+
+    pqxx::work db_work(db_conn);
+
+    /* try to fetch an existing row */
+    pqxx::result r = db_work.exec_prepared("select_id", hash);
+    if (r.size() == 1 and r[0].size() == 1) {
+      /* the same hash already exists */
+      return r[0][0].as<int>();
+    }
+
+    /* insert if no record exists and return the ID of inserted row */
+    r = db_work.exec_prepared("insert_json", hash, json_str);
+    db_work.commit();
+    if (r.size() == 1 and r[0].size() == 1) {
+      return r[0][0].as<int>();
+    }
+  } catch (const exception & e) {
+    print_exception("retrieve_expt_id", e);
   }
 
-  if (argc != 2) {
-    print_usage(argv[0]);
-    return EXIT_FAILURE;
-  }
+  return -1;
+}
 
-  /* save as global variables */
-  yaml_config = fs::absolute(argv[1]);
-  config = YAML::LoadFile(yaml_config);
-  src_path = fs::canonical(fs::path(
-      roost::readlink("/proc/self/exe")).parent_path().parent_path());
+int run_maintenance_servers()
+{
+  cerr << "Running maintenance servers" << endl;
+  const auto & maintenance_server = src_path / "media-server/maintenance_server";
 
   ProcessManager proc_manager;
 
-  const bool enable_logging = config["enable_logging"].as<bool>();
-  if (enable_logging) {
-    cerr << "Logging is enabled" << endl;
-  } else {
-    cerr << "Logging is disabled" << endl;
+  int server_id = 0;
+  for (const auto & expt : config["experiments"]) {
+    unsigned int num_servers = expt["num_servers"].as<unsigned int>();
+
+    for (unsigned int i = 0; i < num_servers; i++) {
+      server_id++;
+
+      /* run maintenance_server */
+      vector<string> args { maintenance_server, yaml_config,
+                            to_string(server_id) };
+      proc_manager.run_as_child(maintenance_server, args);
+    }
   }
+
+  return proc_manager.wait();
+}
+
+int run_ws_media_servers()
+{
+  ProcessManager proc_manager;
+
+  const bool enable_logging = config["enable_logging"].as<bool>();
 
   /* will run log reporters only if enable_logging is true */
   auto log_reporter = src_path / "monitoring/log_reporter";
@@ -90,13 +140,7 @@ int main(int argc, char * argv[])
     /* run expt_json.py to represent experimental settings as a JSON string */
     string json_str = run(expt_json, {expt_json, fingerprint}, true).first;
 
-    string expt_id = expt["fingerprint"]["abr"].as<string>() + "+" +
-                     expt["fingerprint"]["cc"].as<string>();
-    if (expt["fingerprint"]["abr_name"]) {
-      expt_id = expt["fingerprint"]["abr_name"].as<string>() + "+" +
-                expt["fingerprint"]["cc"].as<string>();
-
-    }
+    int expt_id = retrieve_expt_id(json_str);
     unsigned int num_servers = expt["num_servers"].as<unsigned int>();
 
     cerr << "Running experiment " << expt_id << " on "
@@ -107,7 +151,7 @@ int main(int argc, char * argv[])
 
       /* run ws_media_server */
       vector<string> args { ws_media_server, yaml_config,
-                            to_string(server_id), expt_id };
+                            to_string(server_id), to_string(expt_id) };
       proc_manager.run_as_child(ws_media_server, args);
 
       /* run log_reporter */
@@ -128,4 +172,36 @@ int main(int argc, char * argv[])
   }
 
   return proc_manager.wait();
+
+}
+
+int main(int argc, char * argv[])
+{
+  if (argc < 1) {
+    abort();
+  }
+
+  if (argc != 2 and argc != 3) {
+    print_usage(argv[0]);
+    return EXIT_FAILURE;
+  }
+
+  /* save as global variables */
+  yaml_config = fs::absolute(argv[1]);
+  config = YAML::LoadFile(yaml_config);
+  src_path = fs::canonical(fs::path(
+      roost::readlink("/proc/self/exe")).parent_path().parent_path());
+
+  /* simply run maintenance_server(s) */
+  if (argc == 3) {
+    if (string(argv[2]) != "--maintenance") {
+      print_usage(argv[0]);
+      return EXIT_FAILURE;
+    }
+
+    return run_maintenance_servers();
+  }
+
+  /* run ws_media_server(s) */
+  return run_ws_media_servers();
 }
