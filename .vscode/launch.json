@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/src/media-server/ws_media_server",
-            "args": ["${cwd}/src/settings.yml", "1", "linear_bba+cubic"],
+            "args": ["${cwd}/src/settings.yml", "1", "1"],
             // "program": "${workspaceFolder}/src/media-server/run_servers",
             // "args": ["${cwd}/src/settings.yml"],
             "stopAtEntry": false,

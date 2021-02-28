@@ -18,7 +18,7 @@ public:
 
 protected:
   static constexpr size_t MAX_NUM_PAST_CHUNKS = 8;
-  static constexpr size_t MAX_LOOKAHEAD_HORIZON = 1;
+  static constexpr size_t MAX_LOOKAHEAD_HORIZON = 5;
   static constexpr size_t MAX_DIS_BUF_LENGTH = 100;
   static constexpr double REBUFFER_LENGTH_COEFF = 20;
   static constexpr double SSIM_DIFF_COEFF = 1;
@@ -88,7 +88,12 @@ protected:
   void deal_all_ban(size_t i);
 
   Reinforce rl_model_;
-  size_t last_format_;
+  static constexpr size_t DONE = 100;
+  size_t steps_to_update_ = DONE;
+  std::deque<double> log_probs_ {};
+  std::deque<double> rewards_ {};
+
+  void update_rewards();
 };
 
 #endif /* REINFROCE_POLICY_HH */

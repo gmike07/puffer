@@ -11,7 +11,7 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
   if (abr_config["model_dir"]) {
     fs::path model_dir = abr_config["model_dir"].as<string>();
 
-    for (size_t i = 0; i < MAX_LOOKAHEAD_HORIZON; i++) {
+    for (size_t i = 0; i < max_lookahead_horizon_; i++) {
       // load PyTorch models
       string model_path = model_dir / ("cpp-" + to_string(i) + ".pt");
       ttp_modules_[i] = torch::jit::load(model_path.c_str());
@@ -154,7 +154,7 @@ void PufferReinforce::reinit_sending_time()
     // for (size_t j = 0; j < num_formats_; j++) {
     //   if (curr_sizes_[i][j] < 0) {
     //     is_ban_[i][j] = true;
-    //     continue;
+    //     continue;4
     //   }
 
     //   if (is_mle_) {

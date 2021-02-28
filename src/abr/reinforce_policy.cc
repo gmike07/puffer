@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <memory>
+#include <tuple>
 
 #include "ws_client.hh"
 #include "json.hpp"
@@ -37,6 +38,8 @@ void ReinforcePolicy::video_chunk_acked(Chunk && c)
   if (past_chunks_.size() > max_num_past_chunks_) {
     past_chunks_.pop_front();
   }
+
+  update_rewards();
 }
 
 VideoFormat ReinforcePolicy::select_video_format()
@@ -46,9 +49,44 @@ VideoFormat ReinforcePolicy::select_video_format()
   // getting only the next chunk sending time porb
   auto& next_sending_time = sending_time_prob_[1];
 
-  size_t ret_format = rl_model_.get_action(next_sending_time);
-  last_format_ = ret_format;
-  return client_.channel()->vformats()[ret_format];
+  std::tuple<size_t,double> result = rl_model_.get_action(next_sending_time);
+  double log_prob = std::get<1>(result);
+  log_probs_.push_back(log_prob);
+  if (log_probs_.size() > DONE){
+    log_probs_.pop_front();
+  }
+
+  size_t format = std::get<0>(result);
+  return client_.channel()->vformats()[format];
+}
+
+void ReinforcePolicy::update_rewards()
+{
+  // calc QoE
+  if (past_chunks_.size() < 2){
+    return;
+  }
+
+  Chunk curr_chunk = past_chunks_.back();
+  Chunk prev_chunk = past_chunks_.end()[-2];
+
+  double qoe = ssim_db(curr_chunk.ssim);
+  qoe -= ssim_diff_coeff_ * fabs(ssim_db(curr_chunk.ssim) - ssim_db(prev_chunk.ssim));
+
+  int rebuffer = max(curr_chunk.trans_time - curr_buffer_, (unsigned long)0);
+  qoe -= rebuffer_length_coeff_ * rebuffer;
+  
+  rewards_.push_back(qoe);
+  if (rewards_.size() > DONE){
+    rewards_.pop_front();
+  }
+
+  if (steps_to_update_ <= 0) {
+    steps_to_update_ = DONE;
+    std::vector<double> rewards_vec(rewards_.begin(), rewards_.end());
+    std::vector<double> log_probs_vec(log_probs_.begin(), log_probs_.end());
+    rl_model_.update_policy(rewards_vec, log_probs_vec);
+  }
 }
 
 // VideoFormat ReinforcePolicy::select_video_format()

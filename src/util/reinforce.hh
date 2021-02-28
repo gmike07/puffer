@@ -4,13 +4,14 @@
 #include <torch/torch.h>
 #include <random>
 #include "torch/script.h"
+#include <tuple>
 
 class Reinforce : torch::nn::Module
 {
 public:
   Reinforce(int64_t num_input, int64_t num_actions);
   torch::Tensor forward(torch::Tensor x);
-  size_t get_action(double state[20][64]);
+  std::tuple<size_t,double> get_action(double state[20][64]);
   void update_policy(std::vector<double> rewards, std::vector<double> log_probs);
 private:
   torch::nn::Linear fc1_{nullptr};
