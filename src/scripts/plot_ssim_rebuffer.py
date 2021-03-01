@@ -18,12 +18,21 @@ from helpers import (
 # cache of Postgres data: experiment 'id' -> json 'data' of the experiment
 expt_id_cache = {}
 
+def get_expt_id(pt):
+    x = pt['expt_id']
+    if x is not None:
+        return x
+
+    for i in range(3):
+        key = 'expt_id_' + str(i)
+        if key in pt:
+            return pt[key]
 
 def collect_ssim(video_acked_results, postgres_cursor):
     # process InfluxDB data
     x = {}
     for pt in video_acked_results['video_acked']:
-        expt_id = int(pt['expt_id'])
+        expt_id = int(get_expt_id(pt))
         expt_config = retrieve_expt_config(expt_id, expt_id_cache,
                                            postgres_cursor)
         # index x by (abr, cc)
@@ -54,7 +63,7 @@ def collect_rebuffer(client_buffer_results, postgres_cursor):
     x = {}
 
     for pt in client_buffer_results['client_buffer']:
-        expt_id = int(pt['expt_id'])
+        expt_id = int(get_expt_id(pt))
         expt_config = retrieve_expt_config(expt_id, expt_id_cache,
                                            postgres_cursor)
         # index x by (abr, cc)
@@ -64,7 +73,7 @@ def collect_rebuffer(client_buffer_results, postgres_cursor):
 
         # index x[abr_cc] by session
         session = (pt['user'], int(pt['init_id']),
-                   pt['channel'], int(pt['expt_id']))
+                   pt['channel'], int(get_expt_id(pt)))
 
         if session not in last_ts:
             last_ts[session] = None

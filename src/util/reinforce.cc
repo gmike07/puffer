@@ -89,11 +89,11 @@ void Reinforce::update_policy(std::vector<double> rewards, std::vector<torch::Te
 
     gradients.backward();
 
-    // std::cout << "grads" << std::endl;  
+    std::cout << "grads" << std::endl;  
     // std::cout << gradients << std::endl;
     // std::cout << sum_gradients << std::endl;
     // std::cout << fc1_->bias << std::endl;   
-    // std::cout << fc1_->bias.grad() << std::endl;   
+    std::cout << fc1_->bias.grad() << std::endl;   
     
     optimizer_->step();
 }

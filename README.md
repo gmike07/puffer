@@ -67,3 +67,6 @@ psotgress quick guide:
 influx paths: 
 * data: `/var/lib/influxdb`
 * config: `/etc/influxdb/influxdb.conf`
+
+## Generate Plots (without the pipeline of puffer-statistics)
+`python3 src/scripts/plot_ssim_rebuffer.py src/settings.yml -o ofir.png`
