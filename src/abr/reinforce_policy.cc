@@ -49,8 +49,8 @@ VideoFormat ReinforcePolicy::select_video_format()
   // getting only the next chunk sending time porb
   auto& next_sending_time = sending_time_prob_[1];
 
-  std::tuple<size_t,double> result = rl_model_.get_action(next_sending_time);
-  double log_prob = std::get<1>(result);
+  std::tuple<size_t, torch::Tensor> result = rl_model_.get_action(next_sending_time);
+  torch::Tensor log_prob = std::get<1>(result);
   log_probs_.push_back(log_prob);
   if (log_probs_.size() > DONE){
     log_probs_.pop_front();
@@ -80,11 +80,13 @@ void ReinforcePolicy::update_rewards()
   if (rewards_.size() > DONE){
     rewards_.pop_front();
   }
+  
+  steps_to_update_--;
 
   if (steps_to_update_ <= 0) {
     steps_to_update_ = DONE;
     std::vector<double> rewards_vec(rewards_.begin(), rewards_.end());
-    std::vector<double> log_probs_vec(log_probs_.begin(), log_probs_.end());
+    std::vector<torch::Tensor> log_probs_vec(log_probs_.begin(), log_probs_.end());
     rl_model_.update_policy(rewards_vec, log_probs_vec);
   }
 }

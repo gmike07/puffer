@@ -6,6 +6,7 @@
 #include <vector>
 #include "filesystem.hh"
 #include "reinforce.hh"
+#include <torch/torch.h>
 
 class ReinforcePolicy : public ABRAlgo
 {
@@ -88,9 +89,9 @@ protected:
   void deal_all_ban(size_t i);
 
   Reinforce rl_model_;
-  static constexpr size_t DONE = 100;
+  static constexpr size_t DONE = 2;
   size_t steps_to_update_ = DONE;
-  std::deque<double> log_probs_ {};
+  std::deque<torch::Tensor> log_probs_ {};
   std::deque<double> rewards_ {};
 
   void update_rewards();
