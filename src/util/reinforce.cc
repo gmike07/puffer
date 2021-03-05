@@ -7,17 +7,21 @@
 Reinforce::Reinforce(int64_t num_input, int64_t num_actions) : 
     num_input_(num_input), 
     num_actions_(num_actions),
-    fc1_(torch::nn::Linear(10 * 64, 10))
+    fc1_(torch::nn::Linear(10 * 64, 10 * 64)),
+    fc2_(torch::nn::Linear(10 * 64, 10))
 {
     fc1_->to(torch::kDouble);
     register_module("fc1", fc1_);
+    fc2_->to(torch::kDouble);
+    register_module("fc2", fc2_);
     optimizer_ = new torch::optim::Adam(this->parameters(), torch::optim::AdamOptions(1e-2));
 }
 
 torch::Tensor Reinforce::forward(torch::Tensor x)
 {
     torch::Tensor fc1 = fc1_->forward(x);
-    return fc1;
+    torch::Tensor fc2 = fc2_->forward(fc1);
+    return fc2;
 }
 
 std::tuple<size_t,torch::Tensor> Reinforce::get_action(double state[20][64])
@@ -89,11 +93,11 @@ void Reinforce::update_policy(std::vector<double> rewards, std::vector<torch::Te
 
     gradients.backward();
 
-    std::cout << "grads" << std::endl;  
+    // std::cout << "grads" << std::endl;  
     // std::cout << gradients << std::endl;
     // std::cout << sum_gradients << std::endl;
     // std::cout << fc1_->bias << std::endl;   
-    std::cout << fc1_->bias.grad() << std::endl;   
+    // std::cout << fc1_->bias.grad() << std::endl;   
     
     optimizer_->step();
 }

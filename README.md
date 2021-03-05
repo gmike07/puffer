@@ -36,7 +36,8 @@ Data is collected from the streaming and written to influxdb.
     - `show databases`  
     - `use puffer`  
     - `show measurements`  
-    - `select * from measurements`  
+    - `select * from measurements` 
+    - delete all measurements `drop series from /.*/` 
 
 # Debug
 - Remember to compile with the flag `-g`: `sudo make -j CXXFLAGS='-DNONSECURE -g' CFLAGS='-g'` 
