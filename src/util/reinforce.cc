@@ -5,9 +5,10 @@
 #include <math.h> 
 
 Reinforce::Reinforce(int64_t num_input, int64_t num_actions) : 
+    save_round_(0),
     num_input_(num_input), 
     num_actions_(num_actions),
-    fc1_(torch::nn::Linear(10 * 64, 10 * 64)),
+    fc1_(torch::nn::Linear(10 * 64, 10)),
     fc2_(torch::nn::Linear(10 * 64, 10))
 {
     fc1_->to(torch::kDouble);
@@ -20,8 +21,8 @@ Reinforce::Reinforce(int64_t num_input, int64_t num_actions) :
 torch::Tensor Reinforce::forward(torch::Tensor x)
 {
     torch::Tensor fc1 = fc1_->forward(x);
-    torch::Tensor fc2 = fc2_->forward(fc1);
-    return fc2;
+    // torch::Tensor fc2 = fc2_->forward(fc1);
+    return fc1;
 }
 
 std::tuple<size_t,torch::Tensor> Reinforce::get_action(double state[20][64])
@@ -55,7 +56,7 @@ std::tuple<size_t,torch::Tensor> Reinforce::get_action(double state[20][64])
 
     size_t highest_prob_action = std::distance(preds_vec.begin(), std::max_element(preds_vec.begin(), preds_vec.end()));
 
-    // std::cout << "highest_prob_action " << highest_prob_action << std::endl;
+    std::cout << "highest_prob_action " << preds_vec << std::endl;
 
     return std::make_tuple(highest_prob_action, torch::log(max_tensor));
 }
@@ -100,4 +101,15 @@ void Reinforce::update_policy(std::vector<double> rewards, std::vector<torch::Te
     // std::cout << fc1_->bias.grad() << std::endl;   
     
     optimizer_->step();
+
+    save_round_++;
+    
+    if (save_round_ % 60*10 == 0){
+        std::cout << "saving point " << save_round_ << std::endl;
+
+        string model_path = "/home/ofir/puffer/ttp/policy/model" + std::to_string(save_round_) + ".pt";
+        torch::serialize::OutputArchive output_archive;
+        this->save(output_archive);
+        output_archive.save_to(model_path);
+    }
 }

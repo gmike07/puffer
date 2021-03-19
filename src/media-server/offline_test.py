@@ -6,7 +6,7 @@ import signal
 
 
 def run_offline_media_servers():
-    run_servers_cmd = './run_servers ../settings_offline.yml'
+    run_servers_cmd = './src/media-server/run_servers ./src/settings_offline.yml'
     p1 = subprocess.Popen(run_servers_cmd, shell=True)
 
 
@@ -16,7 +16,7 @@ def start_maimahi_clients(num_clients):
         trace_dir = "/home/ofir/puffer/traces/fcc"
         #trace_dir = "/home/ubuntu/exact_train_traces_mm_fixed_fcc"
         # To test nowrway traces use: /home/ubuntu/norway_traces"
-        files = os.listdir(trace_dir)
+        files = os.listdir(trace_dir)[:-4] # last data for testing purpose
         for filename in files:
             # mahimahi_cmd = 'mm-delay 40 mm-link 12mbps ' + trace_dir + '/' + \
             #                filename
@@ -38,7 +38,7 @@ def start_maimahi_clients(num_clients):
                                      preexec_fn=os.setsid)
                 plist.append(p)
 
-            time.sleep(60*8)
+            time.sleep(60*10)
             for p in plist:
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                 time.sleep(4)
@@ -57,7 +57,7 @@ def start_maimahi_clients(num_clients):
 
 def main():
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
-    #run_offline_media_servers()
+    run_offline_media_servers()
     start_maimahi_clients(1)
 
 

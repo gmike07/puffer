@@ -89,7 +89,7 @@ protected:
   void deal_all_ban(size_t i);
 
   Reinforce rl_model_;
-  static constexpr size_t DONE = 5;
+  static constexpr size_t DONE = 1;
   size_t steps_to_update_ = DONE;
   std::deque<torch::Tensor> log_probs_ {};
   std::deque<double> rewards_ {};

@@ -20,6 +20,7 @@ private:
   torch::optim::Adam *optimizer_{nullptr};
   torch::nn::Linear fc1_;
   torch::nn::Linear fc2_;
+  size_t save_round_;
 };
 
 #endif

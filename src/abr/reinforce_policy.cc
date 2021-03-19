@@ -76,6 +76,8 @@ void ReinforcePolicy::update_rewards()
   int rebuffer = max(curr_chunk.trans_time - curr_buffer_, (unsigned long)0);
   qoe -= rebuffer_length_coeff_ * rebuffer;
   
+  std::cout << qoe << std::endl;
+
   rewards_.push_back(qoe);
   if (rewards_.size() > DONE){
     rewards_.pop_front();
@@ -87,7 +89,7 @@ void ReinforcePolicy::update_rewards()
     steps_to_update_ = DONE;
     std::vector<double> rewards_vec(rewards_.begin(), rewards_.end());
     std::vector<torch::Tensor> log_probs_vec(log_probs_.begin(), log_probs_.end());
-    rl_model_.update_policy(rewards_vec, log_probs_vec);
+    // rl_model_.update_policy(rewards_vec, log_probs_vec);
   }
 }
 

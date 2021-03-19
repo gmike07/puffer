@@ -41,7 +41,7 @@ expt_id_cache = {}
 
 class Model:
     PAST_CHUNKS = 8
-    FUTURE_CHUNKS = 1
+    FUTURE_CHUNKS = 5
     DIM_IN = 62
     BIN_SIZE = 0.5  # seconds
     BIN_MAX = 20
@@ -687,7 +687,7 @@ def train(i, args, model, input_data, output_data):
 
 def train_or_eval_model(i, args, raw_in_data, raw_out_data):
     # reduce number of threads as we're running FUTURE_CHUNKS parallel processes
-    num_threads = int(torch.get_num_threads() / Model.FUTURE_CHUNKS)
+    num_threads = max(int(torch.get_num_threads() / Model.FUTURE_CHUNKS), 1)
     torch.set_num_threads(num_threads)
 
     # create or load a model

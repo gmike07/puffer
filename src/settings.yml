@@ -16,7 +16,7 @@ experiments:
       abr: puffer_reinforce
       abr_name: puffer_reinforce
       abr_config:
-        model_dir: /home/ofir/puffer/ttp/ttp_reinforce/
+        model_dir: /home/ofir/puffer/ttp/models/reinforce
         rebuffer_length_coeff: 100
         max_lookahead_horizon: 1
       cc: bbr

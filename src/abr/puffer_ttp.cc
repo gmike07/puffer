@@ -15,6 +15,7 @@ PufferTTP::PufferTTP(const WebSocketClient & client,
       // load PyTorch models
       string model_path = model_dir / ("cpp-" + to_string(i) + ".pt");
       ttp_modules_[i] = torch::jit::load(model_path.c_str());
+      
       if (not ttp_modules_[i]) {
         throw runtime_error("Model " + model_path + " does not exist");
       }
