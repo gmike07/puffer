@@ -73,3 +73,8 @@ influx paths:
 
 ## Generate Plots (without the pipeline of puffer-statistics)
 `python3 src/scripts/plot_ssim_rebuffer.py src/settings.yml -o ofir.png`
+
+## FCC dataset
+Go to `pensieve` repo and run:
+* `python traces/load_webget_data.py`
+* `python traces/convert_mahimahi_format.py`

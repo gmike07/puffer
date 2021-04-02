@@ -16,7 +16,7 @@ def start_maimahi_clients(num_clients):
         trace_dir = "/home/ofir/puffer/traces/fcc"
         #trace_dir = "/home/ubuntu/exact_train_traces_mm_fixed_fcc"
         # To test nowrway traces use: /home/ubuntu/norway_traces"
-        files = os.listdir(trace_dir)[:-4] # last data for testing purpose
+        files = os.listdir(trace_dir)
         for filename in files:
             # mahimahi_cmd = 'mm-delay 40 mm-link 12mbps ' + trace_dir + '/' + \
             #                filename
@@ -31,7 +31,8 @@ def start_maimahi_clients(num_clients):
                 #             str(port) + ' --user-data-dir=./' + str(port) + \
                 #             '.profile'
                 time.sleep(4)
-                mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ofir/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium-browser --disable-gpu --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, remote_port, port, port)
+                mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ofir/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium-browser  --disable-gpu --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, remote_port, port, port)
+                # mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ofir/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium-browser --disable-gpu --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, remote_port, port, port)
                 print(mahimahi_chrome_cmd)
                 chrome_cmd_b = mahimahi_chrome_cmd.encode('utf-8')
                 p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
