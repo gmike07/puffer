@@ -131,22 +131,22 @@ experiments:
   #       upper_reservoir: 0.9
   #     cc: cubic
   
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: linear_bba
-  #     cc: bbr 
-  #     abr_config:
-  #       upper_reservoir: 0.9
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: robust_mpc
-  #     cc: bbr
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: mpc
-  #     abr_config:
-  #       rebuffer_length_coeff: 100
-  #     cc: bbr
+  - num_servers: 1
+    fingerprint:
+      abr: linear_bba
+      cc: bbr 
+      abr_config:
+        upper_reservoir: 0.9
+  - num_servers: 1
+    fingerprint:
+      abr: robust_mpc
+      cc: bbr
+  - num_servers: 1
+    fingerprint:
+      abr: mpc
+      abr_config:
+        rebuffer_length_coeff: 100
+      cc: bbr
 
 #  - num_servers: 1
 #    fingerprint:
@@ -163,12 +163,12 @@ experiments:
   #      model_dir: /home/ofir/puffer/ttp/models/fcc
   #      rebuffer_length_coeff: 100
   #    cc: bbr
-  - num_servers: 1
-    fingerprint:
-      abr: puffer_reinforce
-      abr_name: puffer_reinforce
-      abr_config:
-        model_dir: /home/ofir/puffer/ttp/models/fcc-rl
-        rebuffer_length_coeff: 100
-        max_lookahead_horizon: 1
-      cc: bbr
+  # - num_servers: 2
+  #   fingerprint:
+  #     abr: puffer_reinforce
+  #     abr_name: puffer_reinforce
+  #     abr_config:
+  #       model_dir: /home/ofir/puffer/ttp/models/fcc-rl
+  #       rebuffer_length_coeff: 100
+  #       max_lookahead_horizon: 1
+  #     cc: bbr
