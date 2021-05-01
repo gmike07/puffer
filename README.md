@@ -76,5 +76,6 @@ influx paths:
 
 ## FCC dataset
 Go to `pensieve` repo and run:
-* `python traces/load_webget_data.py`
-* `python traces/convert_mahimahi_format.py`
+* `cd traces`
+* `python load_webget_data.py`
+* `python convert_mahimahi_format.py`
