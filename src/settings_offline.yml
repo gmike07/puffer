@@ -3,16 +3,15 @@ portal_settings:
   secret_key: PUFFER_PORTAL_SECRET_KEY
   debug: true
   allowed_hosts:
-    - 127.0.0.1
-    - 100.64.0.1
+    - '*'
 postgres_connection:
   host: 127.0.0.1
   port: 5432
   dbname: puffer
   user: puffer
   password: PUFFER_PORTAL_DB_KEY
-enable_logging: True
-log_dir: /home/ofir/puffer/src/monitoring
+enable_logging: true
+log_dir: /home/csuser/puffer/src/monitoring
 influxdb_connection:
   host: 127.0.0.1
   port: 8086
@@ -20,7 +19,7 @@ influxdb_connection:
   user: puffer
   password: INFLUXDB_PASSWORD
 enforce_moving_live_edge: false
-media_dir: /home/ofir/ubuntu/media-181230
+media_dir: /home/csuser/ubuntu/media-181230
 channels:
   - abc
   - nbc
@@ -131,17 +130,17 @@ experiments:
   #       upper_reservoir: 0.9
   #     cc: cubic
   
-  - num_servers: 1
+  - num_servers: 4
     fingerprint:
       abr: linear_bba
       cc: bbr 
       abr_config:
         upper_reservoir: 0.9
-  - num_servers: 1
+  - num_servers: 4
     fingerprint:
       abr: robust_mpc
       cc: bbr
-  - num_servers: 1
+  - num_servers: 4
     fingerprint:
       abr: mpc
       abr_config:

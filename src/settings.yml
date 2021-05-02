@@ -16,7 +16,7 @@ experiments:
       abr: puffer_reinforce
       abr_name: puffer_reinforce
       abr_config:
-        model_dir: /home/ofir/puffer/ttp/models/reinforce
+        model_dir: /home/csuser/puffer/ttp/models/reinforce
         rebuffer_length_coeff: 100
         max_lookahead_horizon: 1
       cc: bbr
@@ -49,7 +49,7 @@ experiments:
   #     cc: bbr
  
 enable_logging: true
-log_dir: /home/ofir/puffer/src/monitoring
+log_dir: /home/csuser/puffer/src/monitoring
 influxdb_connection:  
   host: 127.0.0.1
   port: 8086
@@ -57,7 +57,7 @@ influxdb_connection:
   user: puffer
   password: INFLUXDB_PASSWORD
 
-media_dir: /home/ofir/ubuntu/media-181230
+media_dir: /home/csuser/ubuntu/media-181230
 enforce_moving_live_edge: false
 channels:
   - abc

@@ -41,7 +41,7 @@ expt_id_cache = {}
 
 class Model:
     PAST_CHUNKS = 8
-    FUTURE_CHUNKS = 5
+    FUTURE_CHUNKS = 1 # TODO: change to 5
     DIM_IN = 62
     BIN_SIZE = 0.5  # seconds
     BIN_MAX = 20
