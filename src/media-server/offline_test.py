@@ -14,24 +14,31 @@ def start_maimahi_clients(num_clients):
     plist = []
     try:
         trace_dir = "/home/csuser/puffer/traces/mahimahi"
-        #trace_dir = "/home/ubuntu/exact_train_traces_mm_fixed_fcc"
-        # To test nowrway traces use: /home/ubuntu/norway_traces"
+
         files = os.listdir(trace_dir)
-        for filename in files[::-1]:
+        test_files = files[:300]
+        reinforce_train_files = files[300:600]
+
+        traces = reinforce_train_files
+        # for filename in files[:300]:
+        for f in range(0, len(traces), num_clients):
             # mahimahi_cmd = 'mm-delay 40 mm-link 12mbps ' + trace_dir + '/' + \
             #                filename
             base_port = 9360
             remote_base_port = 9222
             plist = []
             for i in range(1, num_clients + 1):
+                filename = traces[i]
                 remote_port = remote_base_port + i
-                port = base_port + i
+                port = base_port + 1
                 #chrome_cmd = 'chromium-browser --headless --disable-gpu --remote-debugging-port=9222 ' + \
                 #             'http://$MAHIMAHI_BASE:8080/player/?wsport=' + \
                 #             str(port) + ' --user-data-dir=./' + str(port) + \
                 #             '.profile'
+
                 time.sleep(4)
-                mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/csuser/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium --disable-gpu --headless --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, remote_port, port, port)
+                mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/csuser/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium --disable-gpu --headless --remote-debugging-port={} http://100.64.0.1:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, port, port, port)
+                # mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/csuser/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium --disable-gpu --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, remote_port, port, port)
                 # mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ofir/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium-browser --disable-gpu --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, remote_port, port, port)
                 print(mahimahi_chrome_cmd)
                 chrome_cmd_b = mahimahi_chrome_cmd.encode('utf-8')
@@ -59,7 +66,7 @@ def start_maimahi_clients(num_clients):
 def main():
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     run_offline_media_servers()
-    start_maimahi_clients(12)
+    start_maimahi_clients(8)
 
 
 if __name__ == '__main__':
