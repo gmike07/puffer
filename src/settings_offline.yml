@@ -169,6 +169,7 @@ experiments:
       abr_name: puffer_reinforce
       abr_config:
         model_dir: /home/ofir/puffer/ttp/models/fcc-rl
+        policy_model_dir: /home/ofir/puffer/ttp/policy/
         rebuffer_length_coeff: 100
         max_lookahead_horizon: 1
       cc: bbr

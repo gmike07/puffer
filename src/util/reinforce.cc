@@ -56,7 +56,7 @@ std::tuple<size_t,torch::Tensor> Reinforce::get_action(double state[20][64])
 
     size_t highest_prob_action = std::distance(preds_vec.begin(), std::max_element(preds_vec.begin(), preds_vec.end()));
 
-    std::cout << "highest_prob_action " << preds_vec << std::endl;
+    // std::cout << "highest_prob_action " << preds_vec << std::endl;
 
     return std::make_tuple(highest_prob_action, torch::log(max_tensor));
 }
