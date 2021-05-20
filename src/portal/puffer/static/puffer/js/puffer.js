@@ -130,7 +130,7 @@ function AVSource(ws_client, server_init) {
 
   /* Initialize video and audio source buffers, and set the initial offset */
   function init_source_buffers() {
-    console.log('Initializing new media source buffer');
+    // console.log('Initializing new media source buffer');
 
     /* https://developers.google.com/web/fundamentals/media/mse/basics */
     URL.revokeObjectURL(video.src);
@@ -160,12 +160,12 @@ function AVSource(ws_client, server_init) {
     });
 
     vbuf.addEventListener('error', function(e) {
-      console.log('video source buffer error:', e);
+      // console.log('video source buffer error:', e);
       that.close();
     });
 
     vbuf.addEventListener('abort', function(e) {
-      console.log('video source buffer abort:', e);
+      // console.log('video source buffer abort:', e);
     });
 
     abuf.addEventListener('updateend', function(e) {
@@ -179,12 +179,12 @@ function AVSource(ws_client, server_init) {
     });
 
     abuf.addEventListener('error', function(e) {
-      console.log('audio source buffer error:', e);
+      // console.log('audio source buffer error:', e);
       that.close();
     });
 
     abuf.addEventListener('abort', function(e) {
-      console.log('audio source buffer abort:', e);
+      // console.log('audio source buffer abort:', e);
     });
 
     /* try updating vbuf and abuf in case there are already pending chunks */
@@ -194,7 +194,7 @@ function AVSource(ws_client, server_init) {
 
   ms.addEventListener('sourceopen', function(e) {
     if (debug && ms) {
-      console.log('sourceopen: ' + ms.readyState, e);
+      // console.log('sourceopen: ' + ms.readyState, e);
     }
 
     if (ms) {  // safeguard
@@ -204,20 +204,20 @@ function AVSource(ws_client, server_init) {
 
   ms.addEventListener('sourceended', function(e) {
     if (debug && ms) {
-      console.log('sourceended: ' + ms.readyState, e);
+      // console.log('sourceended: ' + ms.readyState, e);
     }
   });
 
   ms.addEventListener('sourceclose', function(e) {
     if (debug && ms) {
-      console.log('sourceclose: ' + ms.readyState, e);
+      // console.log('sourceclose: ' + ms.readyState, e);
     }
     that.close();
   });
 
   ms.addEventListener('error', function(e) {
     if (ms) {
-      console.log('media source error: ' + ms.readyState, e);
+      // console.log('media source error: ' + ms.readyState, e);
     }
     that.close();
   });
@@ -229,7 +229,7 @@ function AVSource(ws_client, server_init) {
   /* call "close" to garbage collect MediaSource and SourceBuffers sooner */
   this.close = function() {
     if (ms) {
-      console.log('Closing media source buffer');
+      // console.log('Closing media source buffer');
     }
 
     /* assign null to (hopefully) trigger garbage collection */
@@ -246,7 +246,7 @@ function AVSource(ws_client, server_init) {
 
   this.handleVideo = function(metadata, data, msg_ts) {
     if (channel !== metadata.channel) {
-      console.log('error: should have ignored data from incorrect channel');
+      // console.log('error: should have ignored data from incorrect channel');
       return;
     }
 
@@ -283,7 +283,7 @@ function AVSource(ws_client, server_init) {
 
   this.handleAudio = function(metadata, data, msg_ts) {
     if (channel !== metadata.channel) {
-      console.log('error: should have ignored data from incorrect channel');
+      // console.log('error: should have ignored data from incorrect channel');
       return;
     }
 
@@ -469,7 +469,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
     ws.send(format_client_msg('client-init', msg));
 
     if (debug) {
-      console.log('sent client-init', msg);
+      // console.log('sent client-init', msg);
     }
   };
 
@@ -514,7 +514,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
     ws.send(format_client_msg('client-info', msg));
 
     if (debug) {
-      console.log('sent client-info', msg);
+      // console.log('sent client-info', msg);
     }
   };
 
@@ -556,12 +556,12 @@ function WebSocketClient(session_key, username_in, settings_debug,
     } else if (ack_type === 'client-audack') {
       ws.send(format_client_msg(ack_type, msg));
     } else {
-      console.log('invalid ack type:', ack_type);
+      // console.log('invalid ack type:', ack_type);
       return;
     }
 
     if (debug) {
-      console.log('sent', ack_type, msg);
+      // console.log('sent', ack_type, msg);
     }
   };
 
@@ -578,7 +578,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
     var metadata = server_msg.metadata;
 
     if (debug) {
-      console.log('received', metadata.type, metadata);
+      // console.log('received', metadata.type, metadata);
     }
 
     /* check fatal errors regardless of init_id */
@@ -619,7 +619,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
     } else if (metadata.type === 'server-init') {
       /* return if client is able to resume */
       if (av_source && av_source.isOpen() && metadata.canResume) {
-        console.log('Resuming playback');
+        // console.log('Resuming playback');
         return;
       }
 
@@ -627,7 +627,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
       av_source = new AVSource(that, metadata);
     } else if (metadata.type === 'server-video') {
       if (!av_source) {
-        console.log('Error: AVSource is not initialized yet');
+        // console.log('Error: AVSource is not initialized yet');
         return;
       }
 
@@ -638,7 +638,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
       av_source.handleVideo(metadata, data, msg_ts);
     } else if (metadata.type === 'server-audio') {
       if (!av_source) {
-        console.log('Error: AVSource is not initialized yet');
+        // console.log('Error: AVSource is not initialized yet');
         return;
       }
 
@@ -648,7 +648,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
       /* note: handleAudio can buffer chunks even if !av_source.isOpen() */
       av_source.handleAudio(metadata, data, msg_ts);
     } else {
-      console.log('received unknown message', metadata);
+      // console.log('received unknown message', metadata);
     }
   }
 
@@ -670,7 +670,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
         if(window.location.href.indexOf(parameter) > -1){
             urlparameter = getUrlVars()[parameter];
             }
-        console.log(urlparameter)
+        // console.log(urlparameter)
         return urlparameter;
     }
 
@@ -685,7 +685,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
     ws.onmessage = handle_ws_msg;
 
     ws.onopen = function(e) {
-      console.log('Connected to', ws_addr);
+      // console.log('Connected to', ws_addr);
       remove_player_error('connect');
 
       last_msg_recv_ts = Date.now();
@@ -695,7 +695,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
     };
 
     ws.onclose = function(e) {
-      console.log('Closed connection to', ws_addr);
+      // console.log('Closed connection to', ws_addr);
       ws = null;
 
       if (fatal_error) {
@@ -704,7 +704,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
 
       if (reconnect_backoff < MAX_RECONNECT_BACKOFF) {
         /* Try to reconnect */
-        console.log('Reconnecting in ' + reconnect_backoff + 'ms');
+        // console.log('Reconnecting in ' + reconnect_backoff + 'ms');
 
         setTimeout(function() {
           add_player_error(
@@ -730,7 +730,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
     };
 
     ws.onerror = function(e) {
-      console.log('WebSocket error:', e);
+      // console.log('WebSocket error:', e);
       ws = null;
     };
   };
@@ -806,7 +806,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
       if (!rebuffering) {
         /* this is the first time that the channel has started playing */
         stop_spinner();
-        console.log('Channel starts playing');
+        // console.log('Channel starts playing');
 
         /* calculate startup delay */
         startup_delay_ms = curr_ts - set_channel_ts;
@@ -824,7 +824,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
       if (rebuffer_start_ts === null) {
         /* channel stops playing and starts rebuffering */
         start_spinner();
-        console.log('Channel starts rebuffering');
+        // console.log('Channel starts rebuffering');
 
         /* inform server */
         that.send_client_info('rebuffer');
@@ -844,7 +844,7 @@ function WebSocketClient(session_key, username_in, settings_debug,
       if (rebuffer_start_ts !== null) {
         /* the channel resumes playing from rebuffering */
         stop_spinner();
-        console.log('Channel resumes playing');
+        // console.log('Channel resumes playing');
 
         /* inform server */
         that.send_client_info('play');

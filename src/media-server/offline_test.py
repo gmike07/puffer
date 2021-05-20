@@ -37,10 +37,10 @@ def start_maimahi_clients(num_clients):
                 #             '.profile'
 
                 time.sleep(4)
-                mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/csuser/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium --disable-gpu --headless --remote-debugging-port={} http://100.64.0.1:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, port, port, port)
+                mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/csuser/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium --disable-gpu --remote-debugging-port={} http://100.64.0.1:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, port, port, port)
                 # mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/csuser/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium --disable-gpu --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, remote_port, port, port)
                 # mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ofir/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium-browser --disable-gpu --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(trace_dir, filename, remote_port, port, port)
-                print(mahimahi_chrome_cmd)
+                # print(mahimahi_chrome_cmd)
                 chrome_cmd_b = mahimahi_chrome_cmd.encode('utf-8')
                 p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
                                      preexec_fn=os.setsid)
@@ -66,7 +66,7 @@ def start_maimahi_clients(num_clients):
 def main():
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     run_offline_media_servers()
-    start_maimahi_clients(8)
+    start_maimahi_clients(1)
 
 
 if __name__ == '__main__':

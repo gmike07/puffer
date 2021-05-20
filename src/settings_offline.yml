@@ -165,9 +165,10 @@ experiments:
   - num_servers: 1
     fingerprint:
       abr: puffer_reinforce
-      abr_name: puffer_reinforce
+      abr_name: puffer_reinforce_train
       abr_config:
-        model_dir: /home/csuser/puffer/ttp/models/fcc-rl
+        model_dir: /home/csuser/puffer/ttp/model/ttp-rl
         rebuffer_length_coeff: 100
         max_lookahead_horizon: 1
+        training_mode: true
       cc: bbr

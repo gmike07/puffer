@@ -28,6 +28,10 @@ ReinforcePolicy::ReinforcePolicy(const WebSocketClient & client,
     ssim_diff_coeff_ = abr_config["ssim_diff_coeff"].as<double>();
   }
 
+  if (abr_config["training_mode"]) {
+    training_mode_ = abr_config["training_mode"].as<bool>();
+  }
+
   dis_buf_length_ = min(dis_buf_length_,
                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
 }
@@ -76,7 +80,7 @@ void ReinforcePolicy::update_rewards()
   int rebuffer = max(curr_chunk.trans_time - curr_buffer_, (unsigned long)0);
   qoe -= rebuffer_length_coeff_ * rebuffer;
   
-  std::cout << qoe << std::endl;
+  std::cout << "QOE " << qoe << std::endl;
 
   rewards_.push_back(qoe);
   if (rewards_.size() > DONE){
@@ -85,11 +89,11 @@ void ReinforcePolicy::update_rewards()
   
   steps_to_update_--;
 
-  if (steps_to_update_ <= 0) {
+  if (steps_to_update_ <= 0 && training_mode_) {
     steps_to_update_ = DONE;
     std::vector<double> rewards_vec(rewards_.begin(), rewards_.end());
     std::vector<torch::Tensor> log_probs_vec(log_probs_.begin(), log_probs_.end());
-    // rl_model_.update_policy(rewards_vec, log_probs_vec);
+    rl_model_.update_policy(rewards_vec, log_probs_vec);
   }
 }
 

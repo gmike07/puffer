@@ -56,7 +56,8 @@ std::tuple<size_t,torch::Tensor> Reinforce::get_action(double state[20][64])
 
     size_t highest_prob_action = std::distance(preds_vec.begin(), std::max_element(preds_vec.begin(), preds_vec.end()));
 
-    std::cout << "highest_prob_action " << preds_vec << std::endl;
+    // std::cout << "prdictions " << preds_vec << std::endl;
+    // std::cout << "highest_prob_action " << highest_prob_action << std::endl;
 
     return std::make_tuple(highest_prob_action, torch::log(max_tensor));
 }
@@ -103,8 +104,9 @@ void Reinforce::update_policy(std::vector<double> rewards, std::vector<torch::Te
     optimizer_->step();
 
     save_round_++;
+    std::cout << "save round " << save_round_ << std::endl;
     
-    if (save_round_ % 60*10*10 == 0){
+    if (save_round_ % 60*10 == 0){
         std::cout << "saving point " << save_round_ << std::endl;
 
         string model_path = "/home/csuser/puffer/ttp/policy/model" + std::to_string(save_round_) + ".pt";
