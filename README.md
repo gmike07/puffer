@@ -54,7 +54,7 @@ In order to use ttp we must omit it last layer:
     - edit the file `model.json` and delete the last layer  
     - edit the file `code/ccp-{}.py` and delete the last layer  
 
-In order to train a new model: `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model ttp/models/fcc/`
+In order to train a new model: `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model ttp/models/fcc/` `--tune`
 (install torch==1.0.0, matplotlib==3.0.0)
 
 # Postgress

@@ -9,6 +9,7 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
                      const string & abr_name, const YAML::Node & abr_config)
   : ReinforcePolicy(client, abr_name, abr_config)
 {
+  
   /* load neural networks */
   if (abr_config["model_dir"]) {
     fs::path model_dir = abr_config["model_dir"].as<string>();
@@ -40,6 +41,8 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
   } else {
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
+  std::cout << "Finish cons. " << max_lookahead_horizon_ << std::endl;
+
 }
 
 void PufferReinforce::send_chunk_statistics(double qoe)
@@ -69,8 +72,9 @@ void PufferReinforce::send_chunk_statistics(double qoe)
   headers = curl_slist_append(headers, "Content-Type: application/json");
   headers = curl_slist_append(headers, "charset: utf-8");
 
-  curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8000");
+  curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8200");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers); 
+  curl_easy_setopt(curl, CURLOPT_POST, 1);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
 
   curl_easy_perform(curl);

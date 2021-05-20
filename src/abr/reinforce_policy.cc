@@ -123,30 +123,9 @@ std::tuple<size_t,torch::Tensor> ReinforcePolicy::get_action(double state[20][64
         preds_vec.push_back(preds[j].item<double>());
     }
 
-<<<<<<< HEAD
-  int rebuffer = max(curr_chunk.trans_time - curr_buffer_, (unsigned long)0);
-  qoe -= rebuffer_length_coeff_ * rebuffer;
-  
-  std::cout << "QOE " << qoe << std::endl;
-
-  rewards_.push_back(qoe);
-  if (rewards_.size() > DONE){
-    rewards_.pop_front();
-  }
-  
-  steps_to_update_--;
-
-  if (steps_to_update_ <= 0 && training_mode_) {
-    steps_to_update_ = DONE;
-    std::vector<double> rewards_vec(rewards_.begin(), rewards_.end());
-    std::vector<torch::Tensor> log_probs_vec(log_probs_.begin(), log_probs_.end());
-    rl_model_.update_policy(rewards_vec, log_probs_vec);
-  }
-=======
     size_t highest_prob_action = std::distance(preds_vec.begin(), std::max_element(preds_vec.begin(), preds_vec.end()));
 
     return std::make_tuple(highest_prob_action, torch::log(max_tensor));
->>>>>>> 22b1016b03d81a42b0b7bb1ffc41ad670dd906f7
 }
 
 void ReinforcePolicy::reinit()

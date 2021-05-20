@@ -11,6 +11,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import time
 from threading import Thread
 from queue import Queue
+import os
 
 DEVICE = torch.device('cpu')
 MEASURES = []
@@ -20,6 +21,7 @@ MIN_MEASUREMENTS = 10
 ROUNDS_TO_SAVE = 1
 SLEEP_SEC = 5
 CPP_BASE_DIR = '/home/csuser/puffer/ttp/policy/'
+PYTHON_BASE_DIR = '/home/csuser/puffer/ttp/policy-python/'
 VERSION = 1
 
 class Model:
@@ -99,27 +101,27 @@ def wrap(measures):
             self.wfile.write(self._html("hi!"))
 
         def do_POST(self):
+            self.send_response(200)
+
             content_len = int(self.headers.get('Content-Length'))
-            data = self.rfile.readlines()
-            print(data)
-            parsed_data = json.loads(data[0])
+            data = self.rfile.read(content_len)
+            
+            # print(data)
+            parsed_data = json.loads(data)
             version, state, qoe = parsed_data['version'], parsed_data['state'], parsed_data['qoe']
 
             # print('got version: ', version, '; curr version: ', VERSION)
 
             if version < VERSION:
-                self.send_response(200)
                 return
 
             state = np.array(state, np.double)
             measures.put({"state": state, "qoe": qoe})
 
-            self.send_response(200)
-
     return HandlerClass
 
 
-def run(q, server_class=HTTPServer, addr="localhost", port=8000):
+def run(q, server_class=HTTPServer, addr="localhost", port=8200):
     server_address = (addr, port)
 
     handler = wrap(q)
@@ -167,14 +169,23 @@ def train_model(q):
 
         # save weights
         if rounds_to_save <= 0:
+            # save weights
             global VERSION  
-            VERSION += 1
+            filename = 'weights_' + str(VERSION) + '.pt'
+            model.save_cpp_model(CPP_BASE_DIR + filename)
 
-            rounds_to_save = ROUNDS_TO_SAVE
-            model.save_cpp_model(CPP_BASE_DIR + 'weights_' + str(VERSION) + '.pt')
-            # version += 1
+            for f in list(sorted(os.listdir(CPP_BASE_DIR)))[:-1]:
+                os.remove(CPP_BASE_DIR + "/" + f)
+
+            model.save(PYTHON_BASE_DIR + filename)
+            for f in list(sorted(os.listdir(PYTHON_BASE_DIR)))[:-1]:
+                os.remove(PYTHON_BASE_DIR + "/" + f)
+
             total_measurements = []
             q = Queue()
+
+            VERSION += 1
+            rounds_to_save = ROUNDS_TO_SAVE
 
 
 if __name__ == "__main__":
@@ -189,7 +200,7 @@ if __name__ == "__main__":
         "-p",
         "--port",
         type=int,
-        default=8000,
+        default=8200,
         help="Specify the port on which the server listens",
     )
     args = parser.parse_args()
