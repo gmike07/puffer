@@ -14,6 +14,12 @@
 
 /puffer-*
 
+traces/fcc
+traces/cooked/
+traces/mahimahi/
+ttp/model/
+ttp/policy/
+
 ##### autotools
 
 # autoconf
