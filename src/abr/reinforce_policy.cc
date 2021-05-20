@@ -4,6 +4,7 @@
 #include <memory>
 #include <tuple>
 
+
 #include "ws_client.hh"
 #include "json.hpp"
 
@@ -34,6 +35,24 @@ ReinforcePolicy::ReinforcePolicy(const WebSocketClient & client,
 
   dis_buf_length_ = min(dis_buf_length_,
                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
+
+  if (abr_config["policy_model_dir"]) {
+    fs::path path = abr_config["policy_model_dir"].as<string>();
+    vector<fs::path> files;
+    for (const auto & entry: fs::directory_iterator(path)) {
+      files.push_back(entry.path());
+    }
+
+    sort(files.begin(), files.end());
+
+    string path_str = files.back().c_str();
+    policy_ = torch::jit::load(path_str);
+
+    version_ = stoi(path_str.substr(path_str.find_last_of('_') + 1, path_str.find_last_of('_')));
+    version_++;
+
+    cout << "version " << version_ << endl;
+  }
 }
 
 void ReinforcePolicy::video_chunk_acked(Chunk && c)
@@ -43,7 +62,28 @@ void ReinforcePolicy::video_chunk_acked(Chunk && c)
     past_chunks_.pop_front();
   }
 
-  update_rewards();
+  if (past_chunks_.size() < 2){
+    return;
+  }
+
+  double qoe = calc_qoe();
+  send_chunk_statistics(qoe);
+}
+
+double ReinforcePolicy::calc_qoe()
+{
+  Chunk curr_chunk = past_chunks_.back();
+  Chunk prev_chunk = past_chunks_.end()[-2];
+
+  double qoe = ssim_db(curr_chunk.ssim);
+  qoe -= ssim_diff_coeff_ * fabs(ssim_db(curr_chunk.ssim) - ssim_db(prev_chunk.ssim));
+
+  int rebuffer = max(curr_chunk.trans_time - curr_buffer_, (unsigned long)0);
+  qoe -= rebuffer_length_coeff_ * rebuffer;
+  
+  std::cout << qoe << std::endl;
+
+  return qoe;
 }
 
 VideoFormat ReinforcePolicy::select_video_format()
@@ -53,7 +93,7 @@ VideoFormat ReinforcePolicy::select_video_format()
   // getting only the next chunk sending time porb
   auto& next_sending_time = sending_time_prob_[1];
 
-  std::tuple<size_t, torch::Tensor> result = rl_model_.get_action(next_sending_time);
+  std::tuple<size_t, torch::Tensor> result = this->get_action(next_sending_time);
   torch::Tensor log_prob = std::get<1>(result);
   log_probs_.push_back(log_prob);
   if (log_probs_.size() > DONE){
@@ -64,19 +104,26 @@ VideoFormat ReinforcePolicy::select_video_format()
   return client_.channel()->vformats()[format];
 }
 
-void ReinforcePolicy::update_rewards()
+std::tuple<size_t,torch::Tensor> ReinforcePolicy::get_action(double state[20][64])
 {
-  // calc QoE
-  if (past_chunks_.size() < 2){
-    return;
-  }
+    std::vector<torch::jit::IValue> torch_inputs;
 
-  Chunk curr_chunk = past_chunks_.back();
-  Chunk prev_chunk = past_chunks_.end()[-2];
+    torch_inputs.push_back(torch::from_blob(state, {20 * 64}, torch::kDouble).unsqueeze(0));
+    
+    torch::Tensor preds = policy_->forward(torch_inputs).toTensor();
+    preds = preds.squeeze();
 
-  double qoe = ssim_db(curr_chunk.ssim);
-  qoe -= ssim_diff_coeff_ * fabs(ssim_db(curr_chunk.ssim) - ssim_db(prev_chunk.ssim));
+    torch::Tensor max_tensor = torch::max_values(preds, 0);
+    
+    preds = preds.detach();
+    preds = torch::softmax(preds, 0);
+    
+    std::vector<double> preds_vec;
+    for (size_t j = 0; j < 10; j++) {
+        preds_vec.push_back(preds[j].item<double>());
+    }
 
+<<<<<<< HEAD
   int rebuffer = max(curr_chunk.trans_time - curr_buffer_, (unsigned long)0);
   qoe -= rebuffer_length_coeff_ * rebuffer;
   
@@ -95,14 +142,12 @@ void ReinforcePolicy::update_rewards()
     std::vector<torch::Tensor> log_probs_vec(log_probs_.begin(), log_probs_.end());
     rl_model_.update_policy(rewards_vec, log_probs_vec);
   }
-}
+=======
+    size_t highest_prob_action = std::distance(preds_vec.begin(), std::max_element(preds_vec.begin(), preds_vec.end()));
 
-// VideoFormat ReinforcePolicy::select_video_format()
-// {
-//   reinit();
-//   size_t ret_format = update_value(0, curr_buffer_, 0);
-//   return client_.channel()->vformats()[ret_format];
-// }
+    return std::make_tuple(highest_prob_action, torch::log(max_tensor));
+>>>>>>> 22b1016b03d81a42b0b7bb1ffc41ad670dd906f7
+}
 
 void ReinforcePolicy::reinit()
 {
@@ -188,76 +233,6 @@ void ReinforcePolicy::deal_all_ban(size_t i)
 
   sending_time_prob_[i][min_id][dis_sending_time_] = 1;
 }
-
-// size_t ReinforcePolicy::update_value(size_t i, size_t curr_buffer, size_t curr_format)
-// {
-//   flag_[i][curr_buffer][curr_format] = curr_round_;
-
-//   if (i == lookahead_horizon_) {
-//     v_[i][curr_buffer][curr_format] = curr_ssims_[i][curr_format];
-//     return 0;
-//   }
-
-//   size_t best_next_format = num_formats_;
-//   double max_qvalue = 0;
-//   for (size_t next_format = 0; next_format < num_formats_; next_format++) {
-//     if (is_ban_[i + 1][next_format] == true) {
-//       continue;
-//     }
-
-//     double qvalue = get_qvalue(i, curr_buffer, curr_format, next_format);
-//     if (best_next_format == num_formats_ or qvalue > max_qvalue) {
-//       max_qvalue = qvalue;
-//       best_next_format = next_format;
-//     }
-//   }
-//   v_[i][curr_buffer][curr_format] = max_qvalue;
-
-//   return best_next_format;
-// }
-
-// double ReinforcePolicy::get_qvalue(size_t i, size_t curr_buffer, size_t curr_format,
-//                           size_t next_format)
-// {
-//   assert(is_ban_[i + 1][next_format] == false);
-
-//   double ans = curr_ssims_[i][curr_format];
-
-//   if (not (is_init_ and i == 0)) {
-//      ans -= ssim_diff_coeff_
-//             * fabs(curr_ssims_[i][curr_format] - curr_ssims_[i + 1][next_format]);
-//   }
-
-//   for (size_t st = 0; st <= dis_sending_time_; st++) {
-//     if (sending_time_prob_[i + 1][next_format][st] < st_prob_eps_) {
-//       continue;
-//     }
-
-//     int rebuffer = st - curr_buffer;
-//     size_t next_buffer = min(max(-rebuffer, 0) + dis_chunk_length_,
-//                              dis_buf_length_);
-//     rebuffer = max(rebuffer, 0);
-//     double real_rebuffer = rebuffer * unit_buf_length_;
-
-//     if (curr_buffer - st == 0) {
-//       real_rebuffer = rebuffer * unit_buf_length_ * 0.25;
-//     }
-
-//     ans += sending_time_prob_[i+1][next_format][st]
-//            * (get_value(i + 1, next_buffer, next_format)
-//               - rebuffer_length_coeff_ * real_rebuffer);
-//   }
-
-//   return ans;
-// }
-
-// double ReinforcePolicy::get_value(size_t i, size_t curr_buffer, size_t curr_format)
-// {
-//   if (flag_[i][curr_buffer][curr_format] != curr_round_) {
-//     update_value(i, curr_buffer, curr_format);
-//   }
-//   return v_[i][curr_buffer][curr_format];
-// }
 
 size_t ReinforcePolicy::discretize_buffer(double buf)
 {

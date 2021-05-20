@@ -1,10 +1,8 @@
 AM_CPPFLAGS = -I$(srcdir)/../net $(CXX17_FLAGS) \
 	-isystem$(srcdir)/../../third_party/json.upstream/single_include/nlohmann \
 	-isystem$(srcdir)/../../third_party/libtorch/include \
-	-isystem$(srcdir)/../../third_party/libtorch/include/torch/csrc/api/include \
-    -I/usr/include/python3.7 \
-	-I/home/ofir/.local/lib/python3.7/site-packages/pybind11/include
-	
+	-isystem$(srcdir)/../../third_party/libtorch/include/torch/csrc/api/include
+
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 noinst_LIBRARIES = libutil.a

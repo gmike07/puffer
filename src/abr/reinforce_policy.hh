@@ -95,7 +95,12 @@ protected:
   std::deque<torch::Tensor> log_probs_ {};
   std::deque<double> rewards_ {};
 
-  void update_rewards();
+  double calc_qoe();
+
+  unsigned int version_;
+  std::shared_ptr<torch::jit::script::Module> policy_ {};
+  virtual void send_chunk_statistics(double qoe) {};
+  std::tuple<size_t,torch::Tensor> get_action(double state[20][64]);
 };
 
 #endif /* REINFROCE_POLICY_HH */

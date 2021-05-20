@@ -168,6 +168,7 @@ experiments:
       abr_name: puffer_reinforce_train
       abr_config:
         model_dir: /home/csuser/puffer/ttp/model/ttp-rl
+        policy_model_dir: /home/csuser/puffer/ttp/policy/
         rebuffer_length_coeff: 100
         max_lookahead_horizon: 1
         training_mode: true

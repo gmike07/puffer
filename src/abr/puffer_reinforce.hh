@@ -35,6 +35,8 @@ private:
   void normalize_in_place(size_t i, std::vector<double> & input);
 
   void reinit_sending_time() override;
+
+  void send_chunk_statistics(double qoe) override;
 };
 
 #endif /* PUFFER_REINFROCE_HH */

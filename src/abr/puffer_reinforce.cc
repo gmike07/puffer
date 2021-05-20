@@ -1,6 +1,8 @@
 #include "puffer_reinforce.hh"
 #include "ws_client.hh"
 
+#include <curl/curl.h>
+
 using namespace std;
 
 PufferReinforce::PufferReinforce(const WebSocketClient & client,
@@ -38,6 +40,41 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
   } else {
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
+}
+
+void PufferReinforce::send_chunk_statistics(double qoe)
+{
+  auto& state = sending_time_prob_[1];  
+  std::vector<double> state_vec;
+
+  for (int i=0; i < 20; i++){
+    for (int j=0; j < 64; j++){
+      state_vec.push_back(state[i][j]);
+    }
+  }
+
+  json json_state(state_vec);
+  
+  json data;
+  data["state"] = json_state;
+  data["version"] = version_;
+  data["qoe"] = qoe;
+
+  CURL *curl;
+
+  curl = curl_easy_init();
+
+  struct curl_slist *headers = NULL;
+  headers = curl_slist_append(headers, "Accept: application/json");
+  headers = curl_slist_append(headers, "Content-Type: application/json");
+  headers = curl_slist_append(headers, "charset: utf-8");
+
+  curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8000");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers); 
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
+
+  curl_easy_perform(curl);
+  curl_easy_cleanup(curl);
 }
 
 void PufferReinforce::normalize_in_place(size_t i, vector<double> & input)
