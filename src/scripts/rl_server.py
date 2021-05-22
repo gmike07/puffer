@@ -105,8 +105,6 @@ def wrap(measures):
 
             content_len = int(self.headers.get('Content-Length'))
             data = self.rfile.read(content_len)
-            
-            # print(data)
             parsed_data = json.loads(data)
             version, state, qoe = parsed_data['version'], parsed_data['state'], parsed_data['qoe']
 

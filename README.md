@@ -3,7 +3,7 @@
 # First thing to set up
 - Follow the wiki from the github repo of puffer  
 - Fix build issuses with putting line opus-encoder.cc:265 in comment  
-- install libcurl4-openssl-dev
+- install libcurl4-openssl-dev, libcurlpp-dev
 
 # Prerequisites
 1. validate cc: bbr and cubic are available with `sysctl net.ipv4.tcp_available_congestion_control`
