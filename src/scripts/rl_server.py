@@ -14,11 +14,11 @@ from queue import Queue
 import os
 
 DEVICE = torch.device('cpu')
-MEASURES = []
-BATCH_SIZE = 3
-MIN_MEASUREMENTS = 10
+MEASURES = Queue()
+BATCH_SIZE = 32
+MIN_MEASUREMENTS = 100
 
-ROUNDS_TO_SAVE = 1
+ROUNDS_TO_SAVE = 60
 SLEEP_SEC = 5
 CPP_BASE_DIR = '/home/csuser/puffer/ttp/policy/'
 PYTHON_BASE_DIR = '/home/csuser/puffer/ttp/policy-python/'
@@ -113,10 +113,15 @@ def wrap(measures):
             # print('got version: ', version, '; curr version: ', VERSION)
 
             if version < VERSION:
+                print(str(version) + " expected " + str(VERSION))
                 return
 
             state = np.array(state, np.double)
-            measures.put({"state": state, "qoe": qoe})
+
+            global MEASURES
+            MEASURES.put({"state": state, "qoe": qoe})
+
+            # print("measures " + str(measures.empty()))
 
     return HandlerClass
 
@@ -137,12 +142,13 @@ def train_model(q):
     rounds_to_save = ROUNDS_TO_SAVE 
 
     while True:
+        global MEASURES
         time.sleep(SLEEP_SEC)
 
-        while not q.empty() and len(total_measurements) < MIN_MEASUREMENTS:
-            total_measurements.append(q.get())
+        while not MEASURES.empty() and len(total_measurements) < MIN_MEASUREMENTS:
+            total_measurements.append(MEASURES.get())
         
-        print(len(total_measurements))
+        # print(len(total_measurements))
 
         if len(total_measurements) < MIN_MEASUREMENTS:
             continue
@@ -171,6 +177,9 @@ def train_model(q):
         if rounds_to_save <= 0:
             # save weights
             global VERSION  
+
+            print('saving point ', VERSION)
+
             filename = 'weights_' + str(VERSION) + '.pt'
             model.save_cpp_model(CPP_BASE_DIR + filename)
 
@@ -182,7 +191,8 @@ def train_model(q):
                 os.remove(PYTHON_BASE_DIR + "/" + f)
 
             total_measurements = []
-            q = Queue()
+
+            MEASURES = Queue()
 
             VERSION += 1
             rounds_to_save = ROUNDS_TO_SAVE
