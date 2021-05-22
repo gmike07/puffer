@@ -100,9 +100,8 @@ def wrap(measures):
 
         def do_POST(self):
             content_len = int(self.headers.get('Content-Length'))
-            data = self.rfile.readlines()
-            print(data)
-            parsed_data = json.loads(data[0])
+            data = self.rfile.read(content_len)
+            parsed_data = json.loads(data)
             version, state, qoe = parsed_data['version'], parsed_data['state'], parsed_data['qoe']
 
             # print('got version: ', version, '; curr version: ', VERSION)
@@ -189,7 +188,7 @@ if __name__ == "__main__":
         "-p",
         "--port",
         type=int,
-        default=8000,
+        default=8200,
         help="Specify the port on which the server listens",
     )
     args = parser.parse_args()

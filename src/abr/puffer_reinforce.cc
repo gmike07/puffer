@@ -2,6 +2,10 @@
 #include "ws_client.hh"
 
 #include <curl/curl.h>
+#include <curlpp/cURLpp.hpp>
+#include <curlpp/Easy.hpp>
+#include <curlpp/Options.hpp>
+
 
 using namespace std;
 
@@ -60,21 +64,48 @@ void PufferReinforce::send_chunk_statistics(double qoe)
   data["version"] = version_;
   data["qoe"] = qoe;
 
-  CURL *curl;
+  // std::cout << data << std::endl;
 
-  curl = curl_easy_init();
+  // send request
 
-  struct curl_slist *headers = NULL;
-  headers = curl_slist_append(headers, "Accept: application/json");
-  headers = curl_slist_append(headers, "Content-Type: application/json");
-  headers = curl_slist_append(headers, "charset: utf-8");
+  std::list<std::string> header;
+  header.push_back("Content-Type: application/json");
 
-  curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8000");
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers); 
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
+  curlpp::Cleanup clean;
+  curlpp::Easy r;
+  r.setOpt(new curlpp::options::Url("http://localhost:8200"));
+  r.setOpt(new curlpp::options::HttpHeader(header));
+  r.setOpt(new curlpp::options::PostFields(data.dump()));
+  r.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
 
-  curl_easy_perform(curl);
-  curl_easy_cleanup(curl);
+  std::ostringstream response;
+  r.setOpt(new curlpp::options::WriteStream(&response));
+
+  try{
+    r.perform();
+  }
+  catch (...) {
+
+  }
+
+  // CURL *curl;
+
+  // curl = curl_easy_init();
+
+  // struct curl_slist *headers = NULL;
+  // headers = curl_slist_append(headers, "Accept: application/json");
+  // headers = curl_slist_append(headers, "Content-Type: application/json");
+  // headers = curl_slist_append(headers, "charset: utf-8");
+
+  // int length = strlen(data.dump().c_str());
+
+  // curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8200");
+  // curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers); 
+  // curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
+  // curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, length);
+
+  // curl_easy_perform(curl);
+  // curl_easy_cleanup(curl);
 }
 
 void PufferReinforce::normalize_in_place(size_t i, vector<double> & input)
