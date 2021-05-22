@@ -4,6 +4,7 @@ import os
 import subprocess
 import signal
 
+LOGS_FILE = './ttp/logs.txt'
 
 def run_offline_media_servers():
     run_servers_cmd = './src/media-server/run_servers ./src/settings_offline.yml'
@@ -11,6 +12,7 @@ def run_offline_media_servers():
 
 
 def start_maimahi_clients(num_clients):
+    logs_file = open(LOGS_FILE, 'w')
     plist = []
     try:
         trace_dir = "/home/csuser/puffer/traces/mahimahi"
@@ -21,9 +23,11 @@ def start_maimahi_clients(num_clients):
 
         traces = reinforce_train_files
         epochs = 50
-        for _ in range(epochs):
+        for epoch in range(epochs):
             # for filename in files[:300]:
             for f in range(0, len(traces), num_clients):
+                logs_file.write(f"Epoch: {epoch}/{epochs}. Files: {f}/{len(traces)}\n")
+                logs_file.flush()
                 # mahimahi_cmd = 'mm-delay 40 mm-link 12mbps ' + trace_dir + '/' + \
                 #                filename
                 base_port = 9360
@@ -59,6 +63,7 @@ def start_maimahi_clients(num_clients):
         print("exception: " + str(e))
         pass
     finally:
+        logs_file.close()
         for p in plist:
             os.killpg(os.getpgid(p.pid), signal.SIGTERM)
             subprocess.check_call("rm -rf ./*.profile", shell=True,
@@ -66,6 +71,7 @@ def start_maimahi_clients(num_clients):
 
 
 def main():
+
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     run_offline_media_servers()
     start_maimahi_clients(10)

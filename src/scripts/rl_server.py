@@ -18,7 +18,7 @@ MEASURES = Queue()
 BATCH_SIZE = 32
 MIN_MEASUREMENTS = 100
 
-ROUNDS_TO_SAVE = 60
+ROUNDS_TO_SAVE = 10
 SLEEP_SEC = 5
 CPP_BASE_DIR = '/home/csuser/puffer/ttp/policy/'
 PYTHON_BASE_DIR = '/home/csuser/puffer/ttp/policy-python/'
@@ -81,8 +81,20 @@ class Model:
         return highest_prob_action, log_prob
 
     def load(self, model_path):
-        checkpoint = torch.load(model_path)
+        # check if file exists
+        files = list(sorted(os.listdir(model_path)))
+        if len(files) == 0:
+            return
+        
+        # load weights
+        last_weights = model_path + "/" + files[-1]
+        checkpoint = torch.load(last_weights)
         self.model.load_state_dict(checkpoint['model_state_dict'])
+        
+        # set version
+        global VERSION
+        VERSION = int(last_weights[last_weights.index('_') + 1 : last_weights.index('.')])
+        VERSION += 1
 
     def save(self, model_path):
         torch.save({
@@ -136,6 +148,7 @@ def run(q, server_class=HTTPServer, addr="localhost", port=8200):
 
 def train_model(q):
     model = Model()
+    model.load(PYTHON_BASE_DIR)
     total_measurements = []
     rounds_to_save = ROUNDS_TO_SAVE 
 
@@ -173,7 +186,6 @@ def train_model(q):
 
         # save weights
         if rounds_to_save <= 0:
-            # save weights
             global VERSION  
 
             print('saving point ', VERSION)
