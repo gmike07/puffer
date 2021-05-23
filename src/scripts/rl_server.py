@@ -18,7 +18,7 @@ MEASURES = Queue()
 BATCH_SIZE = 32
 MIN_MEASUREMENTS = 100
 
-ROUNDS_TO_SAVE = 10
+ROUNDS_TO_SAVE = 56
 SLEEP_SEC = 5
 CPP_BASE_DIR = '/home/csuser/puffer/ttp/policy/'
 PYTHON_BASE_DIR = '/home/csuser/puffer/ttp/policy-python/'
@@ -82,7 +82,7 @@ class Model:
 
     def load(self, model_path):
         # check if file exists
-        files = list(sorted(os.listdir(model_path)))
+        files = list(sorted(os.listdir(model_path), key=lambda x: int(x[x.index('_')+1:x.index('.')])))
         if len(files) == 0:
             return
         
@@ -146,6 +146,12 @@ def run(q, server_class=HTTPServer, addr="localhost", port=8200):
     httpd.serve_forever()
 
 
+def remove_files_but_last(path):
+    files = list(sorted(os.listdir(path), key=lambda x: int(x[x.index('_')+1:x.index('.')])))
+    for f in files[:-1]:
+        os.remove(path + f)
+
+
 def train_model(q):
     model = Model()
     model.load(PYTHON_BASE_DIR)
@@ -159,7 +165,8 @@ def train_model(q):
         while not MEASURES.empty() and len(total_measurements) < MIN_MEASUREMENTS:
             total_measurements.append(MEASURES.get())
         
-        # print(len(total_measurements))
+        print(len(total_measurements))
+        rounds_to_save -= 1
 
         if len(total_measurements) < MIN_MEASUREMENTS:
             continue
@@ -182,8 +189,6 @@ def train_model(q):
 
         model.update_policy(rewards, log_probs)
 
-        rounds_to_save -= 1
-
         # save weights
         if rounds_to_save <= 0:
             global VERSION  
@@ -191,21 +196,17 @@ def train_model(q):
             print('saving point ', VERSION)
 
             filename = 'weights_' + str(VERSION) + '.pt'
+            
             model.save_cpp_model(CPP_BASE_DIR + filename)
-
-            for f in list(sorted(os.listdir(CPP_BASE_DIR)))[:-1]:
-                os.remove(CPP_BASE_DIR + "/" + f)
-
             model.save(PYTHON_BASE_DIR + filename)
-            for f in list(sorted(os.listdir(PYTHON_BASE_DIR)))[:-1]:
-                os.remove(PYTHON_BASE_DIR + "/" + f)
+
+            remove_files_but_last(CPP_BASE_DIR)
+            remove_files_but_last(PYTHON_BASE_DIR)
 
             total_measurements = []
-
             MEASURES = Queue()
-
-            VERSION += 1
             rounds_to_save = ROUNDS_TO_SAVE
+            VERSION += 1
 
 
 if __name__ == "__main__":

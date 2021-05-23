@@ -43,9 +43,17 @@ ReinforcePolicy::ReinforcePolicy(const WebSocketClient & client,
       files.push_back(entry.path());
     }
 
-    sort(files.begin(), files.end());
+    sort(files.begin(), files.end(), [](const fs::path f1, const fs::path f2)
+    {
+      std::string s1 = f1.c_str();
+      std::string s2 = f2.c_str();
+      int n1 = stoi(s1.substr(s1.find_last_of('_') + 1, s1.find_last_of('_')));
+      int n2 = stoi(s2.substr(s2.find_last_of('_') + 1, s2.find_last_of('_')));
+      return n1 < n2;
+    });
 
     string path_str = files.back().c_str();
+    std::cout << files << std::endl;
     policy_ = torch::jit::load(path_str);
 
     version_ = stoi(path_str.substr(path_str.find_last_of('_') + 1, path_str.find_last_of('_')));
