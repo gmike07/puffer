@@ -83,7 +83,7 @@ void PufferReinforce::send_chunk_statistics(double qoe)
     request.perform();
     long status = curlpp::infos::ResponseCode::get(request);
     cout << "status: " << status << endl;
-    if (status == 400){
+    if (status == 404){
       load_weights();
     }
   }

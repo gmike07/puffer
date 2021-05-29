@@ -124,8 +124,7 @@ class HandlerClass(BaseHTTPRequestHandler):
 
             if version < VERSION:
                 print(str(version) + " expected " + str(VERSION))
-                self.send_response(404)
-                self.wfile.write(b"update weights\n")
+                self.send_response(404, "update weights")
                 self.end_headers()
                 return
 
@@ -133,12 +132,10 @@ class HandlerClass(BaseHTTPRequestHandler):
 
             global MEASURES
             MEASURES.put({"state": state, "qoe": qoe})
-            self.send_response(200)
-            self.wfile.write(b"ok\n")
+            self.send_response(200, "ok")
             self.end_headers()
         except:
-            self.send_response(400)
-            self.wfile.write(b"error\n")
+            self.send_response(400, "error occurred")
             self.end_headers()
 
 
