@@ -3,15 +3,14 @@ portal_settings:
   secret_key: PUFFER_PORTAL_SECRET_KEY
   debug: true
   allowed_hosts:
-    - 127.0.0.1
-    - 100.64.0.1
+    - '*'
 postgres_connection:
   host: 127.0.0.1
   port: 5432
   dbname: puffer
   user: puffer
   password: PUFFER_PORTAL_DB_KEY
-enable_logging: True
+enable_logging: true
 log_dir: /home/ofir/puffer/src/monitoring
 influxdb_connection:
   host: 127.0.0.1
@@ -131,17 +130,17 @@ experiments:
   #       upper_reservoir: 0.9
   #     cc: cubic
   
-  # - num_servers: 1
+  # - num_servers: 4
   #   fingerprint:
   #     abr: linear_bba
   #     cc: bbr 
   #     abr_config:
   #       upper_reservoir: 0.9
-  # - num_servers: 1
+  # - num_servers: 4
   #   fingerprint:
   #     abr: robust_mpc
   #     cc: bbr
-  # - num_servers: 1
+  # - num_servers: 4
   #   fingerprint:
   #     abr: mpc
   #     abr_config:
@@ -160,16 +159,17 @@ experiments:
   #   fingerprint:
   #    abr: puffer_ttp
   #    abr_config:
-  #      model_dir: /home/ofir/puffer/ttp/models/fcc
+  #      model_dir: /home/csuser/puffer/ttp/model/ttp2
   #      rebuffer_length_coeff: 100
   #    cc: bbr
   - num_servers: 1
     fingerprint:
       abr: puffer_reinforce
-      abr_name: puffer_reinforce
+      abr_name: puffer_reinforce_train
       abr_config:
-        model_dir: /home/ofir/puffer/ttp/models/fcc-rl
+        model_dir: /home/ofir/puffer/ttp/model/fcc-rl/
         policy_model_dir: /home/ofir/puffer/ttp/policy/
         rebuffer_length_coeff: 100
         max_lookahead_horizon: 1
+        training_mode: true
       cc: bbr

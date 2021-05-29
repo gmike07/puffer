@@ -11,15 +11,18 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import time
 from threading import Thread
 from queue import Queue
+import os
 
 DEVICE = torch.device('cpu')
-MEASURES = []
+MEASURES = Queue()
 BATCH_SIZE = 3
 MIN_MEASUREMENTS = 10
 
 ROUNDS_TO_SAVE = 1
 SLEEP_SEC = 5
 CPP_BASE_DIR = '/home/ofir/puffer/ttp/policy/'
+PYTHON_BASE_DIR = '/home/ofir/puffer/ttp/policy-python/'
+LOGS_FILE = '/home/ofir/puffer/ttp/rl_server_logs.txt'
 VERSION = 1
 
 class Model:
@@ -30,7 +33,6 @@ class Model:
     WEIGHT_DECAY = 1e-4
     LEARNING_RATE = 1e-4
     GAMMA = 1e-4
-    # VERSION = 1
 
     def __init__(self):
         self.model = torch.nn.Sequential(
@@ -79,8 +81,20 @@ class Model:
         return highest_prob_action, log_prob
 
     def load(self, model_path):
-        checkpoint = torch.load(model_path)
+        # check if file exists
+        files = list(sorted(os.listdir(model_path), key=lambda x: int(x[x.index('_')+1:x.index('.')])))
+        if len(files) == 0:
+            return
+        
+        # load weights
+        last_weights = model_path + "/" + files[-1]
+        checkpoint = torch.load(last_weights)
         self.model.load_state_dict(checkpoint['model_state_dict'])
+        
+        # set version
+        global VERSION
+        VERSION = int(last_weights[last_weights.index('_') + 1 : last_weights.index('.')])
+        VERSION += 1
 
     def save(self, model_path):
         torch.save({
@@ -93,12 +107,14 @@ class Model:
         traced_script_module.save(model_path)
 
 
-def wrap(measures):
-    class HandlerClass(BaseHTTPRequestHandler):
-        def do_GET(self):
-            self.wfile.write(self._html("hi!"))
+class HandlerClass(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.wfile.write(b"hi!")
+        self.end_headers()
 
-        def do_POST(self):
+    def do_POST(self):
+        try:
             content_len = int(self.headers.get('Content-Length'))
             data = self.rfile.read(content_len)
             parsed_data = json.loads(data)
@@ -107,39 +123,57 @@ def wrap(measures):
             # print('got version: ', version, '; curr version: ', VERSION)
 
             if version < VERSION:
-                self.send_response(200)
+                print(str(version) + " expected " + str(VERSION))
+                self.send_response(404)
+                self.wfile.write(b"update weights\n")
+                self.end_headers()
                 return
 
             state = np.array(state, np.double)
-            measures.put({"state": state, "qoe": qoe})
 
+            global MEASURES
+            MEASURES.put({"state": state, "qoe": qoe})
             self.send_response(200)
+            self.wfile.write(b"ok\n")
+            self.end_headers()
+        except:
+            self.send_response(400)
+            self.wfile.write(b"error\n")
+            self.end_headers()
 
-    return HandlerClass
 
-
-def run(q, server_class=HTTPServer, addr="localhost", port=8000):
+def run(server_class=HTTPServer, addr="localhost", port=8200):
     server_address = (addr, port)
 
-    handler = wrap(q)
+    handler = HandlerClass
     httpd = server_class(server_address, handler)
 
     print(f"Starting httpd server on {addr}:{port}")
     httpd.serve_forever()
 
 
-def train_model(q):
+def remove_files_but_last(path):
+    files = list(sorted(os.listdir(path), key=lambda x: int(x[x.index('_')+1:x.index('.')])))
+    for f in files[:-1]:
+        os.remove(path + f)
+
+
+def train_model():
     model = Model()
+    model.load(PYTHON_BASE_DIR)
     total_measurements = []
     rounds_to_save = ROUNDS_TO_SAVE 
+    gradients = 0
 
     while True:
+        global MEASURES
         time.sleep(SLEEP_SEC)
 
-        while not q.empty() and len(total_measurements) < MIN_MEASUREMENTS:
-            total_measurements.append(q.get())
+        while not MEASURES.empty() and len(total_measurements) < MIN_MEASUREMENTS:
+            total_measurements.append(MEASURES.get())
         
         print(len(total_measurements))
+        rounds_to_save -= 1
 
         if len(total_measurements) < MIN_MEASUREMENTS:
             continue
@@ -161,19 +195,28 @@ def train_model(q):
             log_probs.append(log_prob)
 
         model.update_policy(rewards, log_probs)
-
-        rounds_to_save -= 1
+        gradients += 1
 
         # save weights
         if rounds_to_save <= 0:
             global VERSION  
+
+            filename = 'weights_' + str(VERSION) + '.pt'
+            
+            model.save_cpp_model(CPP_BASE_DIR + filename)
+            model.save(PYTHON_BASE_DIR + filename)
+
+            remove_files_but_last(CPP_BASE_DIR)
+            remove_files_but_last(PYTHON_BASE_DIR)
+
+            total_measurements = []
+            MEASURES = Queue()
+            rounds_to_save = ROUNDS_TO_SAVE
             VERSION += 1
 
-            rounds_to_save = ROUNDS_TO_SAVE
-            model.save_cpp_model(CPP_BASE_DIR + 'weights_' + str(VERSION) + '.pt')
-            # version += 1
-            total_measurements = []
-            q = Queue()
+            with open(LOGS_FILE, 'w') as logs_file:
+                logs_file.write(f"Version: {VERSION}. Num of calculated gradients: {gradients}.")
+
 
 
 if __name__ == "__main__":
@@ -192,12 +235,10 @@ if __name__ == "__main__":
         help="Specify the port on which the server listens",
     )
     args = parser.parse_args()
-    # run(addr=args.listen, port=args.port)
 
-    q = Queue()
     server_thread = Thread(target=lambda: run(
-        q, addr=args.listen, port=args.port))
-    model_thread = Thread(target=lambda: train_model(q))
+        addr=args.listen, port=args.port))
+    model_thread = Thread(target=lambda: train_model())
 
     model_thread.start()
     server_thread.start()

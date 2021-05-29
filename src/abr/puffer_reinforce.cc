@@ -5,6 +5,7 @@
 #include <curlpp/cURLpp.hpp>
 #include <curlpp/Easy.hpp>
 #include <curlpp/Options.hpp>
+#include <curlpp/Infos.hpp>
 
 
 using namespace std;
@@ -13,6 +14,7 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
                      const string & abr_name, const YAML::Node & abr_config)
   : ReinforcePolicy(client, abr_name, abr_config)
 {
+  
   /* load neural networks */
   if (abr_config["model_dir"]) {
     fs::path model_dir = abr_config["model_dir"].as<string>();
@@ -44,6 +46,8 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
   } else {
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
+  std::cout << "Finish cons. " << max_lookahead_horizon_ << std::endl;
+
 }
 
 void PufferReinforce::send_chunk_statistics(double qoe)
@@ -64,48 +68,28 @@ void PufferReinforce::send_chunk_statistics(double qoe)
   data["version"] = version_;
   data["qoe"] = qoe;
 
-  // std::cout << data << std::endl;
-
   // send request
-
   std::list<std::string> header;
   header.push_back("Content-Type: application/json");
 
   curlpp::Cleanup clean;
-  curlpp::Easy r;
-  r.setOpt(new curlpp::options::Url("http://localhost:8200"));
-  r.setOpt(new curlpp::options::HttpHeader(header));
-  r.setOpt(new curlpp::options::PostFields(data.dump()));
-  r.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
+  curlpp::Easy request;
+  request.setOpt(new curlpp::options::Url("http://localhost:8200"));
+  request.setOpt(new curlpp::options::HttpHeader(header));
+  request.setOpt(new curlpp::options::PostFields(data.dump()));
+  request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
 
-  std::ostringstream response;
-  r.setOpt(new curlpp::options::WriteStream(&response));
-
-  try{
-    r.perform();
+  try {
+    request.perform();
+    long status = curlpp::infos::ResponseCode::get(request);
+    cout << "status: " << status << endl;
+    if (status == 400){
+      load_weights();
+    }
   }
-  catch (...) {
-
+  catch (exception& e) {
+    cout << "exception " << e.what() << endl;
   }
-
-  // CURL *curl;
-
-  // curl = curl_easy_init();
-
-  // struct curl_slist *headers = NULL;
-  // headers = curl_slist_append(headers, "Accept: application/json");
-  // headers = curl_slist_append(headers, "Content-Type: application/json");
-  // headers = curl_slist_append(headers, "charset: utf-8");
-
-  // int length = strlen(data.dump().c_str());
-
-  // curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8200");
-  // curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers); 
-  // curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.dump().c_str());
-  // curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, length);
-
-  // curl_easy_perform(curl);
-  // curl_easy_cleanup(curl);
 }
 
 void PufferReinforce::normalize_in_place(size_t i, vector<double> & input)

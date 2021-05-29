@@ -89,13 +89,16 @@ protected:
   void deal_all_ban(size_t i);
 
   Reinforce rl_model_;
-  static constexpr size_t DONE = 1;
+  bool training_mode_ = false;
+  static constexpr size_t DONE = 10;
   size_t steps_to_update_ = DONE;
   std::deque<torch::Tensor> log_probs_ {};
   std::deque<double> rewards_ {};
 
   double calc_qoe();
 
+  void load_weights();
+  std::string policy_model_dir_;
   unsigned int version_;
   std::shared_ptr<torch::jit::script::Module> policy_ {};
   virtual void send_chunk_statistics(double qoe) {};

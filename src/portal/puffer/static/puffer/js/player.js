@@ -177,7 +177,7 @@ function ChannelBar() {
   channel_list[active_idx].classList.add('active');
 
   var curr_channel_name = channel_list[active_idx].getAttribute('name');
-  console.log('Initial channel:', curr_channel_name);
+  // console.log('Initial channel:', curr_channel_name);
   window.name = curr_channel_name;  // save current channel in window.name
 
   this.get_curr_channel = function() {
@@ -200,14 +200,14 @@ function ChannelBar() {
     new_channel.classList.add('active');
 
     curr_channel_name = new_channel.getAttribute('name');
-    console.log('Set channel:', curr_channel_name);
+    // console.log('Set channel:', curr_channel_name);
     window.name = curr_channel_name;  // save current channel in window.name
 
     if (that.on_channel_change) {
       /* call on_channel_change callback */
       that.on_channel_change(curr_channel_name);
     } else {
-      console.log('Warning: on_channel_change callback has not been defined');
+      // console.log('Warning: on_channel_change callback has not been defined');
     }
 
     active_idx = new_channel_idx;
@@ -413,7 +413,7 @@ function init_player(params_json, csrf_token) {
 
   /* assert that session_key and username exist */
   if (!session_key || !username) {
-    console.log('Error: no session key or username')
+    // console.log('Error: no session key or username')
     return;
   }
 

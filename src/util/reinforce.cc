@@ -103,11 +103,12 @@ void Reinforce::update_policy(std::vector<double> rewards, std::vector<torch::Te
     optimizer_->step();
 
     save_round_++;
+    std::cout << "save round " << save_round_ << std::endl;
     
     if (save_round_ % 60*10 == 0){
         std::cout << "saving point " << save_round_ << std::endl;
 
-        string model_path = "/home/ofir/puffer/ttp/policy/model" + std::to_string(save_round_) + ".pt";
+        string model_path = "/home/csuser/puffer/ttp/policy/model" + std::to_string(save_round_) + ".pt";
         torch::serialize::OutputArchive output_archive;
         this->save(output_archive);
         output_archive.save_to(model_path);

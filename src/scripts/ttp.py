@@ -41,7 +41,7 @@ expt_id_cache = {}
 
 class Model:
     PAST_CHUNKS = 8
-    FUTURE_CHUNKS = 5
+    FUTURE_CHUNKS = 5 # TODO: change to 5
     DIM_IN = 62
     BIN_SIZE = 0.5  # seconds
     BIN_MAX = 20
@@ -567,11 +567,14 @@ def print_stats(i, output_data):
 
 def plot_loss(losses, figure_path):
     fig, ax = plt.subplots()
-
     if 'train' in losses:
         ax.plot(losses['train'], 'g--', label='training')
     if 'validate' in losses:
         ax.plot(losses['validate'], 'r-', label='validation')
+    if 'validate-accuracy' in losses:
+        ax.plot(losses['validate-accuracy'], 'k-', label='validation-accuracy')
+    if 'train-accuracy' in losses:
+        ax.plot(losses['train-accuracy'], 'b-', label='training-accuracy')
 
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Loss')
@@ -601,6 +604,8 @@ def train(i, args, model, input_data, output_data):
                          .format(i, len(validate_input)))
 
         validate_losses = []
+        train_accuracies = []
+        validate_accuracies = []
     else:
         num_training = len(input_data)
         sys.stderr.write('[{}] training set size: {}\n'
@@ -642,6 +647,9 @@ def train(i, args, model, input_data, output_data):
             validate_accuracy = 100 * model.compute_accuracy(
                     validate_input, validate_output)
 
+            train_accuracies.append(train_accuracy)
+            validate_accuracies.append(validate_accuracy)
+
             sys.stderr.write('[{}] epoch {}:\n'
                              '\ttraining: loss {:.3f}, accuracy {:.2f}%\n'
                              '\tvalidation: loss {:.3f}, accuracy {:.2f}%\n'
@@ -676,9 +684,11 @@ def train(i, args, model, input_data, output_data):
 
             # plot losses
             losses = {}
-            losses['train'] = train_losses
+            # losses['train'] = train_losses
             if TUNING:
-                losses['validate'] = validate_losses
+                # losses['validate'] = validate_losses
+                losses['train-accuracy'] = train_accuracies
+                losses['validate-accuracy'] = validate_accuracies
 
             loss_path = path.join(args.save_model,
                                   'loss{}{}.png'.format(i, suffix))

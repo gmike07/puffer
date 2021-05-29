@@ -26,6 +26,7 @@
 ports begin from ws_port + i where i=1,... as the number of experiments
 
 # How to run experiments?
+0. run `sudo influxd`.
 1. run `./src/media-server/run_servers ./src/settings_offline.yml` (running the servers).
 2. run `python3 ./src/portal/manage.py runserver 0:8080` (to run the python server that serves html files).
 3. run `python3 ./src/media-server/offline_test.py` (config the number of chromiums to run, as the numebr of experiments).
@@ -53,7 +54,7 @@ In order to use ttp we must omit it last layer:
     - edit the file `model.json` and delete the last layer  
     - edit the file `code/ccp-{}.py` and delete the last layer  
 
-In order to train a new model: `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model ttp/models/fcc/`
+In order to train a new model: `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model ttp/models/fcc/` `--tune`
 (install torch==1.0.0, matplotlib==3.0.0)
 
 # Postgress
@@ -77,5 +78,6 @@ influx paths:
 
 ## FCC dataset
 Go to `pensieve` repo and run:
-* `python traces/load_webget_data.py`
-* `python traces/convert_mahimahi_format.py`
+* `cd traces`
+* `python load_webget_data.py`
+* `python convert_mahimahi_format.py`
