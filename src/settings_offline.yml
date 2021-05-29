@@ -162,7 +162,7 @@ experiments:
   #      model_dir: /home/csuser/puffer/ttp/model/ttp2
   #      rebuffer_length_coeff: 100
   #    cc: bbr
-  - num_servers: 10
+  - num_servers: 1
     fingerprint:
       abr: puffer_reinforce
       abr_name: puffer_reinforce_train

@@ -52,7 +52,7 @@ def start_maimahi_clients(num_clients):
                                         preexec_fn=os.setsid)
                     plist.append(p)
 
-                time.sleep(60*10)
+                time.sleep(60*5)
                 for p in plist:
                     os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                     time.sleep(4)
@@ -71,10 +71,9 @@ def start_maimahi_clients(num_clients):
 
 
 def main():
-
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     run_offline_media_servers()
-    start_maimahi_clients(10)
+    start_maimahi_clients(1)
 
 
 if __name__ == '__main__':

@@ -97,6 +97,8 @@ protected:
 
   double calc_qoe();
 
+  void load_weights();
+  std::string policy_model_dir_;
   unsigned int version_;
   std::shared_ptr<torch::jit::script::Module> policy_ {};
   virtual void send_chunk_statistics(double qoe) {};
