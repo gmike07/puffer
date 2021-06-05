@@ -11,7 +11,7 @@ postgres_connection:
   user: puffer
   password: PUFFER_PORTAL_DB_KEY
 enable_logging: true
-log_dir: /home/ofir/puffer/src/monitoring
+log_dir: /home/ubuntu/puffer/src/monitoring
 influxdb_connection:
   host: 127.0.0.1
   port: 8086
@@ -19,7 +19,7 @@ influxdb_connection:
   user: puffer
   password: INFLUXDB_PASSWORD
 enforce_moving_live_edge: false
-media_dir: /home/ofir/ubuntu/media-181230
+media_dir: /home/ubuntu/ubuntu/media-181230
 channels:
   - abc
   - nbc
@@ -167,8 +167,8 @@ experiments:
       abr: puffer_reinforce
       abr_name: puffer_reinforce_train
       abr_config:
-        model_dir: /home/ofir/puffer/ttp/model/fcc-rl/
-        policy_model_dir: /home/ofir/puffer/ttp/policy/
+        model_dir: /home/ubuntu/puffer/ttp/model/fcc-rl/
+        policy_model_dir: /home/ubuntu/puffer/ttp/policy/
         rebuffer_length_coeff: 100
         max_lookahead_horizon: 1
         training_mode: true

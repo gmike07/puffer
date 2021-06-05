@@ -24,7 +24,7 @@ experiments:
   #   fingerprint:
   #     abr: puffer_ttp
   #     abr_config:
-  #       model_dir: /home/ofir/puffer/ttp/models/bbr-20210114-1
+  #       model_dir: /home/ubuntu/puffer/ttp/models/bbr-20210114-1
   #       rebuffer_length_coeff: 100
   #     cc: cubic
   # - num_servers: 1

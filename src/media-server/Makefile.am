@@ -5,7 +5,7 @@ AM_CPPFLAGS = $(CXX17_FLAGS) $(SSL_CFLAGS) $(POSTGRES_CFLAGS) \
 	-isystem$(srcdir)/../../third_party/libtorch/include \
 	-isystem$(srcdir)/../../third_party/libtorch/include/torch/csrc/api/include \
     -I/usr/include/python3.7 \
-	-I/home/ofir/.local/lib/python3.7/site-packages/pybind11/include
+	-I/home/ubuntu/.local/lib/python3.7/site-packages/pybind11/include
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 bin_PROGRAMS = run_servers maintenance_server ws_media_server
