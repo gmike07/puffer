@@ -4,7 +4,7 @@ import os
 import subprocess
 import signal
 
-LOGS_FILE = './ttp/logs.txt'
+LOGS_FILE = './weights/logs.txt'
 
 def run_offline_media_servers():
     run_server_html_cmd = 'python3 ./src/portal/manage.py runserver 0:8080'
@@ -19,7 +19,7 @@ def start_maimahi_clients(num_clients):
     logs_file = open(LOGS_FILE, 'w')
     plist = []
     try:
-        trace_dir = "/home/ofir/puffer/traces/mahimahi"
+        trace_dir = "./traces/mahimahi"
 
         files = os.listdir(trace_dir)
         test_files = files[:300]
