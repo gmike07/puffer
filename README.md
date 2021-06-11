@@ -30,6 +30,7 @@ ports begin from ws_port + i where i=1,... as the number of experiments
 1. run `./src/media-server/run_servers ./src/settings_offline.yml` (running the servers).
 2. run `python3 ./src/portal/manage.py runserver 0:8080` (to run the python server that serves html files).
 3. run `python3 ./src/media-server/offline_test.py` (config the number of chromiums to run, as the numebr of experiments).
+* number of servers needs to be equal to number of clients.
 
 # Data
 Data is collected from the streaming and written to influxdb.  

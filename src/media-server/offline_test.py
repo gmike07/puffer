@@ -7,8 +7,12 @@ import signal
 LOGS_FILE = './ttp/logs.txt'
 
 def run_offline_media_servers():
+    run_server_html_cmd = 'python3 ./src/portal/manage.py runserver 0:8080'
+    p1 = subprocess.Popen(run_server_html_cmd, shell=True)
+    time.sleep(4)
     run_servers_cmd = './src/media-server/run_servers ./src/settings_offline.yml'
-    p1 = subprocess.Popen(run_servers_cmd, shell=True)
+    p2 = subprocess.Popen(run_servers_cmd, shell=True)
+    time.sleep(4)
 
 
 def start_maimahi_clients(num_clients):
@@ -21,7 +25,7 @@ def start_maimahi_clients(num_clients):
         test_files = files[:300]
         reinforce_train_files = files[300:600]
 
-        traces = reinforce_train_files
+        traces = test_files
         epochs = 50
         for epoch in range(epochs):
             # for filename in files[:300]:

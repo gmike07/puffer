@@ -85,10 +85,12 @@ void PufferReinforce::send_chunk_statistics(double qoe)
     cout << "status: " << status << endl;
     if (status == 404){
       load_weights();
+      throw logic_error("weights updated, reinit channel");
     }
   }
   catch (exception& e) {
     cout << "exception " << e.what() << endl;
+    throw e;
   }
 }
 
