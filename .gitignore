@@ -16,10 +16,9 @@
 
 traces/cooked/
 traces/mahimahi/
-ttp/model/
-ttp/policy/
-ttp/policy-python/
-ttp/logs.txt
+
+weights/policy/
+weights/ttp/
 
 ##### autotools
 

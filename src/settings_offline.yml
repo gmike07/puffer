@@ -167,8 +167,8 @@ experiments:
       abr: puffer_reinforce
       abr_name: puffer_reinforce_train
       abr_config:
-        model_dir: /home/ubuntu/puffer/ttp/model/fcc-rl/
-        policy_model_dir: /home/ubuntu/puffer/ttp/policy/
+        model_dir: ./weights/ttp/hidden2/
+        policy_model_dir: ./weights/policy/cpp/
         rebuffer_length_coeff: 100
         max_lookahead_horizon: 1
         training_mode: true

@@ -2,7 +2,7 @@ import numpy as np
 import datetime
 
 
-FILE_PATH = '/home/csuser/Downloads/201606/curr_webget_2016_06.csv'
+FILE_PATH = '/home/ubuntu/Downloads/data-raw-2016-jan/201601/curr_webget_2016_01.csv'
 OUTPUT_PATH = './cooked/'
 NUM_LINES = 20000
 TIME_ORIGIN = datetime.datetime.utcfromtimestamp(0)

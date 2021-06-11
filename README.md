@@ -30,6 +30,7 @@ ports begin from ws_port + i where i=1,... as the number of experiments
 1. run `./src/media-server/run_servers ./src/settings_offline.yml` (running the servers).
 2. run `python3 ./src/portal/manage.py runserver 0:8080` (to run the python server that serves html files).
 3. run `python3 ./src/media-server/offline_test.py` (config the number of chromiums to run, as the numebr of experiments).
+* number of servers needs to be equal to number of clients.
 
 # Data
 Data is collected from the streaming and written to influxdb.  
@@ -54,7 +55,7 @@ In order to use ttp we must omit it last layer:
     - edit the file `model.json` and delete the last layer  
     - edit the file `code/ccp-{}.py` and delete the last layer  
 
-In order to train a new model: `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model ttp/models/fcc/` `--tune`
+In order to train a new model: `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model weights/ttp/hidden2/` `--tune`
 (install torch==1.0.0, matplotlib==3.0.0)
 
 # Postgress

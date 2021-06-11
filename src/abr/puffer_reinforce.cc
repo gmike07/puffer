@@ -14,7 +14,7 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
                      const string & abr_name, const YAML::Node & abr_config)
   : ReinforcePolicy(client, abr_name, abr_config)
 {
-  
+
   /* load neural networks */
   if (abr_config["model_dir"]) {
     fs::path model_dir = abr_config["model_dir"].as<string>();
@@ -85,7 +85,31 @@ void PufferReinforce::send_chunk_statistics(double qoe)
     cout << "status: " << status << endl;
     if (status == 404){
       load_weights();
+      throw logic_error("weights updated, reinit channel");
     }
+  }
+  catch (exception& e) {
+    cout << "exception " << e.what() << endl;
+    throw e;
+  }
+}
+
+void PufferReinforce::send_datapoint(std::vector<double> datapoint, std::string endpoint)
+{
+  json data;
+  data["datapoint"] = datapoint;
+
+  std::list<std::string> header;
+  header.push_back("Content-Type: application/json");
+
+  curlpp::Easy request;
+  request.setOpt(new curlpp::options::Url("http://localhost:8888/" + endpoint));
+  request.setOpt(new curlpp::options::HttpHeader(header));
+  request.setOpt(new curlpp::options::PostFields(data.dump()));
+  request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
+
+  try {
+    request.perform();
   }
   catch (exception& e) {
     cout << "exception " << e.what() << endl;
@@ -193,7 +217,17 @@ void PufferReinforce::reinit_sending_time()
       }
     }
 
+  }
 
+  // send datapoint
+  auto& state = sending_time_prob_[1];  
+  std::vector<double> state_vec;
+  for (int i=0; i < 20; i++){
+    for (int j=0; j < 64; j++){
+      state_vec.push_back(state[i][j]);
+    }
+  }
+  send_datapoint(state_vec, "ttp-hidden2");
 
     // at::Tensor output = torch::softmax(ttp_modules_[i - 1]->forward(torch_inputs)
     //                                    .toTensor(), 1);
@@ -254,5 +288,5 @@ void PufferReinforce::reinit_sending_time()
     // if (is_all_ban) {
     //   deal_all_ban(i);
     // }
-  }
+  
 }

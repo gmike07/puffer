@@ -529,7 +529,8 @@ void handle_client_info(WebSocketClient & client, const ClientInfoMsg & msg)
   }
 }
 
-void handle_client_video_ack(WebSocketClient & client,
+void handle_client_video_ack(WebSocketServer & server,
+                             WebSocketClient & client,
                              const ClientVidAckMsg & msg)
 {
   if (not client.is_channel_initialized()) {
@@ -564,10 +565,14 @@ void handle_client_video_ack(WebSocketClient & client,
     auto media_chunk_size = get<1>(data_mmap);
 
     /* notify the ABR algorithm that a video chunk is acked */
-    client.video_chunk_acked(msg.video_format, msg.ssim,
-                             media_chunk_size, trans_time);
-    client.set_last_video_send_ts(nullopt);
-    client.set_tcp_info(nullopt);
+    try { 
+      client.video_chunk_acked(msg.video_format, msg.ssim,
+                              media_chunk_size, trans_time);
+      client.set_last_video_send_ts(nullopt);
+      client.set_tcp_info(nullopt);
+    } catch (const logic_error & e) {
+      send_server_error(server, client, ServerErrorMsg::Type::Reinit);
+    }
   } else {
     cerr << client.signature() << ": error: server didn't send video but "
          << "received VideoAck" << endl;
@@ -759,7 +764,7 @@ int run_websocket_server()
             handle_client_info(client, msg_parser.parse_client_info());
             break;
           case ClientMsgParser::Type::VideoAck:
-            handle_client_video_ack(client, msg_parser.parse_client_vidack());
+            handle_client_video_ack(server, client, msg_parser.parse_client_vidack());
             break;
           case ClientMsgParser::Type::AudioAck:
             handle_client_audio_ack(client, msg_parser.parse_client_audack());

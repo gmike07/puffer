@@ -20,9 +20,9 @@ MIN_MEASUREMENTS = 10
 
 ROUNDS_TO_SAVE = 1
 SLEEP_SEC = 5
-CPP_BASE_DIR = '/home/ubuntu/puffer/ttp/policy/'
-PYTHON_BASE_DIR = '/home/ubuntu/puffer/ttp/policy-python/'
-LOGS_FILE = '/home/ubuntu/puffer/ttp/rl_server_logs.txt'
+CPP_BASE_DIR = './weights/policy/cpp/'
+PYTHON_BASE_DIR = './weights/policy/python/'
+LOGS_FILE = './weights/policy/rl_server_logs.txt'
 VERSION = 1
 
 class Model:
