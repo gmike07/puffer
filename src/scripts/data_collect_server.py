@@ -8,8 +8,9 @@ import os
 
 
 def append_to_file(filename, array):
-    with open(filename, 'a') as file:
-        file.write(str(array)+",\n")
+    with open(filename, 'ab') as file:
+        np.save(file, array)
+        # file.write(str(array)+",\n")
 
 
 def get_handler_class(args):
@@ -75,12 +76,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--raw-weights-file",
-        default="./data_points/raw_inputs.log",
+        default="./data_points/raw_inputs.npy",
         help="Specify the saving file path for raw inputs",
     )
     parser.add_argument(
         "--ttp-weights-file",
-        default="./data_points/ttp_hidden2.log",
+        default="./data_points/ttp_hidden2.npy",
         help="Specify the saving file path for ttp",
     )
     parser.add_argument(

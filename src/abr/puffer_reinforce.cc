@@ -46,8 +46,6 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
   } else {
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
-  std::cout << "Finish cons. " << max_lookahead_horizon_ << std::endl;
-
 }
 
 void PufferReinforce::send_chunk_statistics(double qoe)
@@ -83,14 +81,14 @@ void PufferReinforce::send_chunk_statistics(double qoe)
     request.perform();
     long status = curlpp::infos::ResponseCode::get(request);
     cout << "status: " << status << endl;
-    if (status == 404){
+    if (status == 409){
       load_weights();
       throw logic_error("weights updated, reinit channel");
     }
   }
   catch (exception& e) {
     cout << "exception " << e.what() << endl;
-    throw e;
+    // throw e;
   }
 }
 

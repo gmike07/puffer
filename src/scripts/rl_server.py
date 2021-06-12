@@ -124,7 +124,7 @@ class HandlerClass(BaseHTTPRequestHandler):
 
             if version < VERSION:
                 print(str(version) + " expected " + str(VERSION))
-                self.send_response(404, "update weights")
+                self.send_response(409, "update weights")
                 self.end_headers()
                 return
 
