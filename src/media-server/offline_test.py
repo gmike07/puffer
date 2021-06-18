@@ -56,7 +56,7 @@ def start_maimahi_clients(num_clients):
                                         preexec_fn=os.setsid)
                     plist.append(p)
 
-                time.sleep(60*5)
+                time.sleep(60*10)
                 for p in plist:
                     os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                     time.sleep(4)
