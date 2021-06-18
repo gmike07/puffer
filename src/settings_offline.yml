@@ -130,22 +130,22 @@ experiments:
   #       upper_reservoir: 0.9
   #     cc: cubic
   
-  # - num_servers: 4
-  #   fingerprint:
-  #     abr: linear_bba
-  #     cc: bbr 
-  #     abr_config:
-  #       upper_reservoir: 0.9
-  # - num_servers: 4
-  #   fingerprint:
-  #     abr: robust_mpc
-  #     cc: bbr
-  # - num_servers: 4
-  #   fingerprint:
-  #     abr: mpc
-  #     abr_config:
-  #       rebuffer_length_coeff: 100
-  #     cc: bbr
+  - num_servers: 4
+    fingerprint:
+      abr: linear_bba
+      cc: bbr 
+      abr_config:
+        upper_reservoir: 0.9
+  - num_servers: 4
+    fingerprint:
+      abr: robust_mpc
+      cc: bbr
+  - num_servers: 4
+    fingerprint:
+      abr: mpc
+      abr_config:
+        rebuffer_length_coeff: 100
+      cc: bbr
 
 #  - num_servers: 1
 #    fingerprint:
@@ -162,14 +162,14 @@ experiments:
   #      model_dir: /home/csuser/puffer/ttp/model/ttp2
   #      rebuffer_length_coeff: 100
   #    cc: bbr
-  - num_servers: 1
-    fingerprint:
-      abr: puffer_reinforce
-      abr_name: puffer_reinforce_train
-      abr_config:
-        model_dir: ./weights/ttp/hidden2/
-        policy_model_dir: ./weights/policy/cpp/
-        rebuffer_length_coeff: 100
-        max_lookahead_horizon: 1
-        training_mode: true
-      cc: bbr
+  # - num_servers: 1
+  #   fingerprint:
+  #     abr: puffer_reinforce
+  #     abr_name: puffer_reinforce_train
+  #     abr_config:
+  #       model_dir: ./weights/ttp/hidden2/
+  #       policy_model_dir: ./weights/policy/cpp/
+  #       rebuffer_length_coeff: 100
+  #       max_lookahead_horizon: 1
+  #       training_mode: true
+  #     cc: bbr

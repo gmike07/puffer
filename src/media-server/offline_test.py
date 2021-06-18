@@ -9,10 +9,10 @@ LOGS_FILE = './weights/logs.txt'
 def run_offline_media_servers():
     run_server_html_cmd = 'python3 ./src/portal/manage.py runserver 0:8080'
     p1 = subprocess.Popen(run_server_html_cmd, shell=True)
-    time.sleep(4)
+    time.sleep(10)
     run_servers_cmd = './src/media-server/run_servers ./src/settings_offline.yml'
     p2 = subprocess.Popen(run_servers_cmd, shell=True)
-    time.sleep(4)
+    time.sleep(10)
 
 
 def start_maimahi_clients(num_clients):
@@ -77,7 +77,7 @@ def start_maimahi_clients(num_clients):
 def main():
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     run_offline_media_servers()
-    start_maimahi_clients(1)
+    start_maimahi_clients(12)
 
 
 if __name__ == '__main__':
