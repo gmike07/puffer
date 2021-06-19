@@ -50,18 +50,14 @@ VideoFormat Puffer::select_video_format()
   size_t ret_format = update_value(0, curr_buffer_, 0);
 
   if (collect_data_) {
-    // send datapoint
-    auto& state = sending_time_prob_[1];  
-    std::vector<double> state_vec;
-    for (int i=0; i < 20; i++){
-      for (int j=0; j < 64; j++){
-        state_vec.push_back(state[i][j]);
-      }
-    }
-    sender_.send_datapoint(state_vec, curr_buffer_, last_format_);
+    sender_.send_datapoint(inputs_, curr_buffer_, last_format_, "raw-input");
+    sender_.send_datapoint(hidden2_, curr_buffer_, last_format_, "ttp-hidden2");
+
+    inputs_.clear();
+    hidden2_.clear();
+    last_format_ = ret_format;
   }
 
-  last_format_ = ret_format;
   return client_.channel()->vformats()[ret_format];
 }
 

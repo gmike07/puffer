@@ -13,7 +13,8 @@ using json = nlohmann::json;
 
 void Sender::send_datapoint(std::vector<double> datapoint, 
                             size_t buf_size, 
-                            size_t last_format)
+                            size_t last_format,
+                            std::string endpoint)
 {
   json data;
   data["datapoint"] = datapoint;
@@ -24,7 +25,7 @@ void Sender::send_datapoint(std::vector<double> datapoint,
   header.push_back("Content-Type: application/json");
 
   curlpp::Easy request;
-  request.setOpt(new curlpp::options::Url("http://localhost:8888/"));
+  request.setOpt(new curlpp::options::Url("http://localhost:8888/" + endpoint));
   request.setOpt(new curlpp::options::HttpHeader(header));
   request.setOpt(new curlpp::options::PostFields(data.dump()));
   request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));

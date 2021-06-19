@@ -22,10 +22,15 @@ private:
   double ban_prob_ {BAN_PROB_};
 
   std::shared_ptr<torch::jit::script::Module> ttp_modules_[MAX_LOOKAHEAD_HORIZON];
+  std::shared_ptr<torch::jit::script::Module> hidden2_ttp_modules_[MAX_LOOKAHEAD_HORIZON];
+
 
   /* stats of training data used for normalization */
   std::vector<double> obs_mean_[MAX_LOOKAHEAD_HORIZON];
   std::vector<double> obs_std_[MAX_LOOKAHEAD_HORIZON];
+
+  std::vector<double> hidden2_obs_mean_[MAX_LOOKAHEAD_HORIZON];
+  std::vector<double> hidden2_obs_std_[MAX_LOOKAHEAD_HORIZON];
 
   size_t ttp_input_dim_ {TTP_INPUT_DIM};
   bool is_mle_ {false};

@@ -35,11 +35,11 @@ def normalize(input):
     return normalized_input, mean, std
 
 
-def cluster(datapoints_file, mpc_file, saving_file):
+def cluster(datapoints_file, buffer_format_file, saving_clusters_file, saving_normalized):
     raw_inputs = read_file(datapoints_file)
     raw_inputs, raw_inputs_mean, raw_inputs_std = normalize(raw_inputs)
 
-    mpc = read_file(mpc_file)
+    mpc = read_file(buffer_format_file)
     mpc, mpc_mean, mpc_std = normalize(mpc)
 
     assert raw_inputs.shape[0] == mpc.shape[0]
@@ -49,19 +49,29 @@ def cluster(datapoints_file, mpc_file, saving_file):
     kmeans = KMeans()
     kmeans.fit(X)
 
-    with open(saving_file, 'wb') as f:
+    with open(saving_clusters_file, 'wb') as f:
         pickle.dump(kmeans, f)
+
+    with open(saving_normalized, 'wb') as f:
+        np.save(saving_normalized, [raw_inputs_mean,
+                                    raw_inputs_std, mpc_mean, mpc_std])
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run k-means")
     parser.add_argument(
-        "-d",
-        "--datapoints-file"
+        "--raw_inputs-file"
     )
     parser.add_argument(
-        "-s",
-        "--saving-path"
+        "--buffer_format_file"
+    )
+    parser.add_argument(
+        "--saving-clusters",
+        default='./weights/kmeans/clusters.pkl'
+    )
+    parser.add_argument(
+        "--saving-normalized",
+        default='./weights/kmeans/normalized.npy'
     )
     parser.add_argument(
         "-f",
@@ -73,7 +83,10 @@ if __name__ == "__main__":
 
     check_dir('./weights/kmeans/kmeans.pkl', True)
     cluster('./data_points/raw_input.npy',
-            './data_points/mpc.npy', './weights/kmeans/kmeans.pkl')
+            './data_points/raw_mpc.npy',
+            './weights/kmeans/clusters.pkl',
+            './weights/kmeans/normalized.npy')
 
-    # check_dir(args.saving_path, args.force)
-    # cluster(args.datapoints_file, args.saving_path)
+    # check_dir(args.saving_clusters, args.force)
+    # check_dir(args.saving_normalized, args.force)
+    # cluster(args.raw_inputs_file, args.buffer_format_file, args.saving_clusters, args.saving_normalized)

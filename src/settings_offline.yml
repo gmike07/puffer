@@ -162,6 +162,8 @@ experiments:
        model_dir: ./weights/ttp/original
        rebuffer_length_coeff: 100
        collect_data: true
+       hidden2_model_dir: ./weights/ttp/hidden2/
+       max_lookahead_horizon: 1
      cc: bbr
   # - num_servers: 1
   #   fingerprint:

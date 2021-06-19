@@ -39,6 +39,27 @@ PufferTTP::PufferTTP(const WebSocketClient & client,
   } else {
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
+
+  if (abr_config["hidden2_model_dir"]) {
+    fs::path model_dir = abr_config["hidden2_model_dir"].as<string>();
+
+    for (size_t i = 0; i < max_lookahead_horizon_; i++) {
+      // load PyTorch models
+      string model_path = model_dir / ("cpp-" + to_string(i) + ".pt");
+      hidden2_ttp_modules_[i] = torch::jit::load(model_path.c_str());
+      
+      if (not hidden2_ttp_modules_[i]) {
+        throw runtime_error("Model " + model_path + " does not exist");
+      }
+
+      // load normalization weights
+      ifstream ifs(model_dir / ("cpp-meta-" + to_string(i) + ".json"));
+      json j = json::parse(ifs);
+
+      hidden2_obs_mean_[i] = j.at("obs_mean").get<vector<double>>();
+      hidden2_obs_std_[i] = j.at("obs_std").get<vector<double>>();
+    }
+  }
 }
 
 void PufferTTP::normalize_in_place(size_t i, vector<double> & input)
@@ -139,6 +160,18 @@ void PufferTTP::reinit_sending_time()
 
     assert((size_t) output.sizes()[1] > dis_sending_time_);
 
+    /* save input in order to send datapoint */
+    if (collect_data_) {
+      inputs_.insert(inputs_.begin() + (i-1) * num_formats_ * ttp_input_dim_, inputs, inputs + num_formats_*ttp_input_dim_);
+
+      at::Tensor hidden2_output = hidden2_ttp_modules_[i - 1]->forward(torch_inputs).toTensor();
+      for (size_t j = 0; j < num_formats_; j++) {
+        for (size_t k = 0; k < 64; k++) {
+          hidden2_.push_back(hidden2_output[j][k].item<double>());
+        }
+      }
+    }
+    
     /* extract distribution from the output */
     bool is_all_ban = true;
 
