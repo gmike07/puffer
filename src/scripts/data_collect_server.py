@@ -25,12 +25,10 @@ def get_handler_class(args):
                 content_len = int(self.headers.get('Content-Length'))
                 data = self.rfile.read(content_len)
                 parsed_data = json.loads(data)
-                
-                if self.path == "/raw-input":
-                    append_to_file(args.raw_weights_file, parsed_data["datapoint"])
-                elif self.path == "/ttp-hidden2":
-                    append_to_file(args.ttp_weights_file, parsed_data["datapoint"])
 
+                append_to_file(args.save_input_file, parsed_data["datapoint"])
+                append_to_file(args.save_mpc_file, np.array([parsed_data["buffer_size"], parsed_data["last_format"]]))
+                
                 self.send_response(200, "ok")
                 self.end_headers()
             except:
@@ -74,12 +72,12 @@ if __name__ == "__main__":
         help="Specify the port on which the server listens",
     )
     parser.add_argument(
-        "--raw-weights-file",
+        "--save-input-file",
         default="./data_points/raw_inputs.npy",
         help="Specify the saving file path for raw inputs",
     )
     parser.add_argument(
-        "--ttp-weights-file",
+        "--save-mpc-file",
         default="./data_points/ttp_hidden2.npy",
         help="Specify the saving file path for ttp",
     )
@@ -91,7 +89,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    check_dir(args.raw_weights_file, args.force)
-    check_dir(args.ttp_weights_file, args.force)
+    check_dir(args.save_input_file, args.force)
+    check_dir(args.save_mpc_file, args.force)
 
     run_server(args)

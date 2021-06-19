@@ -5,6 +5,7 @@
 #include <deque>
 #include <vector>
 #include "filesystem.hh"
+#include "sender.hh"
 
 class Puffer : public ABRAlgo
 {
@@ -84,6 +85,10 @@ protected:
 
   /* deal with the situation when all formats are banned */
   void deal_all_ban(size_t i);
+
+  size_t last_format_;
+  Sender sender_ {};
+  bool collect_data_ {};
 };
 
 #endif /* PUFFER_HH */

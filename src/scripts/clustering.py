@@ -6,6 +6,8 @@ from sklearn.cluster import KMeans
 import pickle
 import argparse
 
+DELTA = 0.7
+
 
 def check_dir(filepath, force):
     dir = os.path.dirname(filepath)
@@ -25,8 +27,24 @@ def read_file(filename):
     return np.array(datapoints)
 
 
-def cluster(datapoints_file, saving_file):
-    X = read_file(datapoints_file)
+def normalize(input):
+    mean = np.mean(input, axis=0)
+    std = np.std(input, axis=0)
+    std[std == 0] = 1
+    normalized_input = (input - mean[np.newaxis, :]) / std[np.newaxis, :]
+    return normalized_input, mean, std
+
+
+def cluster(datapoints_file, mpc_file, saving_file):
+    raw_inputs = read_file(datapoints_file)
+    raw_inputs, raw_inputs_mean, raw_inputs_std = normalize(raw_inputs)
+
+    mpc = read_file(mpc_file)
+    mpc, mpc_mean, mpc_std = normalize(mpc)
+
+    assert raw_inputs.shape[0] == mpc.shape[0]
+
+    X = np.hstack([(1-DELTA)*raw_inputs, DELTA*mpc])
 
     kmeans = KMeans()
     kmeans.fit(X)
@@ -53,8 +71,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # check_dir('./weights/kmeans/kmeans.pkl', True)
-    # cluster('./data_points/ttp_hidden2.npy', './weights/kmeans/kmeans.pkl')
+    check_dir('./weights/kmeans/kmeans.pkl', True)
+    cluster('./data_points/raw_input.npy',
+            './data_points/mpc.npy', './weights/kmeans/kmeans.pkl')
 
-    check_dir(args.saving_path, args.force)
-    cluster(args.datapoints_file, args.saving_path)
+    # check_dir(args.saving_path, args.force)
+    # cluster(args.datapoints_file, args.saving_path)

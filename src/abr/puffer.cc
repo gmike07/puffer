@@ -29,6 +29,11 @@ Puffer::Puffer(const WebSocketClient & client,
 
   dis_buf_length_ = min(dis_buf_length_,
                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
+  
+  if (abr_config["collect_data"]) {
+    collect_data_ = abr_config["collect_data"].as<bool>();
+  }
+  last_format_ = 0;
 }
 
 void Puffer::video_chunk_acked(Chunk && c)
@@ -43,6 +48,20 @@ VideoFormat Puffer::select_video_format()
 {
   reinit();
   size_t ret_format = update_value(0, curr_buffer_, 0);
+
+  if (collect_data_) {
+    // send datapoint
+    auto& state = sending_time_prob_[1];  
+    std::vector<double> state_vec;
+    for (int i=0; i < 20; i++){
+      for (int j=0; j < 64; j++){
+        state_vec.push_back(state[i][j]);
+      }
+    }
+    sender_.send_datapoint(state_vec, curr_buffer_, last_format_);
+  }
+
+  last_format_ = ret_format;
   return client_.channel()->vformats()[ret_format];
 }
 
