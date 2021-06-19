@@ -20,6 +20,8 @@ traces/mahimahi/
 weights/policy/
 weights/ttp/
 
+data_points/
+
 ##### autotools
 
 # autoconf

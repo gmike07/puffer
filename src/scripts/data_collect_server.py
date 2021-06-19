@@ -25,7 +25,6 @@ def get_handler_class(args):
                 content_len = int(self.headers.get('Content-Length'))
                 data = self.rfile.read(content_len)
                 parsed_data = json.loads(data)
-                np.array(parsed_data["datapoint"])
                 
                 if self.path == "/raw-input":
                     append_to_file(args.raw_weights_file, parsed_data["datapoint"])
