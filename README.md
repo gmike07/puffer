@@ -1,6 +1,6 @@
 # Puffer [![Build Status](https://travis-ci.org/StanfordSNR/puffer.svg?branch=master)](https://travis-ci.org/StanfordSNR/puffer)
 
-# First thing to set up
+# First things to set up
 - Follow the wiki from the github repo of puffer  
 - Fix build issuses with putting line opus-encoder.cc:265 in comment  
 - install libcurl4-openssl-dev, libcurlpp-dev
@@ -21,9 +21,6 @@
     - `log_dir` - log dir
     - `experiments` - experiments to run
 6. you can view videos http://localhost:8080/player/{?wsport=9361}
-
-#  Ports
-ports begin from ws_port + i where i=1,... as the number of experiments
 
 # How to run experiments?
 0. run `sudo influxd`.
@@ -46,17 +43,6 @@ Data is collected from the streaming and written to influxdb.
 - Remember to compile with the flag `-g`: `sudo make -j CXXFLAGS='-DNONSECURE -g' CFLAGS='-g'` 
 - export env variable: `source ~/.bashrc`  
 - Debugging the server: `./src/media-server/ws_media_server src/settings.yml 1 3`  
-
-# Puffer Reinforce
-Puffer reinforce uses the first 2 layer of the ttp and reiforce to determine the policy to use.  
-In order to use ttp we must omit it last layer:  
-- Download a trained model from puffer site, and place it for example in `ttp/models/bbr-20210112-1`  
-- In each `ccp-{}.pt` (may depend on the horizon):  
-    - edit the file `model.json` and delete the last layer  
-    - edit the file `code/ccp-{}.py` and delete the last layer  
-
-In order to train a new model: `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model weights/ttp/hidden2/` `--tune`
-(install torch==1.0.0, matplotlib==3.0.0)
 
 # Postgress
 psotgress quick guide:
@@ -82,3 +68,8 @@ Go to `pensieve` repo and run:
 * `cd traces`
 * `python load_webget_data.py`
 * `python convert_mahimahi_format.py`
+
+# Training models
+* TTP (install torch==1.0.0, matplotlib==3.0.0): `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model weights/ttp/original/ --tune`
+* Clustering: `python3 src/scripts/clustering.py -d data_points/ttp_hidden2.npy -s weights/kmeans/kmeans.pkl`
+* Data Collect Server: `python3.7 src/scripts/data_collect_server.py --save-input-file data_points/raw_input.npy --save-mpc-file data_points/mpc.npy -f`

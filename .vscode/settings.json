@@ -71,5 +71,9 @@
         "valarray": "cpp",
         "bit": "cpp",
         "charconv": "cpp"
-    }
+    },
+    "cSpell.words": [
+        "numpy",
+        "sklearn"
+    ]
 }

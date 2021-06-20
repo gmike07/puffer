@@ -3,6 +3,7 @@
 
 #include "reinforce_policy.hh"
 #include "torch/script.h"
+#include "sender.hh"
 
 #include <deque>
 
@@ -37,7 +38,8 @@ private:
   void reinit_sending_time() override;
 
   void send_chunk_statistics(double qoe) override;
-  void send_datapoint(std::vector<double> datapoint, std::string endpoint);
+
+  Sender sender_ {};
 };
 
 #endif /* PUFFER_REINFROCE_HH */

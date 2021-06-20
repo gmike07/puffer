@@ -29,6 +29,11 @@ Puffer::Puffer(const WebSocketClient & client,
 
   dis_buf_length_ = min(dis_buf_length_,
                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
+  
+  if (abr_config["collect_data"]) {
+    collect_data_ = abr_config["collect_data"].as<bool>();
+  }
+  last_format_ = 0;
 }
 
 void Puffer::video_chunk_acked(Chunk && c)
@@ -43,6 +48,16 @@ VideoFormat Puffer::select_video_format()
 {
   reinit();
   size_t ret_format = update_value(0, curr_buffer_, 0);
+
+  if (collect_data_) {
+    sender_.send_datapoint(inputs_, curr_buffer_, last_format_, "raw-input");
+    sender_.send_datapoint(hidden2_, curr_buffer_, last_format_, "ttp-hidden2");
+
+    inputs_.clear();
+    hidden2_.clear();
+    last_format_ = ret_format;
+  }
+
   return client_.channel()->vformats()[ret_format];
 }
 
