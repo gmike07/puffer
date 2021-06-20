@@ -53,8 +53,8 @@ def cluster(datapoints_file, buffer_format_file, saving_clusters_file, saving_no
         pickle.dump(kmeans, f)
 
     with open(saving_normalized, 'wb') as f:
-        np.save(saving_normalized, [raw_inputs_mean,
-                                    raw_inputs_std, mpc_mean, mpc_std])
+        np.save(saving_normalized, [np.hstack([raw_inputs_mean, mpc_mean]),
+                                    np.hstack([raw_inputs_std, mpc_std])])
 
 
 if __name__ == "__main__":
