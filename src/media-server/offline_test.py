@@ -22,7 +22,7 @@ def start_maimahi_clients(num_clients):
         trace_dir = "./traces/mahimahi"
 
         files = os.listdir(trace_dir)
-        test_files = files[:300]
+        test_files = files[800:1200]
         reinforce_train_files = files[300:600]
 
         traces = test_files

@@ -72,4 +72,4 @@ Go to `pensieve` repo and run:
 # Training models
 * TTP (install torch==1.0.0, matplotlib==3.0.0): `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model weights/ttp/original/ --tune`
 * Clustering: `python3 src/scripts/clustering.py -d data_points/ttp_hidden2.npy -s weights/kmeans/kmeans.pkl`
-* Data Collect Server: `python3.7 src/scripts/data_collect_server.py --save-input-file data_points/raw_input.npy --save-mpc-file data_points/mpc.npy -f`
+* Data Collect Server: `python3.7 src/scripts/data_collect_server.py -f`
