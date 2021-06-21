@@ -60,7 +60,7 @@ class Exp3Server:
                         self.wfile.write(message)
                     elif self.path == "/update":
                         outer_self.exp3.update(
-                            datapoint, parsed_data["last_arm"], parsed_data["reward"])
+                            datapoint, parsed_data["arm"], parsed_data["reward"])
                         self.send_response(200)
                         self.end_headers()
                     else:

@@ -140,7 +140,8 @@ void PufferExp3::reinit_sending_time()
     at::Tensor output = ttp_modules_[i-1]->forward(torch_inputs).toTensor();
 
     // convert to vector
-    inputs_.insert(inputs_.begin() + (i-1) * num_formats_ * ttp_input_dim_, inputs, inputs + num_formats_*ttp_input_dim_);
+    std::vector<double> input(inputs, inputs + num_formats_*ttp_input_dim_);
+    inputs_.push_back(input);
 
     // for (size_t j = 0; j < num_formats_; j++) {
     //   for (size_t k = 0; k < 22; k++) {

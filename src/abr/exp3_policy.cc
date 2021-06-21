@@ -40,12 +40,48 @@ Exp3Policy::Exp3Policy(const WebSocketClient & client,
                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
 }
 
+double Exp3Policy::calc_qoe()
+{
+  if (past_chunks_.size() < 2) {
+    return 0;
+  }
+
+  Chunk curr_chunk = past_chunks_.back();
+  Chunk prev_chunk = *(past_chunks_.end()-2);
+
+  double qoe = ssim_db(curr_chunk.ssim);
+  qoe -= ssim_diff_coeff_ * fabs(ssim_db(curr_chunk.ssim) - ssim_db(prev_chunk.ssim));
+
+  int rebuffer = max(curr_chunk.trans_time - curr_buffer_, (unsigned long)0);
+  qoe -= rebuffer_length_coeff_ * rebuffer;
+  
+  std::cout <<  "qoe " << qoe << std::endl;
+
+  return qoe;
+}
+
 void Exp3Policy::video_chunk_acked(Chunk && c)
 {
   past_chunks_.push_back(c);
   if (past_chunks_.size() > max_num_past_chunks_) {
     past_chunks_.pop_front();
   }
+
+  std::vector<double> last_input = inputs_.front();
+  auto [buffer, last_format, format] = last_buffer_formats_.front();
+  double qoe = this->calc_qoe();
+
+  json data;
+  data["datapoint"] = last_input;
+  data["buffer_size"] = buffer;
+  data["last_format"] = last_format;
+  data["arm"] = format;
+  data["reward"] = qoe;
+    
+  sender_.post(data, "update");
+
+  inputs_.pop_front();
+  last_buffer_formats_.pop_front();
 }
 
 VideoFormat Exp3Policy::select_video_format()
@@ -53,10 +89,11 @@ VideoFormat Exp3Policy::select_video_format()
   reinit();
 
   size_t format = this->get_bitrate();
-  inputs_.clear();
+  last_buffer_formats_.push_back(std::tuple<size_t,size_t,size_t>{curr_buffer_, last_format_, format});
+
   last_format_ = format;
 
-  return client_.channel()->vformats()[format];
+  return client_.channel()->vformats()[0];
 }
 
 size_t Exp3Policy::get_bitrate()
@@ -64,14 +101,12 @@ size_t Exp3Policy::get_bitrate()
     auto& state = sending_time_prob_[1];
 
     json data;
-    data["datapoint"] = inputs_;
+    data["datapoint"] = inputs_.back();
     data["buffer_size"] = curr_buffer_;
     data["last_format"] = last_format_;
     
     std::string response = sender_.post(data, "get-bitrate");
     size_t format = stoi(response);
-
-    std::cout << "format: " << format << std::endl;
 
     return format;
 }

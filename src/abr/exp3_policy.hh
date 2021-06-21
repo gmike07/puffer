@@ -80,8 +80,11 @@ protected:
   Sender sender_ {};
   size_t last_format_;
 
-  std::vector<double> inputs_;
+  std::deque<std::tuple<size_t,size_t,size_t>> last_buffer_formats_;
+  std::deque<std::vector<double>> inputs_;
   std::vector<double> hidden2_;
+
+  double calc_qoe();
 };
 
 #endif /* EXP3_POLICY_HH */

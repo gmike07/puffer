@@ -19,4 +19,5 @@ class Exp3KMeans:
 
     def update(self, datapoint, last_arm, reward):
         context_idx = self._kmeans.predict(datapoint)
+        context_idx = context_idx[0]
         self._contexts[context_idx].update(reward, last_arm)
