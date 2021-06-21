@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.misc as sc
+from scipy.special import logsumexp
 
 
 class Context:
@@ -22,7 +22,7 @@ class Context:
 
     def predict(self):
         if self.gamma != 1.0:
-            c = sc.logsumexp(-self.gamma * self.weights)
+            c = logsumexp(-self.gamma * self.weights)
             prob_dist = np.exp((-self.gamma * self.weights) - c)
         else:
             prob_dist = np.ones(self.num_of_arms) / np.float(self.num_of_arms)
@@ -35,7 +35,7 @@ class Context:
             last_arm = self.last_arm
         loss = 1 - reward
         if self.gamma != 1.0:
-            c = sc.logsumexp(-self.gamma * self.weights)
+            c = logsumexp(-self.gamma * self.weights)
             prob = np.exp((-self.gamma * self.weights[last_arm]) - c)
         else:
             prob = 1.0 / np.float(self.num_of_arms)

@@ -60,10 +60,10 @@ def cluster(datapoints_file, buffer_format_file, saving_clusters_file, saving_no
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run k-means")
     parser.add_argument(
-        "--raw_inputs-file"
+        "--inputs-file"
     )
     parser.add_argument(
-        "--buffer_format_file"
+        "--buffer-format-file"
     )
     parser.add_argument(
         "--saving-clusters",
@@ -81,12 +81,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    check_dir('./weights/kmeans/kmeans.pkl', True)
-    cluster('./data_points/raw_input.npy',
-            './data_points/raw_mpc.npy',
-            './weights/kmeans/clusters.pkl',
-            './weights/kmeans/normalized.npy')
-
-    # check_dir(args.saving_clusters, args.force)
-    # check_dir(args.saving_normalized, args.force)
-    # cluster(args.raw_inputs_file, args.buffer_format_file, args.saving_clusters, args.saving_normalized)
+    check_dir(args.saving_clusters, args.force)
+    check_dir(args.saving_normalized, args.force)
+    cluster(args.inputs_file, args.buffer_format_file, args.saving_clusters, args.saving_normalized)

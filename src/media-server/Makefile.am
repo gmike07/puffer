@@ -24,6 +24,8 @@ ws_media_server_SOURCES = ws_media_server.cc \
 	../abr/puffer_ttp.cc ../abr/puffer_ttp.hh \
 	../abr/puffer_reinforce.cc ../abr/puffer_reinforce.hh \
 	../abr/reinforce_policy.cc ../abr/reinforce_policy.hh \
+	../abr/puffer_exp3.cc ../abr/puffer_exp3.hh \
+	../abr/exp3_policy.cc ../abr/exp3_policy.hh \
 	../../third_party/json.upstream/single_include/nlohmann/json.hpp
 ws_media_server_LDFLAGS = -L../../third_party/libtorch/lib \
 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib'

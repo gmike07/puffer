@@ -6,9 +6,9 @@ import pickle
 import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
-from scripts.clustering import DELTA, normalize
+from clustering import DELTA
 
-from scripts.exp3.exp3 import Exp3KMeans
+from exp3.exp3 import Exp3KMeans
 
 
 def load_kmeans(kmeans_path):
@@ -19,7 +19,7 @@ def load_kmeans(kmeans_path):
         kmeans = pickle.load(f)
 
     with open(normalization_weights_path, 'rb') as f:
-        normalization_weights = np.load(f)
+        normalization_weights = np.load(f, allow_pickle=True)
 
     return kmeans, normalization_weights[0], normalization_weights[1]
 
@@ -31,12 +31,10 @@ class Exp3Server:
 
     def _prepare_input(self, raw_inputs, buffer_size, last_format):
         mpc = np.array([buffer_size, last_format])
+        raw_inputs = np.array(raw_inputs, dtype=np.double)
         X = np.hstack([(1-DELTA)*raw_inputs, DELTA*mpc])
         normalized_X = (X - self.mean[np.newaxis, :]) / self.std[np.newaxis, :]
         return normalized_X
-
-    def update_exp3(self):
-        pass
 
     def __get_handler_class(outer_self):
         class HandlerClass(BaseHTTPRequestHandler):
@@ -50,16 +48,26 @@ class Exp3Server:
                     data = self.rfile.read(content_len)
                     parsed_data = json.loads(data)
 
-                    datapoint = outer_self._prepare_input(parsed_data["datapoint"], parsed_data["buffer_size"], parsed_data["last_format"])
+                    datapoint = outer_self._prepare_input(
+                        parsed_data["datapoint"], parsed_data["buffer_size"], parsed_data["last_format"])
 
                     if self.path == "/get-bitrate":
                         bitrate = outer_self.exp3.predict(datapoint)
-                        self.send_response(200, bitrate)
+                        message = bytes(str(bitrate), 'utf-8')
+                        self.send_response(200)
+                        self.send_header("Content-Length", len(message))
+                        self.end_headers()
+                        self.wfile.write(message)
                     elif self.path == "/update":
-                        outer_self.exp3.update(datapoint, parsed_data["last_arm"], parsed_data["reward"])
-                        self.send_response(200, "ok")
-                    self.end_headers()
-                except:
+                        outer_self.exp3.update(
+                            datapoint, parsed_data["last_arm"], parsed_data["reward"])
+                        self.send_response(200)
+                        self.end_headers()
+                    else:
+                        self.send_response(400)
+                        self.end_headers()
+                except Exception as e:
+                    print(e)
                     self.send_response(400, "error occurred")
                     self.end_headers()
 
@@ -104,11 +112,6 @@ if __name__ == "__main__":
         help="kmeans weights parent dir",
     )
     parser.add_argument(
-        "--ttp-weights-file",
-        default="./data_points/ttp_hidden2.npy",
-        help="Specify the saving file path for ttp",
-    )
-    parser.add_argument(
         "--num-of-arms",
         default=10,
         type=int
@@ -120,9 +123,6 @@ if __name__ == "__main__":
         action='store_true'
     )
     args = parser.parse_args()
-
-    check_dir(args.raw_weights_file, args.force)
-    check_dir(args.ttp_weights_file, args.force)
 
     exp3Server = Exp3Server(kmeans_dir=args.kmeans_dir,
                             num_of_arms=args.num_of_arms)

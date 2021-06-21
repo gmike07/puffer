@@ -7,33 +7,35 @@
 #include <curlpp/Infos.hpp>
 
 #include <exception>
-#include "json.hpp"
 
-using json = nlohmann::json;
-
-void Sender::send_datapoint(std::vector<double> datapoint, 
-                            size_t buf_size, 
-                            size_t last_format,
-                            std::string endpoint)
+std::string Sender::post(json data,
+                  std::string endpoint)
 {
-  json data;
-  data["datapoint"] = datapoint;
-  data["buffer_size"] = buf_size;
-  data["last_format"] = last_format;
-
   std::list<std::string> header;
   header.push_back("Content-Type: application/json");
 
+  std::ostringstream response;
+
   curlpp::Easy request;
+
   request.setOpt(new curlpp::options::Url("http://localhost:8888/" + endpoint));
   request.setOpt(new curlpp::options::HttpHeader(header));
   request.setOpt(new curlpp::options::PostFields(data.dump()));
   request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
+  request.setOpt(new cURLpp::Options::WriteStream(&response));
 
   try {
     request.perform();
+
+    long status = curlpp::infos::ResponseCode::get(request);
+    if (status == 200) {
+      // std::cout << "response: " << response.str() << std::endl;
+      return response.str();
+    }
   }
   catch (std::exception& e) {
     std::cout << "exception " << e.what() << std::endl;
   }
+  
+  return "";
 }

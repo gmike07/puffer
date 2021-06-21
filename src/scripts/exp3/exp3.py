@@ -1,4 +1,4 @@
-from scripts.exp3.context import Context
+from .context import Context
 
 
 class Exp3KMeans:
@@ -13,6 +13,7 @@ class Exp3KMeans:
 
     def predict(self, datapoint):
         context_idx = self._kmeans.predict(datapoint)
+        context_idx = context_idx[0]
         arm = self._contexts[context_idx].predict()
         return arm
 

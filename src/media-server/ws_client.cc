@@ -6,6 +6,7 @@
 #include "puffer_raw.hh"
 #include "puffer_ttp.hh"
 #include "puffer_reinforce.hh"
+#include "puffer_exp3.hh"
 #include "timestamp.hh"
 #include "exception.hh"
 
@@ -212,6 +213,8 @@ void WebSocketClient::init_abr_algo()
     abr_algo_ = make_unique<PufferTTP>(*this, abr_name_, abr_config_);
   } else if (abr_name_ == "puffer_reinforce") {
     abr_algo_ = make_unique<PufferReinforce>(*this, abr_name_, abr_config_);
+  } else if (abr_name_ == "puffer_exp3") {
+    abr_algo_ = make_unique<PufferExp3>(*this, abr_name_, abr_config_);
   } else {
     throw runtime_error("undefined ABR algorithm");
   }

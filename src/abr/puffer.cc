@@ -50,8 +50,17 @@ VideoFormat Puffer::select_video_format()
   size_t ret_format = update_value(0, curr_buffer_, 0);
 
   if (collect_data_) {
-    sender_.send_datapoint(inputs_, curr_buffer_, last_format_, "raw-input");
-    sender_.send_datapoint(hidden2_, curr_buffer_, last_format_, "ttp-hidden2");
+    json data;
+    data["datapoint"] = inputs_;
+    data["buffer_size"] = curr_buffer_;
+    data["last_format"] = last_format_;
+    sender_.post(data, "raw-input");
+
+    json data2;
+    data2["datapoint"] = hidden2_;
+    data2["buffer_size"] = curr_buffer_;
+    data2["last_format"] = last_format_;
+    sender_.post(data2, "ttp-hidden2");
 
     inputs_.clear();
     hidden2_.clear();
