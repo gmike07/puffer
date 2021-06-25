@@ -35,7 +35,10 @@ class Exp3KMeans:
 
         os.mkdir(f'{folder_path}/{self._version}')
         for i, context in enumerate(self._contexts):
-            np.savez(f'{folder_path}/{self._version}/{i}.npz', cluster=context.cluster,
-                        weights=context.weights, gamma=context.gamma)
+            base_dir = f'{folder_path}/{self._version}/{i}'
+            os.mkdir(base_dir)
+            np.savetxt(f'{base_dir}/cluster.txt', context.cluster)
+            np.savetxt(f'{base_dir}/weights.txt', context.weights)
+            np.savetxt(f'{base_dir}/gamma.txt', np.array([context.gamma]))
 
         self._version += 1

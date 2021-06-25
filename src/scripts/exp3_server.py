@@ -11,7 +11,7 @@ from clustering import DELTA
 from exp3.exp3 import Exp3KMeans
 
 CHECKPOINT = 10
-EXP3_PATH = './weights/exp3/'
+EXP3_PATH = './weights/exp3'
 
 def load_kmeans(kmeans_path):
     clusters_path = kmeans_path + "clusters.pkl"

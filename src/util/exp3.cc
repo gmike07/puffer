@@ -1,21 +1,24 @@
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
-
+#include <iostream>
 #include "filesystem.hh"
 #include "exp3.hh"
 
-Exp3::Exp3(){}
+Exp3::Exp3() {}
 
 Exp3::Exp3(std::string model_path) : model_path_(model_path)
 {
   reload_model();
 }
 
-std::size_t Exp3::predict(std::vector<double> input)
+std::size_t Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_)
 {
+  input.push_back(curr_buffer_);
+  input.push_back(last_format_);
+
   /* find cluster index */
-  Context &min_context = contexts_[0];
+  Context &min_context = contexts_.back();
   for (const auto &context : contexts_)
   {
     if (dist(input, context.cluster_) < dist(input, min_context.cluster_))
@@ -32,7 +35,8 @@ double Exp3::dist(std::vector<double> v1, std::vector<double> v2)
   double distance = 0;
   assert(v1.size() == v2.size());
 
-  for (std::size_t i = 0; i < v1.size(); i++) {
+  for (std::size_t i = 0; i < v1.size(); i++)
+  {
     distance += std::pow(v1[i] - v2[i], 2);
   }
 
@@ -50,18 +54,18 @@ void Exp3::reload_model()
   }
 
   std::sort(dirs.begin(), dirs.end(), [](const fs::path f1, const fs::path f2)
-       {
-         std::string s1 = f1.c_str();
-         std::string s2 = f2.c_str();
-         int n1 = stoi(s1.substr(0, s1.find_last_of('.')));
-         int n2 = stoi(s2.substr(0, s2.find_last_of('.')));
-         return n1 < n2;
-       });
+            {
+              std::string s1 = f1.c_str();
+              std::string s2 = f2.c_str();
+              int n1 = stoi(s1.substr(0, s1.find_last_of('.')));
+              int n2 = stoi(s2.substr(0, s2.find_last_of('.')));
+              return n1 < n2;
+            });
 
   std::string exp3_relevant_dir = dirs.back().c_str();
 
   for (const auto &entry : fs::directory_iterator(exp3_relevant_dir))
   {
-    contexts_.push_back(Context(model_path_ / entry.path()));
+    contexts_.push_back(Context(entry.path()));
   }
 }

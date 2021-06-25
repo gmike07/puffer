@@ -10,7 +10,7 @@ class Exp3 {
 public:
     Exp3();
     Exp3(std::string model_path);
-    std::size_t predict(std::vector<double> input);
+    std::size_t predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_);
     void reload_model();
 private:
     std::string model_path_;
