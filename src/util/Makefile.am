@@ -34,7 +34,9 @@ libutil_a_SOURCES = \
 	media_formats.hh media_formats.cc \
 	yaml.hh yaml.cc \
 	reinforce.hh reinforce.cc \
-	sender.hh sender.cc
+	sender.hh sender.cc \
+	exp3.cc ex3.hh \
+	context.cc context.hh
 
 libutil_a_LDFLAGS = -L../../third_party/libtorch/lib \
 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib' \

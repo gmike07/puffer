@@ -3,9 +3,9 @@ from scipy.special import logsumexp
 
 
 class Context:
-    def __init__(self, num_of_arms, context, gamma=None, weights=None):
+    def __init__(self, num_of_arms, cluster, gamma=None, weights=None):
         self.num_of_arms = num_of_arms
-        self.context = context
+        self.cluster = cluster
         if gamma is None:
             self.gamma = min(1.0, np.sqrt(np.log(num_of_arms) / num_of_arms))
             self.t = 1
@@ -22,8 +22,8 @@ class Context:
 
     def predict(self):
         if self.gamma != 1.0:
-            c = logsumexp(-self.gamma * self.weights)
-            prob_dist = np.exp((-self.gamma * self.weights) - c)
+            c = logsumexp(self.gamma * self.weights)
+            prob_dist = np.exp((self.gamma * self.weights) - c)
         else:
             prob_dist = np.ones(self.num_of_arms) / np.float(self.num_of_arms)
         arm = np.random.choice(a=self.num_of_arms, p=prob_dist)
@@ -35,8 +35,8 @@ class Context:
             last_arm = self.last_arm
         loss = 1 - reward
         if self.gamma != 1.0:
-            c = logsumexp(-self.gamma * self.weights)
-            prob = np.exp((-self.gamma * self.weights[last_arm]) - c)
+            c = logsumexp(self.gamma * self.weights)
+            prob = np.exp((self.gamma * self.weights[last_arm]) - c)
         else:
             prob = 1.0 / np.float(self.num_of_arms)
 

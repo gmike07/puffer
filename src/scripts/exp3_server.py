@@ -6,10 +6,12 @@ import pickle
 import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
-from clustering import DELTA
 
+from clustering import DELTA
 from exp3.exp3 import Exp3KMeans
 
+CHECKPOINT = 10
+EXP3_PATH = './weights/exp3/'
 
 def load_kmeans(kmeans_path):
     clusters_path = kmeans_path + "clusters.pkl"
@@ -25,9 +27,11 @@ def load_kmeans(kmeans_path):
 
 
 class Exp3Server:
+    TIME2SAVE = CHECKPOINT
     def __init__(self, kmeans_dir, num_of_arms):
         kmeans, self.mean, self.std = load_kmeans(kmeans_dir)
         self.exp3 = Exp3KMeans(num_of_arms=num_of_arms, kmeans=kmeans)
+        self.exp3.save(EXP3_PATH)
 
     def _prepare_input(self, raw_inputs, buffer_size, last_format):
         mpc = np.array([buffer_size, last_format])
@@ -59,15 +63,21 @@ class Exp3Server:
                         self.end_headers()
                         self.wfile.write(message)
                     elif self.path == "/update":
+                        outer_self.TIME2SAVE -= 1
+                        if outer_self.TIME2SAVE == 0:
+                            outer_self.TIME2SAVE = CHECKPOINT
+                            outer_self.exp3.save(EXP3_PATH)
+
+                        print(parsed_data["reward"], parsed_data["arm"])
                         outer_self.exp3.update(
-                            datapoint, parsed_data["arm"], parsed_data["reward"])
+                            datapoint, parsed_data["arm"], parsed_data["reward"]/600)
                         self.send_response(200)
                         self.end_headers()
                     else:
                         self.send_response(400)
                         self.end_headers()
                 except Exception as e:
-                    print(e)
+                    print('exception', e)
                     self.send_response(400, "error occurred")
                     self.end_headers()
 

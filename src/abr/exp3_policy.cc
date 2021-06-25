@@ -3,9 +3,11 @@
 #include <fstream>
 #include <memory>
 #include <tuple>
+#include <thread>
 
 #include "ws_client.hh"
 #include "json.hpp"
+#include "timestamp.hh"
 
 using namespace std;
 using json = nlohmann::json;
@@ -36,6 +38,10 @@ Exp3Policy::Exp3Policy(const WebSocketClient & client,
     training_mode_ = abr_config["use_puffer"].as<bool>();
   }
 
+  if (abr_config["exp3_dir"]) {
+    exp3_agent_ = Exp3(abr_config["exp3_dir"].as<string>());
+  }
+
   dis_buf_length_ = min(dis_buf_length_,
                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
 }
@@ -52,10 +58,10 @@ double Exp3Policy::calc_qoe()
   double qoe = ssim_db(curr_chunk.ssim);
   qoe -= ssim_diff_coeff_ * fabs(ssim_db(curr_chunk.ssim) - ssim_db(prev_chunk.ssim));
 
-  int rebuffer = max(curr_chunk.trans_time - curr_buffer_, (unsigned long)0);
+  double rebuffer = max(curr_chunk.trans_time*0.001 - curr_buffer_*unit_buf_length_, 0.0);
   qoe -= rebuffer_length_coeff_ * rebuffer;
   
-  std::cout <<  "qoe " << qoe << std::endl;
+  // std::cout <<  "rebuffer " << rebuffer << ",tans: " << curr_chunk.trans_time << "curr: " << curr_buffer_*unit_buf_length_ << ",cum: "<< client_.cum_rebuffer() << std::endl;
 
   return qoe;
 }
@@ -67,48 +73,39 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
     past_chunks_.pop_front();
   }
 
-  std::vector<double> last_input = inputs_.front();
-  auto [buffer, last_format, format] = last_buffer_formats_.front();
-  double qoe = this->calc_qoe();
-
-  json data;
-  data["datapoint"] = last_input;
-  data["buffer_size"] = buffer;
-  data["last_format"] = last_format;
-  data["arm"] = format;
-  data["reward"] = qoe;
+  std::thread([&](){ 
+    std::vector<double> last_input = inputs_.front();
+    auto [buffer, last_format, format] = last_buffer_formats_.front();
+    double qoe = this->calc_qoe();
     
-  sender_.post(data, "update");
+    json data;
+    data["datapoint"] = last_input;
+    data["buffer_size"] = buffer;
+    data["last_format"] = last_format;
+    data["arm"] = format;
+    data["reward"] = qoe;
+    
+    sender_.post(data, "update"); 
 
-  inputs_.pop_front();
-  last_buffer_formats_.pop_front();
+    inputs_.pop_front();
+    last_buffer_formats_.pop_front();
+  }).detach();
 }
 
 VideoFormat Exp3Policy::select_video_format()
 {
+  auto before_ts = timestamp_ms();
   reinit();
-
-  size_t format = this->get_bitrate();
+  
+  size_t format = exp3_agent_.predict(inputs_.front()); //this->get_bitrate();
   last_buffer_formats_.push_back(std::tuple<size_t,size_t,size_t>{curr_buffer_, last_format_, format});
-
   last_format_ = format;
 
-  return client_.channel()->vformats()[0];
-}
+  auto after = timestamp_ms() - before_ts;
+  // std::cout <<  "diff time:" << after << std::endl;
 
-size_t Exp3Policy::get_bitrate()
-{
-    auto& state = sending_time_prob_[1];
 
-    json data;
-    data["datapoint"] = inputs_.back();
-    data["buffer_size"] = curr_buffer_;
-    data["last_format"] = last_format_;
-    
-    std::string response = sender_.post(data, "get-bitrate");
-    size_t format = stoi(response);
-
-    return format;
+  return client_.channel()->vformats()[9]; //todo: change to format 
 }
 
 void Exp3Policy::reinit()

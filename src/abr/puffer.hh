@@ -90,8 +90,8 @@ protected:
   Sender sender_ {};
   bool collect_data_ {};
 
-  std::vector<double> inputs_;
-  std::vector<double> hidden2_;
+  std::deque<std::vector<double>> inputs_;
+  std::deque<std::vector<double>> hidden2_;
 };
 
 #endif /* PUFFER_HH */

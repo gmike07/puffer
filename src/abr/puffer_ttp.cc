@@ -162,14 +162,17 @@ void PufferTTP::reinit_sending_time()
 
     /* save input in order to send datapoint */
     if (collect_data_) {
-      inputs_.insert(inputs_.begin() + (i-1) * num_formats_ * ttp_input_dim_, inputs, inputs + num_formats_*ttp_input_dim_);
+      std::vector<double> input(inputs, inputs + num_formats_*ttp_input_dim_);
+      inputs_.push_back(input);
 
       at::Tensor hidden2_output = hidden2_ttp_modules_[i - 1]->forward(torch_inputs).toTensor();
+      std::vector<double> hidden2;
       for (size_t j = 0; j < num_formats_; j++) {
         for (size_t k = 0; k < 64; k++) {
-          hidden2_.push_back(hidden2_output[j][k].item<double>());
+          hidden2.push_back(hidden2_output[j][k].item<double>());
         }
       }
+      hidden2_.push_back(hidden2);
     }
     
     /* extract distribution from the output */

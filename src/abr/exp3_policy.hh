@@ -6,6 +6,7 @@
 #include <vector>
 #include "filesystem.hh"
 #include "sender.hh"
+#include "exp3.hh"
 
 class Exp3Policy : public ABRAlgo
 {
@@ -76,7 +77,6 @@ protected:
 
   bool training_mode_ = false;
   bool use_puffer_ = false;
-  size_t get_bitrate();
   Sender sender_ {};
   size_t last_format_;
 
@@ -85,6 +85,8 @@ protected:
   std::vector<double> hidden2_;
 
   double calc_qoe();
+
+  Exp3 exp3_agent_ {};
 };
 
 #endif /* EXP3_POLICY_HH */
