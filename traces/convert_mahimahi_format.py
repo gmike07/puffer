@@ -3,7 +3,7 @@ import numpy as np
 
 
 IN_FILE = './cooked/'
-OUT_FILE = './mahimahi/'
+OUTPUT_PATH = './mahimahi/'
 FILE_SIZE = 2
 BYTES_PER_PKT = 1500.0
 MILLISEC_IN_SEC = 1000.0
@@ -11,10 +11,14 @@ EXP_LEN = 5000.0  # millisecond
 
 
 def main():
+	if not os.path.exists(OUTPUT_PATH):
+		os.mkdir(OUTPUT_PATH)
+
+
 	files = os.listdir(IN_FILE)
 	for trace_file in files:
 		if os.stat(IN_FILE + trace_file).st_size >= FILE_SIZE:
-			with open(IN_FILE + trace_file, 'r') as f, open(OUT_FILE + trace_file, 'w') as mf:
+			with open(IN_FILE + trace_file, 'r') as f, open(OUTPUT_PATH + trace_file, 'w') as mf:
 				millisec_time = 0
 				mf.write(str(millisec_time) + '\n')
 				for line in f:
