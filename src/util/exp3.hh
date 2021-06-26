@@ -1,0 +1,27 @@
+#ifndef EXP3_HH
+#define EXP3_HH
+
+#include <string>
+#include <vector>
+
+#include "context.hh"
+
+class Exp3 {
+public:
+    Exp3();
+    Exp3(std::string model_path);
+    Exp3(std::string model_path, std::string norm_path);
+    std::size_t predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_);
+    std::size_t reload_model();
+private:
+    std::string model_path_;
+    std::vector<Context> contexts_;
+    std::vector<double> mean_;
+    std::vector<double> std_;
+    double dist(std::vector<double> v1, std::vector<double> v2);
+    std::vector<double> read_file(std::string filename);
+    void normalize_inplace(std::vector<double>& input);
+    double DELTA = 0.7;
+};
+
+#endif /* EXP3_HH */

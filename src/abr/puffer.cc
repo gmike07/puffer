@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <memory>
+#include <thread>
 
 #include "ws_client.hh"
 #include "json.hpp"
@@ -50,12 +51,23 @@ VideoFormat Puffer::select_video_format()
   size_t ret_format = update_value(0, curr_buffer_, 0);
 
   if (collect_data_) {
-    sender_.send_datapoint(inputs_, curr_buffer_, last_format_, "raw-input");
-    sender_.send_datapoint(hidden2_, curr_buffer_, last_format_, "ttp-hidden2");
+    std::thread([&]() {
+      json data;
+      data["datapoint"] = inputs_.front();
+      data["buffer_size"] = curr_buffer_;
+      data["last_format"] = last_format_;
+      sender_.post(data, "raw-input");
+      inputs_.pop_front();
 
-    inputs_.clear();
-    hidden2_.clear();
-    last_format_ = ret_format;
+      json data2;
+      data2["datapoint"] = hidden2_.front();
+      data2["buffer_size"] = curr_buffer_;
+      data2["last_format"] = last_format_;
+      sender_.post(data2, "ttp-hidden2");
+      hidden2_.pop_front();
+
+      last_format_ = ret_format;
+    }).detach();
   }
 
   return client_.channel()->vformats()[ret_format];

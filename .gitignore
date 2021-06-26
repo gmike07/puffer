@@ -20,6 +20,8 @@ traces/mahimahi/
 weights/policy/
 weights/ttp/
 weights/kmeans/
+weights/exp3/
+weights/logs.txt
 
 data_points/
 
