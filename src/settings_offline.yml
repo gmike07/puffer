@@ -21,12 +21,7 @@ influxdb_connection:
 enforce_moving_live_edge: false
 media_dir: /home/ubuntu/ubuntu/media-181230
 channels:
-  - abc
-  - nbc
-  - fox
-  - pbs
   - cbs
-  - univision
 channel_configs:
   abc:
     live: true
