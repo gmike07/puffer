@@ -22,11 +22,11 @@ def start_maimahi_clients(num_clients):
         trace_dir = "./traces/mahimahi"
 
         files = os.listdir(trace_dir)
-        test_files = files[800:1200]
+        test_files = files[:800]
         reinforce_train_files = files[300:600]
 
         traces = test_files
-        epochs = 50
+        epochs = 1
         for epoch in range(epochs):
             # for filename in files[:300]:
             for f in range(0, len(traces), num_clients):
@@ -77,7 +77,7 @@ def start_maimahi_clients(num_clients):
 def main():
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     run_offline_media_servers()
-    start_maimahi_clients(12)
+    start_maimahi_clients(10)
 
 
 if __name__ == '__main__':

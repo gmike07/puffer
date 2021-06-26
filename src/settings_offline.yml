@@ -164,7 +164,7 @@ experiments:
   #      training_mode: true
   #    cc: bbr
      
-  - num_servers: 1
+  - num_servers: 10
     fingerprint:
      abr: puffer_ttp
      abr_config:
