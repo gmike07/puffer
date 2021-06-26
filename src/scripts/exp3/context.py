@@ -40,7 +40,7 @@ class Context:
         else:
             prob = 1.0 / np.float(self.num_of_arms)
 
-        assert prob > 0
+        assert prob > 0, "Assertion error"
 
         estimated = loss / prob
         self.weights[last_arm] += estimated

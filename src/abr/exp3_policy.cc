@@ -39,7 +39,7 @@ Exp3Policy::Exp3Policy(const WebSocketClient & client,
   }
 
   if (abr_config["exp3_dir"]) {
-    exp3_agent_ = Exp3(abr_config["exp3_dir"].as<string>());
+    exp3_agent_ = Exp3(abr_config["exp3_dir"].as<string>(), abr_config["normalization_dir"].as<string>());
   }
 
   dis_buf_length_ = min(dis_buf_length_,
@@ -73,7 +73,7 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
     past_chunks_.pop_front();
   }
 
-  std::thread([&](){ 
+  // std::thread([&](){ 
     std::vector<double> last_input = inputs_.front();
     auto [buffer, last_format, format] = last_buffer_formats_.front();
     double qoe = this->calc_qoe();
@@ -84,26 +84,32 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
     data["last_format"] = last_format;
     data["arm"] = format;
     data["reward"] = qoe;
+    data["version"] = version_;
     
-    sender_.post(data, "update"); 
+    long status = sender_.post(data, "update"); 
+
+    if (status == 406) {
+      version_ = exp3_agent_.reload_model();
+    }
 
     inputs_.pop_front();
     last_buffer_formats_.pop_front();
-  }).detach();
+  // }).detach();
 }
 
 VideoFormat Exp3Policy::select_video_format()
 {
-  auto before_ts = timestamp_ms();
+  // auto before_ts = timestamp_ms();
   reinit();
   
   size_t format = exp3_agent_.predict(inputs_.front(), curr_buffer_, last_format_); //this->get_bitrate();
   last_buffer_formats_.push_back(std::tuple<size_t,size_t,size_t>{curr_buffer_, last_format_, format});
   last_format_ = format;
 
-  auto after = timestamp_ms() - before_ts;
-  // std::cout <<  "diff time:" << after << std::endl;
+  // std::cout <<  "format:" << format << std::endl;
 
+  // auto after = timestamp_ms() - before_ts;
+  // std::cout <<  "diff time:" << after << std::endl;
 
   return client_.channel()->vformats()[format];
 }

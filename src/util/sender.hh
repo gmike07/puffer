@@ -11,7 +11,7 @@ class Sender
 {
 public:
   Sender(){};
-  void post(json data,
+  long post(json data,
                    std::string endpoint);
 };
 

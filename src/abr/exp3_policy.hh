@@ -87,6 +87,7 @@ protected:
   double calc_qoe();
 
   Exp3 exp3_agent_ {};
+  std::size_t version_;
 };
 
 #endif /* EXP3_POLICY_HH */

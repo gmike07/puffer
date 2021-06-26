@@ -4,12 +4,15 @@
 #include <iostream>
 #include <fstream>
 #include <math.h>
+#include <iomanip>
 
 Context::Context(std::string model_path)
 {
   cluster_ = read_file(model_path + "/" + "cluster.txt");
   weights_ = read_file(model_path + "/" + "weights.txt");
   gamma_ = read_file(model_path + "/" + "gamma.txt").back();
+
+  // std::cout << std::setprecision(10) << std::scientific << "check: " << d << std::endl;
 }
 
 std::vector<double> Context::read_file(std::string filename)

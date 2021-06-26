@@ -164,6 +164,7 @@ experiments:
        exp3_dir: ./weights/exp3/
        rebuffer_length_coeff: 100
        max_lookahead_horizon: 1
+       normalization_dir: ./weights/kmeans/
        use_puffer: false
        training_mode: true
      cc: bbr

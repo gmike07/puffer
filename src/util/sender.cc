@@ -8,7 +8,7 @@
 
 #include <exception>
 
-void Sender::post(json data,
+long Sender::post(json data,
                   std::string endpoint)
 {
   std::list<std::string> header;
@@ -27,7 +27,9 @@ void Sender::post(json data,
   try {
     request.perform();
 
-    // long status = curlpp::infos::ResponseCode::get(request);
+    long status = curlpp::infos::ResponseCode::get(request);
+
+    return status;
     // if (status == 200) {
       // std::cout << "response: " << response.str() << std::endl;
     // }

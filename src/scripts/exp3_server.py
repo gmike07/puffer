@@ -7,31 +7,33 @@ import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
 
+from numpy.lib.npyio import save
+
 from clustering import DELTA
 from exp3.exp3 import Exp3KMeans
 
 CHECKPOINT = 10
-EXP3_PATH = './weights/exp3'
+
 
 def load_kmeans(kmeans_path):
     clusters_path = kmeans_path + "clusters.pkl"
-    normalization_weights_path = kmeans_path + "normalized.npy"
+    mean = np.loadtxt(kmeans_path + "mean.txt")
+    std = np.loadtxt(kmeans_path + "std.txt")
 
     with open(clusters_path, 'rb') as f:
         kmeans = pickle.load(f)
 
-    with open(normalization_weights_path, 'rb') as f:
-        normalization_weights = np.load(f, allow_pickle=True)
-
-    return kmeans, normalization_weights[0], normalization_weights[1]
+    return kmeans, mean, std
 
 
 class Exp3Server:
     TIME2SAVE = CHECKPOINT
-    def __init__(self, kmeans_dir, num_of_arms):
+
+    def __init__(self, kmeans_dir, num_of_arms, save_path):
         kmeans, self.mean, self.std = load_kmeans(kmeans_dir)
-        self.exp3 = Exp3KMeans(num_of_arms=num_of_arms, kmeans=kmeans)
-        self.exp3.save(EXP3_PATH)
+        self.exp3 = Exp3KMeans(num_of_arms=num_of_arms,
+                               kmeans=kmeans, save_path=save_path)
+        self.exp3.load()
 
     def _prepare_input(self, raw_inputs, buffer_size, last_format):
         mpc = np.array([buffer_size, last_format])
@@ -63,14 +65,17 @@ class Exp3Server:
                         self.end_headers()
                         self.wfile.write(message)
                     elif self.path == "/update":
-                        outer_self.TIME2SAVE -= 1
-                        if outer_self.TIME2SAVE == 0:
-                            outer_self.TIME2SAVE = CHECKPOINT
-                            outer_self.exp3.save(EXP3_PATH)
+                        updated = outer_self.exp3.update(
+                            datapoint, 
+                            parsed_data["arm"],
+                            parsed_data["reward"]/6000,
+                            parsed_data["version"])  # todo: fix
 
-                        print(parsed_data["reward"], parsed_data["arm"])
-                        outer_self.exp3.update(
-                            datapoint, parsed_data["arm"], parsed_data["reward"]/600)
+                        if not updated:
+                            self.send_response(406)
+                            self.end_headers()
+                            return
+
                         self.send_response(200)
                         self.end_headers()
                     else:
@@ -122,6 +127,10 @@ if __name__ == "__main__":
         help="kmeans weights parent dir",
     )
     parser.add_argument(
+        "--save-path",
+        default='./weights/exp3'
+    )
+    parser.add_argument(
         "--num-of-arms",
         default=10,
         type=int
@@ -135,5 +144,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     exp3Server = Exp3Server(kmeans_dir=args.kmeans_dir,
-                            num_of_arms=args.num_of_arms)
+                            num_of_arms=args.num_of_arms,
+                            save_path=args.save_path)
     exp3Server.run_server(args.addr, args.port)

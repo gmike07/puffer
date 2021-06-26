@@ -40,8 +40,6 @@ PufferExp3::PufferExp3(const WebSocketClient & client,
   } else {
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
-  std::cout << "Finish cons. " << max_lookahead_horizon_ << std::endl;
-
 }
 
 void PufferExp3::normalize_in_place(size_t i, vector<double> & input)
