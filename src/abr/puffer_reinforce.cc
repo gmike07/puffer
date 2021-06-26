@@ -1,12 +1,6 @@
 #include "puffer_reinforce.hh"
 #include "ws_client.hh"
 
-#include <curl/curl.h>
-#include <curlpp/cURLpp.hpp>
-#include <curlpp/Easy.hpp>
-#include <curlpp/Options.hpp>
-#include <curlpp/Infos.hpp>
-
 
 using namespace std;
 
@@ -46,74 +40,50 @@ PufferReinforce::PufferReinforce(const WebSocketClient & client,
   } else {
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
-  std::cout << "Finish cons. " << max_lookahead_horizon_ << std::endl;
-
 }
 
 void PufferReinforce::send_chunk_statistics(double qoe)
 {
-  auto& state = sending_time_prob_[1];  
-  std::vector<double> state_vec;
+  // auto& state = sending_time_prob_[1];  
+  // std::vector<double> state_vec;
 
-  for (int i=0; i < 20; i++){
-    for (int j=0; j < 64; j++){
-      state_vec.push_back(state[i][j]);
-    }
-  }
+  // for (int i=0; i < 20; i++){
+  //   for (int j=0; j < 64; j++){
+  //     state_vec.push_back(state[i][j]);
+  //   }
+  // }
 
-  json json_state(state_vec);
+  // json json_state(state_vec);
   
-  json data;
-  data["state"] = json_state;
-  data["version"] = version_;
-  data["qoe"] = qoe;
+  // json data;
+  // data["state"] = json_state;
+  // data["version"] = version_;
+  // data["qoe"] = qoe;
 
-  // send request
-  std::list<std::string> header;
-  header.push_back("Content-Type: application/json");
+  // // send request
+  // std::list<std::string> header;
+  // header.push_back("Content-Type: application/json");
 
-  curlpp::Cleanup clean;
-  curlpp::Easy request;
-  request.setOpt(new curlpp::options::Url("http://localhost:8200"));
-  request.setOpt(new curlpp::options::HttpHeader(header));
-  request.setOpt(new curlpp::options::PostFields(data.dump()));
-  request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
+  // curlpp::Cleanup clean;
+  // curlpp::Easy request;
+  // request.setOpt(new curlpp::options::Url("http://localhost:8200"));
+  // request.setOpt(new curlpp::options::HttpHeader(header));
+  // request.setOpt(new curlpp::options::PostFields(data.dump()));
+  // request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
 
-  try {
-    request.perform();
-    long status = curlpp::infos::ResponseCode::get(request);
-    cout << "status: " << status << endl;
-    if (status == 404){
-      load_weights();
-      throw logic_error("weights updated, reinit channel");
-    }
-  }
-  catch (exception& e) {
-    cout << "exception " << e.what() << endl;
-    throw e;
-  }
-}
-
-void PufferReinforce::send_datapoint(std::vector<double> datapoint, std::string endpoint)
-{
-  json data;
-  data["datapoint"] = datapoint;
-
-  std::list<std::string> header;
-  header.push_back("Content-Type: application/json");
-
-  curlpp::Easy request;
-  request.setOpt(new curlpp::options::Url("http://localhost:8888/" + endpoint));
-  request.setOpt(new curlpp::options::HttpHeader(header));
-  request.setOpt(new curlpp::options::PostFields(data.dump()));
-  request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
-
-  try {
-    request.perform();
-  }
-  catch (exception& e) {
-    cout << "exception " << e.what() << endl;
-  }
+  // try {
+  //   request.perform();
+  //   long status = curlpp::infos::ResponseCode::get(request);
+  //   cout << "status: " << status << endl;
+  //   if (status == 409){
+  //     load_weights();
+  //     throw logic_error("weights updated, reinit channel");
+  //   }
+  // }
+  // catch (exception& e) {
+  //   cout << "exception " << e.what() << endl;
+  //   // throw e;
+  // }
 }
 
 void PufferReinforce::normalize_in_place(size_t i, vector<double> & input)
@@ -227,7 +197,7 @@ void PufferReinforce::reinit_sending_time()
       state_vec.push_back(state[i][j]);
     }
   }
-  send_datapoint(state_vec, "ttp-hidden2");
+  // sender_.send_datapoint(state_vec, "ttp-hidden2");
 
     // at::Tensor output = torch::softmax(ttp_modules_[i - 1]->forward(torch_inputs)
     //                                    .toTensor(), 1);

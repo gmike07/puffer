@@ -1,15 +1,16 @@
-#ifndef PUFFER_TTP_HH
-#define PUFFER_TTP_HH
+#ifndef PUFFER_EXP3_HH
+#define PUFFER_EXP3_HH
 
-#include "puffer.hh"
+#include "exp3_policy.hh"
+#include "sender.hh"
 #include "torch/script.h"
 
 #include <deque>
 
-class PufferTTP : public Puffer
+class PufferExp3 : public Exp3Policy
 {
 public:
-  PufferTTP(const WebSocketClient & client,
+  PufferExp3(const WebSocketClient & client,
             const std::string & abr_name, const YAML::Node & abr_config);
 private:
   static constexpr double BAN_PROB_ = 0.5;
@@ -22,15 +23,10 @@ private:
   double ban_prob_ {BAN_PROB_};
 
   std::shared_ptr<torch::jit::script::Module> ttp_modules_[MAX_LOOKAHEAD_HORIZON];
-  std::shared_ptr<torch::jit::script::Module> hidden2_ttp_modules_[MAX_LOOKAHEAD_HORIZON];
-
 
   /* stats of training data used for normalization */
   std::vector<double> obs_mean_[MAX_LOOKAHEAD_HORIZON];
   std::vector<double> obs_std_[MAX_LOOKAHEAD_HORIZON];
-
-  std::vector<double> hidden2_obs_mean_[MAX_LOOKAHEAD_HORIZON];
-  std::vector<double> hidden2_obs_std_[MAX_LOOKAHEAD_HORIZON];
 
   size_t ttp_input_dim_ {TTP_INPUT_DIM};
   bool is_mle_ {false};
@@ -42,4 +38,4 @@ private:
   void reinit_sending_time() override;
 };
 
-#endif /* PUFFER_TTP_HH */
+#endif /* PUFFER_EXP3_HH */

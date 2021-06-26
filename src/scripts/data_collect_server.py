@@ -8,8 +8,9 @@ import os
 
 
 def append_to_file(filename, array):
-    with open(filename, 'a') as file:
-        file.write(str(array)+",\n")
+    with open(filename, 'ab') as file:
+        np.save(file, array)
+        # file.write(str(array)+",\n")
 
 
 def get_handler_class(args):
@@ -24,17 +25,23 @@ def get_handler_class(args):
                 content_len = int(self.headers.get('Content-Length'))
                 data = self.rfile.read(content_len)
                 parsed_data = json.loads(data)
-                np.array(parsed_data["datapoint"])
-                
-                if self.path == "/raw-input":
-                    append_to_file(args.raw_weights_file, parsed_data["datapoint"])
-                elif self.path == "/ttp-hidden2":
-                    append_to_file(args.ttp_weights_file, parsed_data["datapoint"])
 
+                if self.path == "/raw-input":
+                    saving_path = args.save_input
+                elif self.path == "/ttp-hidden2":
+                    saving_path = args.save_ttp
+                else:
+                    raise Exception("Invalid endpoint")
+
+                append_to_file(saving_path + "_input.npy", parsed_data["datapoint"])
+                append_to_file(saving_path + "_mpc.npy", np.array([parsed_data["buffer_size"], parsed_data["last_format"]]))
+
+                
                 self.send_response(200, "ok")
                 self.end_headers()
-            except:
-                self.send_response(400, "error occurred")
+            except Exception as e:
+                print(e)
+                self.send_response(400, "error occurred " + str(e))
                 self.end_headers()
 
     return HandlerClass
@@ -56,8 +63,7 @@ def check_dir(filepath, force):
     if os.path.exists(filepath) and not force:
         raise Exception("File exists")
     else:
-        with open(filepath, 'w') as file:
-            pass
+        pass
 
 
 if __name__ == "__main__":
@@ -74,13 +80,13 @@ if __name__ == "__main__":
         help="Specify the port on which the server listens",
     )
     parser.add_argument(
-        "--raw-weights-file",
-        default="./data_points/raw_inputs.log",
+        "--save-input",
+        default="./data_points/raw",
         help="Specify the saving file path for raw inputs",
     )
     parser.add_argument(
-        "--ttp-weights-file",
-        default="./data_points/ttp_hidden2.log",
+        "--save-ttp",
+        default="./data_points/ttp",
         help="Specify the saving file path for ttp",
     )
     parser.add_argument(
@@ -91,7 +97,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    check_dir(args.raw_weights_file, args.force)
-    check_dir(args.ttp_weights_file, args.force)
+    check_dir(args.save_input + "_input.npy", args.force)
+    check_dir(args.save_input + "_mpc.npy", args.force)
+    check_dir(args.save_ttp + "_input.npy", args.force)
+    check_dir(args.save_ttp + "_mpc.npy", args.force)
 
     run_server(args)

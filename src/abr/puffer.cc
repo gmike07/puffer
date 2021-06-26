@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <memory>
+#include <thread>
 
 #include "ws_client.hh"
 #include "json.hpp"
@@ -29,6 +30,11 @@ Puffer::Puffer(const WebSocketClient & client,
 
   dis_buf_length_ = min(dis_buf_length_,
                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
+  
+  if (abr_config["collect_data"]) {
+    collect_data_ = abr_config["collect_data"].as<bool>();
+  }
+  last_format_ = 0;
 }
 
 void Puffer::video_chunk_acked(Chunk && c)
@@ -43,6 +49,27 @@ VideoFormat Puffer::select_video_format()
 {
   reinit();
   size_t ret_format = update_value(0, curr_buffer_, 0);
+
+  if (collect_data_) {
+    std::thread([&]() {
+      json data;
+      data["datapoint"] = inputs_.front();
+      data["buffer_size"] = curr_buffer_;
+      data["last_format"] = last_format_;
+      sender_.post(data, "raw-input");
+      inputs_.pop_front();
+
+      json data2;
+      data2["datapoint"] = hidden2_.front();
+      data2["buffer_size"] = curr_buffer_;
+      data2["last_format"] = last_format_;
+      sender_.post(data2, "ttp-hidden2");
+      hidden2_.pop_front();
+
+      last_format_ = ret_format;
+    }).detach();
+  }
+
   return client_.channel()->vformats()[ret_format];
 }
 

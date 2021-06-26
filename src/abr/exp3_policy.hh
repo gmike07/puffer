@@ -1,16 +1,17 @@
-#ifndef PUFFER_HH
-#define PUFFER_HH
+#ifndef EXP3_POLICY_HH
+#define EXP3_POLICY_HH
 
 #include "abr_algo.hh"
 #include <deque>
 #include <vector>
 #include "filesystem.hh"
 #include "sender.hh"
+#include "exp3.hh"
 
-class Puffer : public ABRAlgo
+class Exp3Policy : public ABRAlgo
 {
 public:
-  Puffer(const WebSocketClient & client,
+  Exp3Policy(const WebSocketClient & client,
          const std::string & abr_name, const YAML::Node & abr_config);
 
   void video_chunk_acked(Chunk && c) override;
@@ -26,6 +27,7 @@ protected:
   static constexpr double UNIT_BUF_LENGTH = 0.5;
   static constexpr size_t MAX_DIS_SENDING_TIME = 20;
   static constexpr double ST_PROB_EPS = 1e-5;
+  static constexpr size_t HIDDEN_SIZE = 64;
 
   /* past chunks and max number of them */
   size_t max_num_past_chunks_ {MAX_NUM_PAST_CHUNKS};
@@ -62,7 +64,7 @@ protected:
 
   /* the estimation of sending time given the timestamp and format */
   double sending_time_prob_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS]
-                           [MAX_DIS_SENDING_TIME + 1] {};
+                           [HIDDEN_SIZE] {};
 
   /* denote whether a chunk is abandoned */
   bool is_ban_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS] {};
@@ -70,28 +72,22 @@ protected:
   void reinit();
   virtual void reinit_sending_time() {};
 
-  /* calculate the value of corresponding state and return the best strategy */
-  size_t update_value(size_t i, size_t curr_buffer, size_t curr_format);
-
-  /* return the qvalue of the given cur state and next action */
-  double get_qvalue(size_t i, size_t curr_buffer, size_t curr_format,
-                    size_t next_format);
-
-  /* return the value of the given state */
-  double get_value(size_t i, size_t curr_buffer, size_t curr_format);
-
   /* discretize the buffer length */
   size_t discretize_buffer(double buf);
 
-  /* deal with the situation when all formats are banned */
-  void deal_all_ban(size_t i);
-
-  size_t last_format_;
+  bool training_mode_ = false;
+  bool use_puffer_ = false;
   Sender sender_ {};
-  bool collect_data_ {};
+  size_t last_format_;
 
+  std::deque<std::tuple<size_t,size_t,size_t>> last_buffer_formats_;
   std::deque<std::vector<double>> inputs_;
-  std::deque<std::vector<double>> hidden2_;
+  std::vector<double> hidden2_;
+
+  double calc_qoe();
+
+  Exp3 exp3_agent_ {};
+  std::size_t version_;
 };
 
-#endif /* PUFFER_HH */
+#endif /* EXP3_POLICY_HH */

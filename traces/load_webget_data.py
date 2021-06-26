@@ -1,6 +1,6 @@
 import numpy as np
 import datetime
-
+import os
 
 FILE_PATH = '/home/ubuntu/Downloads/data-raw-2016-jan/201601/curr_webget_2016_01.csv'
 OUTPUT_PATH = './cooked/'
@@ -36,6 +36,10 @@ def main():
 		out_file = 'trace_' + '_'.join(k)
 		out_file = out_file.replace(':', '-')
 		out_file = out_file.replace('/', '-')
+
+		if not os.path.exists(OUTPUT_PATH):
+			os.mkdir(OUTPUT_PATH)
+
 		out_file = OUTPUT_PATH + out_file
 		with open(out_file, 'wb') as f:
 			for i in bw_measurements[k]:
