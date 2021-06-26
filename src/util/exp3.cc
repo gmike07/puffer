@@ -67,7 +67,7 @@ std::size_t Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, s
   Context &min_context = contexts_.back();
   for (const auto &context : contexts_)
   {
-    std::cout << "dist:" << dist(input, context.cluster_) << std::endl;
+    // std::cout << "dist:" << dist(input, context.cluster_) << std::endl;
 
     if (dist(input, context.cluster_) < dist(input, min_context.cluster_))
     {
@@ -87,6 +87,12 @@ double Exp3::dist(std::vector<double> v1, std::vector<double> v2)
 
   for (std::size_t i = 0; i < v1.size(); i++) //todo: change to v1.size()
   {
+    if (std::pow(v1[i] - v2[i], 2) > 1e10) {
+      distance += 1e10;
+      // std::cout << "input:" << v1[i] << "cluster: " << v2[i] << std::endl;
+      continue;
+    }
+  
     distance += std::pow(v1[i] - v2[i], 2);
   }
 
