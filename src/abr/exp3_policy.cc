@@ -90,6 +90,10 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
 
     if (status == 406) {
       version_ = exp3_agent_.reload_model();
+      inputs_.clear();
+      last_buffer_formats_.clear();
+      last_format_ = 0; 
+      throw logic_error("weights updated, reinit channel");
     }
 
     inputs_.pop_front();
