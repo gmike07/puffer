@@ -53,7 +53,9 @@ class Exp3KMeans:
         self._version += 1
 
     def load(self):
-        if len(os.listdir(self.save_path)) == 0:
+        if not os.path.exists(self.save_path) or len(os.listdir(self.save_path)) == 0:
+            if not os.path.exists(self.save_path):
+                os.mkdir(self.save_path)
             for cluster in self._kmeans.cluster_centers_:
                 context = Context(self._num_of_arms, cluster)
                 self._contexts.append(context)
