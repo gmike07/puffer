@@ -12,7 +12,8 @@ public:
     Exp3(std::string model_path);
     Exp3(std::string model_path, std::string norm_path);
     std::size_t predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_);
-    std::size_t reload_model();
+    void reload_model();
+    std::size_t version_;
 private:
     std::string model_path_;
     std::vector<Context> contexts_;

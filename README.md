@@ -66,7 +66,7 @@ psotgress quick guide:
 * delete: `DELETE FROM puffer_experiment;`
 
 ## Generate Plots (without the pipeline of puffer-statistics)
-`python3 src/scripts/plot_ssim_rebuffer.py src/settings.yml -o ofir.png`
+`python3.7 src/scripts/plot_ssim_rebuffer.py src/settings_offline.yml -o weights/plot.png`
 
 # Training models
 * TTP (install torch==1.0.0, matplotlib==3.0.0): `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model weights/ttp/original/ --tune`

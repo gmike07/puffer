@@ -22,7 +22,7 @@ weights/ttp/
 weights/kmeans/
 weights/exp3/
 weights/logs.txt
-
+weights/plots/
 data_points/
 
 ##### autotools
