@@ -75,7 +75,7 @@ std::size_t Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, s
     }
   }
 
-  std::cout << "min cluster:" << &min_context << std::endl;
+  // std::cout << "min cluster:" << &min_context << std::endl;
 
   return min_context.predict(input);
 }
