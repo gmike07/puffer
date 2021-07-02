@@ -56,7 +56,7 @@ double Exp3Policy::get_qoe(double curr_ssim,
 
   double rebuffer = max(curr_trans_time*0.001 - curr_buffer*unit_buf_length_, 0.0);
   qoe -= rebuffer_length_coeff_ * rebuffer;
-  // std::cout << "calc qoe " << ssim_db(curr_ssim) << ", jitter: " << ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim)) << std::endl;
+  // std::cout << "calc qoe " << ssim_db(curr_ssim) << ", jitter: " << ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim)) << ", rebuf" << rebuffer_length_coeff_ * rebuffer << std::endl;
 
   return qoe;
 }
@@ -79,7 +79,7 @@ double Exp3Policy::normalize_reward()
   double min_ssim = client_.channel()->vssim(next_vts).at(min_vformat);
   double max_ssim = client_.channel()->vssim(next_vts).at(max_vformat);
 
-  double min_reward = this->get_qoe(min_ssim, max_ssim, 17000, 0);
+  double min_reward = this->get_qoe(min_ssim, max_ssim, 15000, 0);
   double max_reward = ssim_db(max_ssim);
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
@@ -93,6 +93,10 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
   past_chunks_.push_back(c);
   if (past_chunks_.size() > max_num_past_chunks_) {
     past_chunks_.pop_front();
+  }
+
+  if (!training_mode_) {
+    return;
   }
 
   // std::thread([&](){ 
