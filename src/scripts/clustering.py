@@ -10,6 +10,9 @@ DELTA = 0.7
 
 
 def check_dir(saving_dir, force):
+    if not os.path.isdir(saving_dir):
+        os.mkdir(saving_dir)
+        
     if len(os.listdir(saving_dir)) != 0 and not force:
         raise Exception("File exists")
 

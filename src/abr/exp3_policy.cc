@@ -46,7 +46,22 @@ Exp3Policy::Exp3Policy(const WebSocketClient & client,
                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
 }
 
-double Exp3Policy::calc_qoe()
+double Exp3Policy::get_qoe(double curr_ssim, 
+                          double prev_ssim, 
+                          uint64_t curr_trans_time,
+                          std::size_t curr_buffer)
+{
+  double qoe = ssim_db(curr_ssim);
+  qoe -= ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim));
+
+  double rebuffer = max(curr_trans_time*0.001 - curr_buffer*unit_buf_length_, 0.0);
+  qoe -= rebuffer_length_coeff_ * rebuffer;
+  // std::cout << "calc qoe " << ssim_db(curr_ssim) << ", jitter: " << ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim)) << std::endl;
+
+  return qoe;
+}
+
+double Exp3Policy::normalize_reward()
 {
   if (past_chunks_.size() < 2) {
     return 0;
@@ -55,15 +70,22 @@ double Exp3Policy::calc_qoe()
   Chunk curr_chunk = past_chunks_.back();
   Chunk prev_chunk = *(past_chunks_.end()-2);
 
-  double qoe = ssim_db(curr_chunk.ssim);
-  qoe -= ssim_diff_coeff_ * fabs(ssim_db(curr_chunk.ssim) - ssim_db(prev_chunk.ssim));
+  double reward = this->get_qoe(curr_chunk.ssim, prev_chunk.ssim, curr_chunk.trans_time, curr_buffer_);
 
-  double rebuffer = max(curr_chunk.trans_time*0.001 - curr_buffer_*unit_buf_length_, 0.0);
-  qoe -= rebuffer_length_coeff_ * rebuffer;
+  uint64_t next_vts = client_.next_vts().value();
+  const VideoFormat & min_vformat = client_.channel()->vformats().front();
+  const VideoFormat & max_vformat = client_.channel()->vformats().back();
   
-  // std::cout <<  "rebuffer " << rebuffer << ",tans: " << curr_chunk.trans_time << "curr: " << curr_buffer_*unit_buf_length_ << ",cum: "<< client_.cum_rebuffer() << std::endl;
+  double min_ssim = client_.channel()->vssim(next_vts).at(min_vformat);
+  double max_ssim = client_.channel()->vssim(next_vts).at(max_vformat);
 
-  return qoe;
+  double min_reward = this->get_qoe(min_ssim, max_ssim, 17000, 0);
+  double max_reward = ssim_db(max_ssim);
+
+  double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
+  // std::cout << "rewards (max,min,curr): " << max_reward << "," << min_reward << "," << reward << ";" << normalized_reward << std::endl;
+   
+  return normalized_reward;
 }
 
 void Exp3Policy::video_chunk_acked(Chunk && c)
@@ -76,20 +98,19 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
   // std::thread([&](){ 
     std::vector<double> last_input = inputs_.front();
     auto [buffer, last_format, format] = last_buffer_formats_.front();
-    double qoe = this->calc_qoe();
     
     json data;
     data["datapoint"] = last_input;
     data["buffer_size"] = buffer;
     data["last_format"] = last_format;
     data["arm"] = format;
-    data["reward"] = qoe;
-    data["version"] = version_;
+    data["reward"] = this->normalize_reward();
+    data["version"] = exp3_agent_.version_;
     
     long status = sender_.post(data, "update"); 
 
     if (status == 406) {
-      version_ = exp3_agent_.reload_model();
+      exp3_agent_.reload_model();
       inputs_.clear();
       last_buffer_formats_.clear();
       last_format_ = 0; 
@@ -98,6 +119,7 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
 
     inputs_.pop_front();
     last_buffer_formats_.pop_front();
+
   // }).detach();
 }
 

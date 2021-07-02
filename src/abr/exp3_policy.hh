@@ -84,7 +84,12 @@ protected:
   std::deque<std::vector<double>> inputs_;
   std::vector<double> hidden2_;
 
-  double calc_qoe();
+  double get_qoe(double curr_ssim, 
+                    double prev_ssim, 
+                    uint64_t curr_trans_time,
+                    std::size_t curr_buffer);
+  double normalize_reward();
+
 
   Exp3 exp3_agent_ {};
   std::size_t version_;
