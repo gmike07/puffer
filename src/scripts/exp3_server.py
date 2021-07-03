@@ -72,7 +72,7 @@ class Exp3Server:
                             datapoint,
                             parsed_data["arm"],
                             parsed_data["reward"],
-                            parsed_data["version"])  # todo: fix
+                            parsed_data["version"]) 
 
                         if not updated:
                             self.send_response(406)

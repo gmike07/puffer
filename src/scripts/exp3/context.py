@@ -53,7 +53,7 @@ class Context:
     def plot_weights(self, save_dir):
         fig, ax = plt.subplots()
         for i in range(self.num_of_arms):
-            arm_i_weights = np.array(list(map(lambda x: x[i], self.weights_history)))
+            arm_i_weights = np.array(list(map(lambda x: x[i], 100*self.weights_history)))
             ax.plot(arm_i_weights)
         fig.savefig(save_dir)
         
