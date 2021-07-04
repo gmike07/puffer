@@ -51,8 +51,9 @@ double Exp3Policy::get_qoe(double curr_ssim,
   qoe -= ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim));
 
   double rebuffer = max(curr_trans_time*0.001 - curr_buffer*unit_buf_length_, 0.0);
-  qoe -= rebuffer_length_coeff_ * rebuffer;
-  // std::cout << "calc qoe " << ssim_db(curr_ssim) << ", jitter: " << ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim)) << ", rebuf" << rebuffer_length_coeff_ * rebuffer << std::endl;
+  qoe -= rebuffer;
+  // std::cout << ", rebuf " << curr_trans_time << ", " << curr_buffer*unit_buf_length_ << std::endl;
+  // std::cout << "calc qoe " << ssim_db(curr_ssim) << ", jitter: " << ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim)) << ", rebuf " << rebuffer_length_coeff_ * rebuffer << std::endl;
 
   return qoe;
 }
@@ -75,11 +76,11 @@ double Exp3Policy::normalize_reward()
   double min_ssim = client_.channel()->vssim(next_vts).at(min_vformat);
   double max_ssim = client_.channel()->vssim(next_vts).at(max_vformat);
 
-  double min_reward = this->get_qoe(min_ssim, max_ssim, 5000, 0);
+  double min_reward = min(this->get_qoe(min_ssim, max_ssim, 5000, 0), reward);
   double max_reward = ssim_db(max_ssim);
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
-  std::cout << "rewards (max,min,curr): " << max_reward << "," << min_reward << "," << reward << ";" << normalized_reward << std::endl;
+  std::cout << "rewards (max,min,curr): " << max_reward << ", max ssim" << reward << std::endl;
    
   return normalized_reward;
 }
