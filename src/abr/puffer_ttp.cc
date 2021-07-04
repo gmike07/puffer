@@ -40,7 +40,7 @@ PufferTTP::PufferTTP(const WebSocketClient & client,
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
 
-  if (abr_config["hidden2_model_dir"]) {
+  if (abr_config["collect_data"].as<bool>() && abr_config["hidden2_model_dir"]) {
     fs::path model_dir = abr_config["hidden2_model_dir"].as<string>();
 
     for (size_t i = 0; i < max_lookahead_horizon_; i++) {
