@@ -66,7 +66,7 @@ class Exp3Server:
                         self.wfile.write(message)
                     elif self.path == "/update":
                         # print(f'curr ver: {outer_self.exp3._version}, got: {parsed_data["version"]}')
-                        print(f'reward: {parsed_data["reward"]}')
+                        print(f'reward={parsed_data["reward"]}, arm={parsed_data["arm"]}')
 
                         updated = outer_self.exp3.update(
                             datapoint,
