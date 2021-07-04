@@ -58,7 +58,7 @@ def start_maimahi_clients(num_clients):
 
                 time.sleep(60*10)
                 for p in plist:
-                    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+                    os.killpg(os.getpgid(p.pid), signal.SIGKILL)
                     time.sleep(4)
 
                 subprocess.check_call("rm -rf ./*.profile", shell=True,

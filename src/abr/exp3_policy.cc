@@ -34,10 +34,6 @@ Exp3Policy::Exp3Policy(const WebSocketClient & client,
     training_mode_ = abr_config["training_mode"].as<bool>();
   }
 
-  if (abr_config["use_puffer"]) {
-    training_mode_ = abr_config["use_puffer"].as<bool>();
-  }
-
   if (abr_config["exp3_dir"]) {
     exp3_agent_ = Exp3(abr_config["exp3_dir"].as<string>(), abr_config["normalization_dir"].as<string>());
   }
@@ -79,11 +75,11 @@ double Exp3Policy::normalize_reward()
   double min_ssim = client_.channel()->vssim(next_vts).at(min_vformat);
   double max_ssim = client_.channel()->vssim(next_vts).at(max_vformat);
 
-  double min_reward = this->get_qoe(min_ssim, max_ssim, 15000, 0);
+  double min_reward = this->get_qoe(min_ssim, max_ssim, 5000, 0);
   double max_reward = ssim_db(max_ssim);
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
-  // std::cout << "rewards (max,min,curr): " << max_reward << "," << min_reward << "," << reward << ";" << normalized_reward << std::endl;
+  std::cout << "rewards (max,min,curr): " << max_reward << "," << min_reward << "," << reward << ";" << normalized_reward << std::endl;
    
   return normalized_reward;
 }
