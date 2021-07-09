@@ -14,11 +14,11 @@ REMOTE_BASE_PORT = 9222
 
 def run_offline_media_servers():
     run_server_html_cmd = 'python3 ./src/portal/manage.py runserver 0:8080'
-    p1 = subprocess.Popen(run_server_html_cmd, shell=True)
-    time.sleep(4)
+    p1 = subprocess.Popen(run_server_html_cmd, shell=True, preexec_fn=os.setsid)
+    time.sleep(3)
     run_servers_cmd = './src/media-server/run_servers ./src/settings_offline.yml'
-    p2 = subprocess.Popen(run_servers_cmd, shell=True)
-    time.sleep(4)
+    p2 = subprocess.Popen(run_servers_cmd, shell=True, preexec_fn=os.setsid)
+    time.sleep(5)
     return p1, p2
 
 
@@ -47,7 +47,7 @@ def start_maimahi_clients(num_clients):
                     port = BASE_PORT + i
 
                     time.sleep(2)
-                    mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ofir/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
+                    mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ubuntu/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
                         trace_dir, filename, remote_port, port, port)
 
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
