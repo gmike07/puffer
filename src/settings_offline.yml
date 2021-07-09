@@ -133,7 +133,7 @@ experiments:
   #        nn_path: "/home/ubuntu/puffer/models/pensieve/nn_model_ep_77400.ckpt"
 
 
-  # - num_servers: 4
+  # - num_servers: 3
   #   fingerprint:
   #     abr: linear_bba
   #     cc: bbr 
@@ -151,7 +151,7 @@ experiments:
   #     cc: bbr
 
 
-  - num_servers: 8
+  - num_servers: 1
     fingerprint:
      abr: puffer_exp3
      abr_config:
@@ -161,7 +161,7 @@ experiments:
        max_lookahead_horizon: 1
        normalization_dir: ./weights/kmeans/
        use_puffer: false
-       training_mode: true
+       training_mode: false
      cc: bbr
      
   # - num_servers: 1
