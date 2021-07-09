@@ -151,7 +151,7 @@ experiments:
   #     cc: bbr
 
 
-  - num_servers: 1
+  - num_servers: 10
     fingerprint:
      abr: puffer_exp3
      abr_config:
