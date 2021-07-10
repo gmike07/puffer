@@ -53,7 +53,7 @@ Data is collected from the streaming and written to influxdb.
     - `show measurements`  
     - `select * from measurements` 
     - delete all measurements `drop series from /.*/` 
-    - delete by id: `select * from video_acked where expt_id='24' limit 1`
+    - delete by id: `delete from video_acked where expt_id='36'`
 
 # Postgress
 psotgress quick guide:
