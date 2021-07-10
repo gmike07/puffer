@@ -12,8 +12,6 @@ from numpy.lib.npyio import save
 from clustering import DELTA
 from exp3.exp3 import Exp3KMeans
 
-CHECKPOINT = 10
-
 
 def load_kmeans(kmeans_path):
     clusters_path = kmeans_path + "clusters.pkl"
@@ -27,12 +25,14 @@ def load_kmeans(kmeans_path):
 
 
 class Exp3Server:
-    TIME2SAVE = CHECKPOINT
+    CHECKPOINT = 1000
 
-    def __init__(self, kmeans_dir, num_of_arms, save_path):
+    def __init__(self, kmeans_dir, num_of_arms, save_path, plots_dir):
         kmeans, self.mean, self.std = load_kmeans(kmeans_dir)
         self.exp3 = Exp3KMeans(num_of_arms=num_of_arms,
-                               kmeans=kmeans, save_path=save_path)
+                               kmeans=kmeans, save_path=save_path,
+                               plots_dir=plots_dir,
+                               checkpoint=Exp3Server.CHECKPOINT)
         self.exp3.load()
 
     def _prepare_input(self, raw_inputs, buffer_size, last_format):
@@ -65,11 +65,14 @@ class Exp3Server:
                         self.end_headers()
                         self.wfile.write(message)
                     elif self.path == "/update":
+                        # print(f'curr ver: {outer_self.exp3._version}, got: {parsed_data["version"]}')
+                        # print(f'reward={parsed_data["reward"]}, arm={parsed_data["arm"]}')
+
                         updated = outer_self.exp3.update(
-                            datapoint, 
+                            datapoint,
                             parsed_data["arm"],
-                            parsed_data["reward"]/6000,
-                            parsed_data["version"])  # todo: fix
+                            parsed_data["reward"],
+                            parsed_data["version"]) 
 
                         if not updated:
                             self.send_response(406)
@@ -131,6 +134,10 @@ if __name__ == "__main__":
         default='./weights/exp3'
     )
     parser.add_argument(
+        "--plots-dir",
+        default='./weights/plots'
+    )
+    parser.add_argument(
         "--num-of-arms",
         default=10,
         type=int
@@ -145,5 +152,6 @@ if __name__ == "__main__":
 
     exp3Server = Exp3Server(kmeans_dir=args.kmeans_dir,
                             num_of_arms=args.num_of_arms,
-                            save_path=args.save_path)
+                            save_path=args.save_path,
+                            plots_dir=args.plots_dir)
     exp3Server.run_server(args.addr, args.port)

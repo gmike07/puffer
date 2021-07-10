@@ -75,7 +75,7 @@ std::size_t Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, s
     }
   }
 
-  std::cout << "min cluster:" << &min_context << std::endl;
+  // std::cout << "min cluster:" << &min_context << std::endl;
 
   return min_context.predict(input);
 }
@@ -99,7 +99,7 @@ double Exp3::dist(std::vector<double> v1, std::vector<double> v2)
   return std::sqrt(distance);
 }
 
-std::size_t Exp3::reload_model()
+void Exp3::reload_model()
 {
   contexts_.clear();
 
@@ -113,22 +113,22 @@ std::size_t Exp3::reload_model()
             {
               std::string s1 = f1.c_str();
               std::string s2 = f2.c_str();
-              int n1 = stoi(s1.substr(0, s1.find_last_of('.')));
-              int n2 = stoi(s2.substr(0, s2.find_last_of('.')));
+              int n1 = stoi(s1.substr(s1.find_last_of('/') + 1, s1.length()));
+              int n2 = stoi(s2.substr(s2.find_last_of('/') + 1, s2.length()));
               return n1 < n2;
             });
 
-  std::string exp3_relevant_dir = dirs.back().c_str();
+  std::string exp3_relevant_dir = dirs.front().c_str();
 
   std::size_t version = stoi(exp3_relevant_dir.substr(exp3_relevant_dir.find_last_of('/') + 1, exp3_relevant_dir.length()));
   version++;
 
-  // std::cout << "weights dir: " << exp3_relevant_dir << " version:" << version << std::endl;
+  version_ = version;
+
+  std::cout << "weights dir: " << exp3_relevant_dir << " version:" << version << std::endl;
 
   for (const auto &entry : fs::directory_iterator(exp3_relevant_dir))
   {
     contexts_.push_back(Context(entry.path()));
   }
-
-  return version;
 }

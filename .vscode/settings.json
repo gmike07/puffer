@@ -67,6 +67,9 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "bit": "cpp"
+        "bit": "cpp",
+        "future": "cpp",
+        "regex": "cpp",
+        "shared_mutex": "cpp"
     },
 }

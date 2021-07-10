@@ -53,6 +53,7 @@ Data is collected from the streaming and written to influxdb.
     - `show measurements`  
     - `select * from measurements` 
     - delete all measurements `drop series from /.*/` 
+    - delete by id: `delete from video_acked where expt_id='36'`
 
 # Postgress
 psotgress quick guide:
@@ -66,10 +67,10 @@ psotgress quick guide:
 * delete: `DELETE FROM puffer_experiment;`
 
 ## Generate Plots (without the pipeline of puffer-statistics)
-`python3 src/scripts/plot_ssim_rebuffer.py src/settings.yml -o ofir.png`
+`python3.7 src/scripts/plot_ssim_rebuffer.py src/settings_offline.yml -o weights/plot.png`
 
 # Training models
 * TTP (install torch==1.0.0, matplotlib==3.0.0): `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model weights/ttp/original/ --tune`
 * Data Collect Server: `python3.7 src/scripts/data_collect_server.py -f`
-* Clustering: `python3.7 src/scripts/clustering.py --inputs-file data_points/raw_input.npy --buffer-format-file data_points/raw_mpc.npy `
+* Clustering: `python3.7 src/scripts/clustering.py --inputs-file data_points/raw_input.npy --buffer-format-file data_points/raw_mpc.npy -f`
 * Exp3Server: `python3.7 src/scripts/exp3_server.py`
