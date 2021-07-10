@@ -47,7 +47,7 @@ class Context:
         assert prob > 0, "Assertion error"
 
         estimated = loss / prob
-        print(f'weights changed {estimated}')
+        print(f'weights changed {estimated}, last_arm={last_arm}')
         self.weights[last_arm] += estimated
         self.t += 1
         self.gamma = min(1.0, np.sqrt(
