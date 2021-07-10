@@ -52,10 +52,10 @@ class Context:
         self.t += 1
         self.gamma = min(1.0, np.sqrt(
             np.log(self.num_of_arms) / (self.num_of_arms * self.t)))
-        self.weights_history.append(self.weights)
+        self.save_history()
 
-    def add_history(self, weights):
-        self.weights_history.append(weights)
+    def save_history(self):
+        self.weights_history.append(self.weights)
         if len(self.weights_history) > Context.MAX_HISTORY_POINTS:
             self.weights_history = self.weights_history[::2]
             self.weights_history_scale *= 2
@@ -63,10 +63,14 @@ class Context:
 
     def plot_weights(self, save_dir):
         fig, ax = plt.subplots()
+        all_weights = np.stack(self.weights_history, axis=1)
+        print(all_weights.shape)
         for i in range(self.num_of_arms):
-            arm_i_weights = np.array(list(map(lambda x: x[i], 100*self.weights_history)))
+            arm_i_weights = all_weights[i,:]
             scale = self.weights_history_scale * np.arange(len(arm_i_weights))
-            ax.plot(arm_i_weights, scale)
+            ax.plot(scale, arm_i_weights)
+        ax.set_ylabel('weights scale')
+        ax.set_xlabel('iteration number')
         fig.savefig(save_dir)
         plt.close('all')
         

@@ -11,7 +11,7 @@ postgres_connection:
   user: puffer
   password: PUFFER_PORTAL_DB_KEY
 enable_logging: true
-log_dir: /home/ubuntu/puffer/src/monitoring
+log_dir: /home/ofir/puffer/src/monitoring
 influxdb_connection:
   host: 127.0.0.1
   port: 8086
@@ -19,7 +19,7 @@ influxdb_connection:
   user: puffer
   password: INFLUXDB_PASSWORD
 enforce_moving_live_edge: false
-media_dir: /home/ubuntu/ubuntu/media-181230
+media_dir: /home/ofir/ubuntu/media-181230
 channels:
   - cbs
 channel_configs:
@@ -133,7 +133,7 @@ experiments:
   #        nn_path: "/home/ubuntu/puffer/models/pensieve/nn_model_ep_77400.ckpt"
 
 
-  # - num_servers: 3
+  # - num_servers: 1
   #   fingerprint:
   #     abr: linear_bba
   #     cc: bbr 
@@ -151,7 +151,7 @@ experiments:
   #     cc: bbr
 
 
-  - num_servers: 10
+  - num_servers: 1
     fingerprint:
      abr: puffer_exp3
      abr_config:
@@ -161,7 +161,7 @@ experiments:
        max_lookahead_horizon: 1
        normalization_dir: ./weights/kmeans/
        use_puffer: false
-       training_mode: false
+       training_mode: true
      cc: bbr
      
   # - num_servers: 1
