@@ -133,7 +133,7 @@ experiments:
   #        nn_path: "/home/ubuntu/puffer/models/pensieve/nn_model_ep_77400.ckpt"
 
 
-  # - num_servers: 3
+  # - num_servers: 1
   #   fingerprint:
   #     abr: linear_bba
   #     cc: bbr 
