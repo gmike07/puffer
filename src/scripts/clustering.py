@@ -7,7 +7,7 @@ import pickle
 import argparse
 
 DELTA = 0.7
-
+CLUSTERS = 12
 
 def check_dir(saving_dir, force):
     if not os.path.isdir(saving_dir):
@@ -46,7 +46,7 @@ def cluster(datapoints_file, buffer_format_file, saving_dir):
 
     X = np.hstack([(1-DELTA)*raw_inputs, DELTA*mpc])
 
-    kmeans = KMeans()
+    kmeans = KMeans(n_clusters=CLUSTERS)
     kmeans.fit(X)
 
     with open(saving_dir + "clusters.pkl", 'wb') as f:

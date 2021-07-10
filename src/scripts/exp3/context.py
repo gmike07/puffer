@@ -64,7 +64,6 @@ class Context:
     def plot_weights(self, save_dir):
         fig, ax = plt.subplots()
         all_weights = np.stack(self.weights_history, axis=1)
-        print(all_weights.shape)
         for i in range(self.num_of_arms):
             arm_i_weights = all_weights[i,:]
             scale = self.weights_history_scale * np.arange(len(arm_i_weights))
