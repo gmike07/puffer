@@ -3,7 +3,7 @@ from scipy.special import logsumexp
 import matplotlib.pyplot as plt
 
 class Context:
-    MAX_HISTORY_POINTS = 500
+    MAX_HISTORY_POINTS = 100
 
     def __init__(self, num_of_arms, cluster, gamma=None, weights=None):
         self.num_of_arms = num_of_arms
@@ -47,7 +47,7 @@ class Context:
         assert prob > 0, "Assertion error"
 
         estimated = loss / prob
-        print(f'weights changed {estimated}')
+        print(f', last_arm={last_arm}, weights diff={estimated}, weights={self.weights[last_arm]}')
         self.weights[last_arm] += estimated
         self.t += 1
         self.gamma = min(1.0, np.sqrt(
@@ -68,4 +68,5 @@ class Context:
             scale = self.weights_history_scale * np.arange(len(arm_i_weights))
             ax.plot(arm_i_weights, scale)
         fig.savefig(save_dir)
+        plt.close('all')
         
