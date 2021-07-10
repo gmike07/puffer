@@ -5,7 +5,7 @@ import subprocess
 import signal
 
 EPOCHS = 1
-NUM_OF_CLIENTS = 1
+NUM_OF_CLIENTS = 10
 LOGS_FILE = './weights/logs.txt'
 
 BASE_PORT = 9360
@@ -46,7 +46,7 @@ def start_maimahi_clients(num_clients):
                     port = BASE_PORT + i
 
                     time.sleep(2)
-                    mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ofir/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
+                    mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ubuntu/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
                         trace_dir, filename, remote_port, port, port)
 
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
