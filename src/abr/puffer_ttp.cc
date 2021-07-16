@@ -40,24 +40,27 @@ PufferTTP::PufferTTP(const WebSocketClient & client,
     throw runtime_error("Puffer requires specifying model_dir in abr_config");
   }
 
-  if (abr_config["collect_data"].as<bool>() && abr_config["hidden2_model_dir"]) {
+  if (abr_config["collect_data"].as<bool>()) {
     fs::path model_dir = abr_config["hidden2_model_dir"].as<string>();
 
-    for (size_t i = 0; i < max_lookahead_horizon_; i++) {
-      // load PyTorch models
-      string model_path = model_dir / ("cpp-" + to_string(i) + ".pt");
-      hidden2_ttp_modules_[i] = torch::jit::load(model_path.c_str());
-      
-      if (not hidden2_ttp_modules_[i]) {
-        throw runtime_error("Model " + model_path + " does not exist");
+    if (fs::exists(model_dir)) {
+      collect_hidden2_ = true;
+      for (size_t i = 0; i < max_lookahead_horizon_; i++) {
+        // load PyTorch models
+        string model_path = model_dir / ("cpp-" + to_string(i) + ".pt");
+        hidden2_ttp_modules_[i] = torch::jit::load(model_path.c_str());
+        
+        if (not hidden2_ttp_modules_[i]) {
+          throw runtime_error("Model " + model_path + " does not exist");
+        }
+
+        // load normalization weights
+        ifstream ifs(model_dir / ("cpp-meta-" + to_string(i) + ".json"));
+        json j = json::parse(ifs);
+
+        hidden2_obs_mean_[i] = j.at("obs_mean").get<vector<double>>();
+        hidden2_obs_std_[i] = j.at("obs_std").get<vector<double>>();
       }
-
-      // load normalization weights
-      ifstream ifs(model_dir / ("cpp-meta-" + to_string(i) + ".json"));
-      json j = json::parse(ifs);
-
-      hidden2_obs_mean_[i] = j.at("obs_mean").get<vector<double>>();
-      hidden2_obs_std_[i] = j.at("obs_std").get<vector<double>>();
     }
   }
 }
@@ -165,14 +168,16 @@ void PufferTTP::reinit_sending_time()
       std::vector<double> input(inputs, inputs + num_formats_*ttp_input_dim_);
       inputs_.push_back(input);
 
-      at::Tensor hidden2_output = hidden2_ttp_modules_[i - 1]->forward(torch_inputs).toTensor();
-      std::vector<double> hidden2;
-      for (size_t j = 0; j < num_formats_; j++) {
-        for (size_t k = 0; k < 64; k++) {
-          hidden2.push_back(hidden2_output[j][k].item<double>());
+      if (collect_hidden2_) {
+        at::Tensor hidden2_output = hidden2_ttp_modules_[i - 1]->forward(torch_inputs).toTensor();
+        std::vector<double> hidden2;
+        for (size_t j = 0; j < num_formats_; j++) {
+          for (size_t k = 0; k < 64; k++) {
+            hidden2.push_back(hidden2_output[j][k].item<double>());
+          }
         }
+        hidden2_.push_back(hidden2);
       }
-      hidden2_.push_back(hidden2);
     }
     
     /* extract distribution from the output */
