@@ -89,6 +89,7 @@ protected:
   size_t last_format_;
   Sender sender_ {};
   bool collect_data_ {};
+  bool collect_hidden2_ {};
 
   std::deque<std::vector<double>> inputs_;
   std::deque<std::vector<double>> hidden2_;
