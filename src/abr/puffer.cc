@@ -59,12 +59,14 @@ VideoFormat Puffer::select_video_format()
       sender_.post(data, "raw-input");
       inputs_.pop_front();
 
-      json data2;
-      data2["datapoint"] = hidden2_.front();
-      data2["buffer_size"] = curr_buffer_;
-      data2["last_format"] = last_format_;
-      sender_.post(data2, "ttp-hidden2");
-      hidden2_.pop_front();
+      if (collect_hidden2_) {
+        json data2;
+        data2["datapoint"] = hidden2_.front();
+        data2["buffer_size"] = curr_buffer_;
+        data2["last_format"] = last_format_;
+        sender_.post(data2, "ttp-hidden2");
+        hidden2_.pop_front();
+      }
 
       last_format_ = ret_format;
     }).detach();
