@@ -19,7 +19,7 @@ class Context:
                          (num_of_arms * np.square(gamma)))
 
         if weights is None:
-            self.weights = np.zeros(num_of_arms)
+            self.weights = np.ones(num_of_arms)
         else:
             self.weights = np.array(weights)
         self.last_arm = 0
@@ -45,6 +45,7 @@ class Context:
             Context.LEARNING_RATE * (1 / self.num_of_arms)
 
         loss = reward / prob
+        print(np.exp(Context.LEARNING_RATE * loss / self.num_of_arms))
         self.weights[last_arm] *= np.exp(Context.LEARNING_RATE * loss / self.num_of_arms)
         self.t += 1
         self.save_history()
