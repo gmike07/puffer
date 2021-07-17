@@ -28,7 +28,7 @@ class Exp3KMeans:
         context_idx = self._kmeans.predict(datapoint)
         context_idx = context_idx[0]
         self._contexts[context_idx].update(reward, last_arm)
-        print(f'updated context: {context_idx}', end="; ")
+        print(f'context={context_idx}, arm={last_arm}', end="; ")
 
         self._time2save -= 1
         if self._time2save <= 0:
