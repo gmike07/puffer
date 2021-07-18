@@ -28,7 +28,7 @@ def start_maimahi_clients(num_clients):
     try:
         trace_dir = "./traces/mahimahi"
         files = os.listdir(trace_dir)
-        test_files = files[0:800]
+        test_files = files[800:1200]
 
         traces = test_files
         for epoch in range(EPOCHS):
