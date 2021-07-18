@@ -4,22 +4,23 @@ import matplotlib.pyplot as plt
 
 
 class Context:
-    MAX_HISTORY_POINTS = 100
     LEARNING_RATE = 0.001
+    MAX_HISTORY_POINTS = 100
+    MAX_WEIGHT = 1e6
 
     def __init__(self, num_of_arms, cluster, gamma=None, weights=None):
         self.num_of_arms = num_of_arms
         self.cluster = cluster
-        if gamma is None:
-            self.gamma = min(1.0, np.sqrt(np.log(num_of_arms) / num_of_arms))
-            self.t = 1
-        else:
-            self.gamma = gamma
-            self.t = int(np.log(num_of_arms) /
-                         (num_of_arms * np.square(gamma)))
+        # if gamma is None:
+        #     self.gamma = min(1.0, np.sqrt(np.log(num_of_arms) / num_of_arms))
+        #     self.t = 1
+        # else:
+        #     self.gamma = gamma
+        #     self.t = int(np.log(num_of_arms) /
+        #                  (num_of_arms * np.square(gamma)))
 
         if weights is None:
-            self.weights = np.zeros(num_of_arms)
+            self.weights = np.ones(num_of_arms)
         else:
             self.weights = np.array(weights)
         self.last_arm = 0
@@ -45,8 +46,15 @@ class Context:
             Context.LEARNING_RATE * (1 / self.num_of_arms)
 
         loss = reward / prob
+        print(np.exp(Context.LEARNING_RATE * loss / self.num_of_arms))
         self.weights[last_arm] *= np.exp(Context.LEARNING_RATE * loss / self.num_of_arms)
-        self.t += 1
+
+        # normalize weights
+        if self.weights.max() > Context.MAX_WEIGHT:
+            self.weights /= Context.MAX_WEIGHT
+
+        # self.t += 1
+        
         self.save_history()
 
         print(
