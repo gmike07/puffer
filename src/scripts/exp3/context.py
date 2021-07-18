@@ -11,13 +11,13 @@ class Context:
     def __init__(self, num_of_arms, cluster, gamma=None, weights=None):
         self.num_of_arms = num_of_arms
         self.cluster = cluster
-        # if gamma is None:
-        #     self.gamma = min(1.0, np.sqrt(np.log(num_of_arms) / num_of_arms))
-        #     self.t = 1
-        # else:
-        #     self.gamma = gamma
-        #     self.t = int(np.log(num_of_arms) /
-        #                  (num_of_arms * np.square(gamma)))
+        if gamma is None:
+            self.gamma = min(1.0, np.sqrt(np.log(num_of_arms) / num_of_arms))
+            self.t = 1
+        else:
+            self.gamma = gamma
+            self.t = int(np.log(num_of_arms) /
+                         (num_of_arms * np.square(gamma)))
 
         if weights is None:
             self.weights = np.ones(num_of_arms)
