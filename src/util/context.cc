@@ -33,11 +33,18 @@ std::size_t Context::predict(std::vector<double> input)
 {
   std::vector<double> probs;
 
+  double sum_of_exp_weights = 0;
+  for (auto& w : weights_) {
+    sum_of_exp_weights += exp(w);
+  }
+  double c = log(sum_of_exp_weights);
+  
+
   // std::cout << "weights: ";
   for (double weight : weights_)
   {
     // std::cout << "," << weight;
-    probs.push_back((1 - learning_rate_) * exp(gamma_ * weight) + learning_rate_ * 1 / weights_.size());
+    probs.push_back((1 - learning_rate_) * exp(weight - c) + learning_rate_ * 1 / weights_.size());
   }
   // std::cout << std::endl;   
 

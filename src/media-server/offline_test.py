@@ -4,7 +4,7 @@ import os
 import subprocess
 import signal
 
-EPOCHS = 10
+EPOCHS = 1
 NUM_OF_CLIENTS = 10
 LOGS_FILE = './weights/logs.txt'
 
@@ -28,7 +28,7 @@ def start_maimahi_clients(num_clients):
     try:
         trace_dir = "./traces/mahimahi"
         files = os.listdir(trace_dir)
-        test_files = files[800:1200]
+        test_files = files[1200:1600]
 
         traces = test_files
         for epoch in range(EPOCHS):
