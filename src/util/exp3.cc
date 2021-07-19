@@ -13,7 +13,8 @@ Exp3::Exp3(std::string model_path) : model_path_(model_path)
   reload_model();
 }
 
-Exp3::Exp3(std::string model_path, std::string norm_path) : model_path_(model_path)
+Exp3::Exp3(std::string model_path, std::string norm_path, double learning_rate, double delta) : 
+  model_path_(model_path), learning_rate_(learning_rate), delta_(delta)
 {
   reload_model();
 
@@ -45,11 +46,11 @@ void Exp3::normalize_inplace(std::vector<double> &input)
   {
     if (i < input.size() - 2)
     {
-      input[i] *= 1 - DELTA;
+      input[i] *= 1 - delta_;
     }
     else
     {
-      input[i] *= DELTA;
+      input[i] *= delta_;
     }
 
     input[i] = (input[i] - mean_[i]) / std_[i];
@@ -129,6 +130,6 @@ void Exp3::reload_model()
 
   for (const auto &entry : fs::directory_iterator(exp3_relevant_dir))
   {
-    contexts_.push_back(Context(entry.path()));
+    contexts_.push_back(Context(entry.path(), learning_rate_));
   }
 }

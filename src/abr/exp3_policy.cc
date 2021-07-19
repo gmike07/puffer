@@ -35,7 +35,10 @@ Exp3Policy::Exp3Policy(const WebSocketClient & client,
   }
 
   if (abr_config["exp3_dir"]) {
-    exp3_agent_ = Exp3(abr_config["exp3_dir"].as<string>(), abr_config["normalization_dir"].as<string>());
+    exp3_agent_ = Exp3(abr_config["exp3_dir"].as<string>(), 
+                       abr_config["normalization_dir"].as<string>(), 
+                       abr_config["learning_rate"].as<double>(),
+                       abr_config["delta"].as<double>());
   }
 
   dis_buf_length_ = min(dis_buf_length_,
