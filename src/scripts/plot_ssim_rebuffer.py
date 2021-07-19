@@ -36,7 +36,8 @@ def collect_ssim(video_acked_results, postgres_cursor):
         expt_config = retrieve_expt_config(expt_id, expt_id_cache,
                                            postgres_cursor)
         # index x by (abr, cc)
-        abr_cc = (expt_config['abr'], expt_config['cc'])
+        version = expt_config["version"] if 'version' in expt_config else ''
+        abr_cc = (expt_config['abr'], expt_config['cc'], version)
         if abr_cc not in x:
             x[abr_cc] = []
 
@@ -67,7 +68,8 @@ def collect_rebuffer(client_buffer_results, postgres_cursor):
         expt_config = retrieve_expt_config(expt_id, expt_id_cache,
                                            postgres_cursor)
         # index x by (abr, cc)
-        abr_cc = (expt_config['abr'], expt_config['cc'])
+        version = expt_config["version"] if 'version' in expt_config else ''
+        abr_cc = (expt_config['abr'], expt_config['cc'], version)
         if abr_cc not in x:
             x[abr_cc] = {}
 
@@ -196,7 +198,7 @@ def plot_ssim_rebuffer(ssim, rebuffer, total_play, total_rebuf, output, days):
     ax.grid()
 
     for abr_cc in ssim:
-        abr_cc_str = '{}+{}'.format(*abr_cc)
+        abr_cc_str = '{}+{}+{}'.format(*abr_cc)
         if abr_cc not in rebuffer:
             sys.exit('Error: {} does not exist both ssim and rebuffer'
                      .format(abr_cc_str))
@@ -224,7 +226,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('yaml_settings')
     parser.add_argument('-o', '--output', required=True)
-    parser.add_argument('-d', '--days', type=int, default=1)
+    parser.add_argument('-d', '--days', type=int, default=100)
     args = parser.parse_args()
     output = args.output
     days = args.days

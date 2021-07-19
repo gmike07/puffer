@@ -154,6 +154,7 @@ experiments:
   - num_servers: 1
     fingerprint:
      abr: puffer_exp3
+     version: demo
      abr_config:
        model_dir: ./weights/ttp/original
        exp3_dir: ./weights/exp3/
