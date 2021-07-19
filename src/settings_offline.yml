@@ -161,7 +161,7 @@ experiments:
        max_lookahead_horizon: 1
        normalization_dir: ./weights/kmeans/
        use_puffer: false
-       training_mode: true
+       training_mode: false
        learning_rate: 0.001
        delta: 0.7
      cc: bbr
