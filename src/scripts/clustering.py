@@ -5,14 +5,13 @@ import os
 from sklearn.cluster import KMeans
 import pickle
 import argparse
+import yaml
 
-DELTA = 0.7
-CLUSTERS = 12
 
 def check_dir(saving_dir, force):
     if not os.path.isdir(saving_dir):
         os.mkdir(saving_dir)
-        
+
     if len(os.listdir(saving_dir)) != 0 and not force:
         raise Exception("File exists")
 
@@ -35,7 +34,7 @@ def normalize(input):
     return normalized_input, mean, std
 
 
-def cluster(datapoints_file, buffer_format_file, saving_dir):
+def cluster(datapoints_file, buffer_format_file, saving_dir, delta, clusters):
     raw_inputs = read_file(datapoints_file)
     raw_inputs, raw_inputs_mean, raw_inputs_std = normalize(raw_inputs)
 
@@ -44,9 +43,9 @@ def cluster(datapoints_file, buffer_format_file, saving_dir):
 
     assert raw_inputs.shape[0] == mpc.shape[0]
 
-    X = np.hstack([(1-DELTA)*raw_inputs, DELTA*mpc])
+    X = np.hstack([(1-delta)*raw_inputs, delta*mpc])
 
-    kmeans = KMeans(n_clusters=CLUSTERS)
+    kmeans = KMeans(n_clusters=clusters)
     kmeans.fit(X)
 
     with open(saving_dir + "clusters.pkl", 'wb') as f:
@@ -71,6 +70,10 @@ if __name__ == "__main__":
         default='./weights/kmeans/'
     )
     parser.add_argument(
+        "--yaml-settings",
+        default='./src/settings_offline.yml'
+    )
+    parser.add_argument(
         "-f",
         "--force",
         default=False,
@@ -78,5 +81,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    with open(args.yaml_settings, 'r') as fh:
+        yaml_settings = yaml.safe_load(fh)
+
+    delta = float(yaml_settings["experiments"][0]
+                  ['fingerprint']['abr_config']['delta'])
+    clusters = int(yaml_settings["experiments"][0]
+                   ['fingerprint']['abr_config']['clusters'])
+
     check_dir(args.saving_dir, args.force)
-    cluster(args.inputs_file, args.buffer_format_file, args.saving_dir)
+    cluster(args.inputs_file, args.buffer_format_file,
+            args.saving_dir, delta, clusters)

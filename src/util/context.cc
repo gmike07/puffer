@@ -37,7 +37,7 @@ std::size_t Context::predict(std::vector<double> input)
   for (auto& w : weights_) {
     sum_of_exp_weights += exp(w);
   }
-  double c = log(sum_of_exp_weights)
+  double c = log(sum_of_exp_weights);
   
 
   // std::cout << "weights: ";
