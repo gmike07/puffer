@@ -6,7 +6,7 @@ import shutil
 
 
 class Exp3KMeans:
-    def __init__(self, num_of_arms, kmeans, save_path, plots_dir, checkpoint=10):
+    def __init__(self, num_of_arms, kmeans, save_path, plots_dir, lr, checkpoint=10):
         self._kmeans = kmeans
         self._version = 0
         self._contexts = []
@@ -15,6 +15,7 @@ class Exp3KMeans:
         self._time2save = checkpoint
         self.save_path = save_path
         self._plots_dir = plots_dir
+        self._lr = lr
 
     def predict(self, datapoint):
         context_idx = self._kmeans.predict(datapoint)
@@ -60,7 +61,7 @@ class Exp3KMeans:
             if not os.path.exists(self.save_path):
                 os.mkdir(self.save_path)
             for cluster in self._kmeans.cluster_centers_:
-                context = Context(self._num_of_arms, cluster)
+                context = Context(self._num_of_arms, cluster, self._lr)
                 self._contexts.append(context)
             self.save()
         else:
@@ -72,7 +73,7 @@ class Exp3KMeans:
                 weights = np.loadtxt(f'{base_context_dir}/weights.txt')
                 gamma = np.loadtxt(f'{base_context_dir}/gamma.txt')
                 self._contexts.append(
-                    Context(self._num_of_arms, cluster, gamma, weights))
+                    Context(self._num_of_arms, cluster, gamma, weights, self._lr))
 
     def plot_contexts_weights(self):
         print('saved plot')

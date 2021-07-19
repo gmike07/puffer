@@ -164,6 +164,7 @@ experiments:
        training_mode: false
        learning_rate: 0.001
        delta: 0.7
+       clusters: 12
      cc: bbr
      
   # - num_servers: 10

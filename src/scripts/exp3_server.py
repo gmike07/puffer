@@ -8,8 +8,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
 
 from numpy.lib.npyio import save
+import yaml
 
-from clustering import DELTA
 from exp3.exp3 import Exp3KMeans
 
 
@@ -27,18 +27,20 @@ def load_kmeans(kmeans_path):
 class Exp3Server:
     CHECKPOINT = 1000
 
-    def __init__(self, kmeans_dir, num_of_arms, save_path, plots_dir):
+    def __init__(self, kmeans_dir, num_of_arms, save_path, plots_dir, delta, lr):
         kmeans, self.mean, self.std = load_kmeans(kmeans_dir)
         self.exp3 = Exp3KMeans(num_of_arms=num_of_arms,
                                kmeans=kmeans, save_path=save_path,
                                plots_dir=plots_dir,
+                               lr=lr,
                                checkpoint=Exp3Server.CHECKPOINT)
+        self.delta = delta
         self.exp3.load()
 
     def _prepare_input(self, raw_inputs, buffer_size, last_format):
         mpc = np.array([buffer_size, last_format])
         raw_inputs = np.array(raw_inputs, dtype=np.double)
-        X = np.hstack([(1-DELTA)*raw_inputs, DELTA*mpc])
+        X = np.hstack([(1-self.delta)*raw_inputs, self.delta*mpc])
         normalized_X = (X - self.mean[np.newaxis, :]) / self.std[np.newaxis, :]
         return normalized_X
 
@@ -72,7 +74,7 @@ class Exp3Server:
                             datapoint,
                             parsed_data["arm"],
                             parsed_data["reward"],
-                            parsed_data["version"]) 
+                            parsed_data["version"])
 
                         if not updated:
                             self.send_response(406)
@@ -138,6 +140,10 @@ if __name__ == "__main__":
         default='./weights/plots'
     )
     parser.add_argument(
+        "--yaml-settings",
+        default='./src/settings_offline.yml'
+    )
+    parser.add_argument(
         "--num-of-arms",
         default=10,
         type=int
@@ -150,8 +156,16 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    with open(args.yaml_settings, 'r') as fh:
+        yaml_settings = yaml.safe_load(fh)
+    
+    delta = float(yaml_settings["experiments"][0]['fingerprint']['abr_config']['delta'])
+    lr = int(yaml_settings["experiments"][0]['fingerprint']['abr_config']['learning_rate'])
+
     exp3Server = Exp3Server(kmeans_dir=args.kmeans_dir,
                             num_of_arms=args.num_of_arms,
                             save_path=args.save_path,
-                            plots_dir=args.plots_dir)
+                            plots_dir=args.plots_dir,
+                            delta=delta,
+                            lr=lr)
     exp3Server.run_server(args.addr, args.port)
