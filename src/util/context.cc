@@ -6,7 +6,7 @@
 #include <math.h>
 #include <iomanip>
 
-Context::Context(std::string model_path, double learning_rate) : learning_rate_(learning_rate)
+Context::Context(std::string model_path, double learning_rate) : learning_rate_(learning_rate), model_path_(model_path)
 {
   cluster_ = read_file(model_path + "/" + "cluster.txt");
   weights_ = read_file(model_path + "/" + "weights.txt");
@@ -39,6 +39,7 @@ std::size_t Context::predict(std::vector<double> input)
   }
   double c = log(sum_of_exp_weights);
   
+  std::cout << "cluster: " << model_path_ << std::endl;
 
   // std::cout << "weights: ";
   for (double weight : weights_)

@@ -100,30 +100,29 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
   }
 
   // std::thread([&](){ 
-    std::vector<double> last_input = inputs_.front();
-    auto [buffer, last_format, format] = last_buffer_formats_.front();
-    
-    json data;
-    data["datapoint"] = last_input;
-    data["buffer_size"] = buffer;
-    data["last_format"] = last_format;
-    data["arm"] = format;
-    data["reward"] = this->normalize_reward();
-    data["version"] = exp3_agent_.version_;
-    
-    long status = sender_.post(data, "update"); 
+  std::vector<double> last_input = inputs_.back();
+  auto [buffer, last_format, format] = last_buffer_formats_.back();
+  
+  json data;
+  data["datapoint"] = last_input;
+  data["buffer_size"] = buffer;
+  data["last_format"] = last_format;
+  data["arm"] = format;
+  data["reward"] = this->normalize_reward();
+  data["version"] = exp3_agent_.version_;
+  
+  long status = sender_.post(data, "update"); 
 
-    if (status == 406) {
-      exp3_agent_.reload_model();
-      inputs_.clear();
-      last_buffer_formats_.clear();
-      last_format_ = 0; 
-      throw logic_error("weights updated, reinit channel");
-    }
+  if (status == 406) {
+    exp3_agent_.reload_model();
+    inputs_.clear();
+    last_buffer_formats_.clear();
+    last_format_ = 0; 
+    throw logic_error("weights updated, reinit channel");
+  }
 
-    inputs_.pop_front();
-    last_buffer_formats_.pop_front();
-
+    // inputs_.pop_front();
+    // last_buffer_formats_.pop_front();
   // }).detach();
 }
 
