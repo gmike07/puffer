@@ -25,7 +25,7 @@ def load_kmeans(kmeans_path):
 
 
 class Exp3Server:
-    CHECKPOINT = 1000
+    CHECKPOINT = 200
 
     def __init__(self, kmeans_dir, num_of_arms, save_path, plots_dir, delta, lr):
         kmeans, self.mean, self.std = load_kmeans(kmeans_dir)
