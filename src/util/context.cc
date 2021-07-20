@@ -6,7 +6,7 @@
 #include <math.h>
 #include <iomanip>
 
-Context::Context(std::string model_path)
+Context::Context(std::string model_path, double learning_rate) : learning_rate_(learning_rate)
 {
   cluster_ = read_file(model_path + "/" + "cluster.txt");
   weights_ = read_file(model_path + "/" + "weights.txt");
@@ -32,10 +32,21 @@ std::vector<double> Context::read_file(std::string filename)
 std::size_t Context::predict(std::vector<double> input)
 {
   std::vector<double> probs;
+
+  double sum_of_exp_weights = 0;
+  for (auto& w : weights_) {
+    sum_of_exp_weights += exp(w);
+  }
+  double c = log(sum_of_exp_weights);
+  
+
+  // std::cout << "weights: ";
   for (double weight : weights_)
   {
-    probs.push_back(exp(gamma_ * weight));
+    // std::cout << "," << weight;
+    probs.push_back((1 - learning_rate_) * exp(weight - c) + learning_rate_ * 1 / weights_.size());
   }
+  // std::cout << std::endl;   
 
   std::discrete_distribution<int> distribution(probs.begin(), probs.end());
 

@@ -35,7 +35,10 @@ Exp3Policy::Exp3Policy(const WebSocketClient & client,
   }
 
   if (abr_config["exp3_dir"]) {
-    exp3_agent_ = Exp3(abr_config["exp3_dir"].as<string>(), abr_config["normalization_dir"].as<string>());
+    exp3_agent_ = Exp3(abr_config["exp3_dir"].as<string>(), 
+                       abr_config["normalization_dir"].as<string>(), 
+                       abr_config["learning_rate"].as<double>(),
+                       abr_config["delta"].as<double>());
   }
 
   dis_buf_length_ = min(dis_buf_length_,
@@ -96,7 +99,7 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
     return;
   }
 
-  // std::thread([&](){ 
+  std::thread([&](){ 
     std::vector<double> last_input = inputs_.front();
     auto [buffer, last_format, format] = last_buffer_formats_.front();
     
@@ -120,8 +123,7 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
 
     inputs_.pop_front();
     last_buffer_formats_.pop_front();
-
-  // }).detach();
+  }).detach();
 }
 
 VideoFormat Exp3Policy::select_video_format()

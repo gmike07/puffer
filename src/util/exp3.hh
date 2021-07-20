@@ -10,7 +10,7 @@ class Exp3 {
 public:
     Exp3();
     Exp3(std::string model_path);
-    Exp3(std::string model_path, std::string norm_path);
+    Exp3(std::string model_path, std::string norm_path, double learning_rate, double delta);
     std::size_t predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_);
     void reload_model();
     std::size_t version_;
@@ -22,7 +22,8 @@ private:
     double dist(std::vector<double> v1, std::vector<double> v2);
     std::vector<double> read_file(std::string filename);
     void normalize_inplace(std::vector<double>& input);
-    double DELTA = 0.7;
+    double learning_rate_;
+    double delta_;
 };
 
 #endif /* EXP3_HH */
