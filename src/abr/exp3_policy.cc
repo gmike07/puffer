@@ -100,8 +100,8 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
   }
 
   std::thread([&](){ 
-    std::vector<double> last_input = inputs_.front();
-    auto [buffer, last_format, format] = last_buffer_formats_.front();
+    std::vector<double> last_input = inputs_.back();
+    auto [buffer, last_format, format] = last_buffer_formats_.back();
     
     json data;
     data["datapoint"] = last_input;
@@ -121,8 +121,8 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
       throw logic_error("weights updated, reinit channel");
     }
 
-    inputs_.pop_front();
-    last_buffer_formats_.pop_front();
+    // inputs_.pop_front();
+    // last_buffer_formats_.pop_front();
   }).detach();
 }
 
