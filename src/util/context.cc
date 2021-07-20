@@ -6,7 +6,7 @@
 #include <math.h>
 #include <iomanip>
 
-Context::Context(std::string model_path, double learning_rate) : learning_rate_(learning_rate), model_path_(model_path)
+Context::Context(std::string model_path, double learning_rate) : learning_rate_(learning_rate),  model_path_(model_path)
 {
   cluster_ = read_file(model_path + "/" + "cluster.txt");
   weights_ = read_file(model_path + "/" + "weights.txt");
