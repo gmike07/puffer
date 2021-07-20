@@ -61,7 +61,7 @@ class Exp3KMeans:
             if not os.path.exists(self.save_path):
                 os.mkdir(self.save_path)
             for cluster in self._kmeans.cluster_centers_:
-                context = Context(self._num_of_arms, cluster, self._lr)
+                context = Context(self._num_of_arms, cluster, lr=self._lr)
                 self._contexts.append(context)
             self.save()
         else:

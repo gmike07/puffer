@@ -160,7 +160,7 @@ if __name__ == "__main__":
         yaml_settings = yaml.safe_load(fh)
     
     delta = float(yaml_settings["experiments"][0]['fingerprint']['abr_config']['delta'])
-    lr = int(yaml_settings["experiments"][0]['fingerprint']['abr_config']['learning_rate'])
+    lr = float(yaml_settings["experiments"][0]['fingerprint']['abr_config']['learning_rate'])
 
     exp3Server = Exp3Server(kmeans_dir=args.kmeans_dir,
                             num_of_arms=args.num_of_arms,
