@@ -28,6 +28,14 @@ class Exp3KMeans:
             return False
         context_idx = self._kmeans.predict(datapoint)
         context_idx = context_idx[0]
+        
+        dist = (self._kmeans.cluster_centers_ - datapoint.squeeze())**2
+        dist = dist.sum(axis=1)
+        dist = dist**0.5
+        calc_min_idx = dist.argmin()
+        print(dist)
+        print(f'are equal calc={calc_min_idx}, dist={dist[calc_min_idx]}')
+
         self._contexts[context_idx].update(reward, last_arm)
         print(f'context={context_idx}, arm={last_arm}', end="; ")
 
@@ -60,20 +68,21 @@ class Exp3KMeans:
         if not os.path.exists(self.save_path) or len(os.listdir(self.save_path)) == 0:
             if not os.path.exists(self.save_path):
                 os.mkdir(self.save_path)
-            for cluster in self._kmeans.cluster_centers_:
-                context = Context(self._num_of_arms, cluster, lr=self._lr)
+            for i, cluster in enumerate(self._kmeans.cluster_centers_):
+                context = Context(self._num_of_arms, cluster, lr=self._lr, path=str(i))
                 self._contexts.append(context)
             self.save()
         else:
             base_exp3_dir = f'{self.save_path}/{os.listdir(self.save_path)[-1]}'
             self._version = int(os.listdir(self.save_path)[-1]) + 1
-            for dir in os.listdir(base_exp3_dir):
+            sorted_paths = sorted(os.listdir(base_exp3_dir), key=lambda path: int(path))
+            for dir in sorted_paths:
                 base_context_dir = f'{base_exp3_dir}/{dir}'
                 cluster = np.loadtxt(f'{base_context_dir}/cluster.txt')
                 weights = np.loadtxt(f'{base_context_dir}/weights.txt')
                 gamma = np.loadtxt(f'{base_context_dir}/gamma.txt')
                 self._contexts.append(
-                    Context(self._num_of_arms, cluster, gamma, weights, self._lr))
+                    Context(self._num_of_arms, cluster, gamma, weights, self._lr, dir))
 
     def plot_contexts_weights(self):
         print('saved plot')
