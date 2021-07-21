@@ -16,6 +16,7 @@ private:
     double gamma_;
     std::default_random_engine generator_ {};
     double learning_rate_;
+    std::string model_path_;
 };
 
 #endif /* CONTEXT_HH */
