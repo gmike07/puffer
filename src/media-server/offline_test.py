@@ -28,7 +28,7 @@ def start_maimahi_clients(num_clients):
     try:
         trace_dir = "./traces/mahimahi"
         files = os.listdir(trace_dir)
-        test_files = files[:1400]
+        test_files = files[800:1200]
 
         traces = test_files
         for epoch in range(EPOCHS):
@@ -41,7 +41,7 @@ def start_maimahi_clients(num_clients):
                 plist = [p1, p2]
 
                 for i in range(1, num_clients + 1):
-                    filename = traces[i]
+                    filename = traces[f + i]
                     remote_port = REMOTE_BASE_PORT + i
                     port = BASE_PORT + i
 
