@@ -64,19 +64,32 @@ std::size_t Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, s
 
   normalize_inplace(input);
 
+
+
+  std::cout.precision(17);
+  // std::cout << "datapoint: ";
+  // for (auto &i: input)
+  //   std::cout << i << "\t";
+  // std::cout << "###############" << std::endl;
+
+
   /* find cluster index */
   Context &min_context = contexts_.back();
+
+  double min_d = dist(input, min_context.cluster_);
+  
   for (const auto &context : contexts_)
   {
-    // std::cout << "dist:" << dist(input, context.cluster_) << std::endl;
+    std::cout << "cluster: " << context.model_path_ << "," << "dist:" << dist(input, context.cluster_) << std::endl;
 
     if (dist(input, context.cluster_) < dist(input, min_context.cluster_))
     {
       min_context = context;
+      min_d = dist(input, context.cluster_);
     }
   }
 
-  // std::cout << "min cluster:" << &min_context << std::endl;
+  std::cout << "min cluster dist:" << min_d << std::endl;
 
   return min_context.predict(input);
 }
@@ -88,11 +101,11 @@ double Exp3::dist(std::vector<double> v1, std::vector<double> v2)
 
   for (std::size_t i = 0; i < v1.size(); i++) //todo: change to v1.size()
   {
-    if (std::pow(v1[i] - v2[i], 2) > 1e10) {
-      distance += 1e10;
-      // std::cout << "input:" << v1[i] << "cluster: " << v2[i] << std::endl;
-      continue;
-    }
+    // if (std::pow(v1[i] - v2[i], 2) > 1e4) {
+    //   distance += 1e10;
+    //   std::cout << "input:" << v1[i] << "cluster: " << v2[i] << std::endl;
+    //   continue;
+    // }
   
     distance += std::pow(v1[i] - v2[i], 2);
   }
@@ -130,6 +143,7 @@ void Exp3::reload_model()
 
   for (const auto &entry : fs::directory_iterator(exp3_relevant_dir))
   {
+    // std::cout << "path: " << entry.path() << std::endl;
     contexts_.push_back(Context(entry.path(), learning_rate_));
   }
 }
