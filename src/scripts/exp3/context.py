@@ -7,7 +7,7 @@ class Context:
     MAX_HISTORY_POINTS = 100
     MAX_WEIGHT = 1e6
 
-    def __init__(self, num_of_arms, cluster, gamma=None, weights=None, lr=None):
+    def __init__(self, num_of_arms, cluster, gamma=None, weights=None, lr=None, path=""):
         self.num_of_arms = num_of_arms
         self.cluster = cluster
         if gamma is None:
@@ -26,6 +26,7 @@ class Context:
         self.last_arm = 0
         self.weights_history = [np.copy(self.weights)]
         self.weights_history_scale = 1
+        self.path = path
 
     def predict(self):
         c = logsumexp(self.weights)
@@ -59,7 +60,7 @@ class Context:
         self.save_history()
 
         print(
-            f', weight={self.weights[last_arm]}')
+            f', path={self.path}')
 
     def save_history(self):
         self.weights_history.append(self.weights)

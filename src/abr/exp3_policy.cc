@@ -131,7 +131,7 @@ VideoFormat Exp3Policy::select_video_format()
   // auto before_ts = timestamp_ms();
   reinit();
   
-  size_t format = exp3_agent_.predict(inputs_.front(), curr_buffer_, last_format_); //this->get_bitrate();
+  size_t format = exp3_agent_.predict(inputs_.back(), curr_buffer_, last_format_); //this->get_bitrate();
   last_buffer_formats_.push_back(std::tuple<size_t,size_t,size_t>{curr_buffer_, last_format_, format});
   last_format_ = format;
 
