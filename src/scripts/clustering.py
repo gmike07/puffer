@@ -55,6 +55,42 @@ def cluster(datapoints_file, buffer_format_file, saving_dir, delta, clusters):
     np.savetxt(saving_dir + "std.txt", np.hstack([raw_inputs_std, mpc_std]))
 
 
+def prepare_X(datapoints_file, buffer_format_file, delta):
+    raw_inputs = read_file(datapoints_file)
+    raw_inputs, _, _ = normalize(raw_inputs)
+
+    mpc = read_file(buffer_format_file)
+    mpc, _, _ = normalize(mpc)
+
+    assert raw_inputs.shape[0] == mpc.shape[0]
+
+    X = np.hstack([(1-delta)*raw_inputs, delta*mpc])
+
+    return X
+
+
+def find_best_clusters(X, min_n_clusters=1, max_n_clusters=16, min_clusters_dist=5):
+    n_clusters = min_n_clusters + (max_n_clusters - min_n_clusters) // 2
+
+    if min_n_clusters == n_clusters or  max_n_clusters == n_clusters:
+        return n_clusters
+
+    print(min_n_clusters, n_clusters, max_n_clusters)
+    kmeans = KMeans(n_clusters=n_clusters)
+    kmeans.fit(X)
+
+    clusters = kmeans.cluster_centers_
+    b = clusters.reshape(clusters.shape[0], 1, clusters.shape[1])
+    clusters_dist = np.sqrt(np.einsum('ijk, ijk->ij', clusters-b, clusters-b))
+    min_dist = np.amin(clusters_dist)
+    print(f'min_dist {min_dist}')
+
+    if min_dist < min_clusters_dist:
+        return find_best_clusters(X, min_n_clusters, n_clusters)
+
+    return find_best_clusters(X, n_clusters, max_n_clusters)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run k-means")
     parser.add_argument(
@@ -90,5 +126,10 @@ if __name__ == "__main__":
                    ['fingerprint']['abr_config']['clusters'])
 
     check_dir(args.saving_dir, args.force)
-    cluster(args.inputs_file, args.buffer_format_file,
-            args.saving_dir, delta, clusters)
+
+    X = prepare_X(args.inputs_file, args.buffer_format_file, delta)
+    n_clusters = find_best_clusters(X)
+    print(f'best clusters: {n_clusters}')
+
+    # cluster(args.inputs_file, args.buffer_format_file,
+    #         args.saving_dir, delta, clusters)
