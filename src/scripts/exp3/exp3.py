@@ -23,21 +23,22 @@ class Exp3KMeans:
         arm = self._contexts[context_idx].predict()
         return arm
 
-    def update(self, datapoint, last_arm, reward, version):
+    def update(self, datapoint, context_idx, last_arm, reward, version):
         if version < self._version:
             return False
-        context_idx = self._kmeans.predict(datapoint)
-        context_idx = context_idx[0]
         
-        dist = (self._kmeans.cluster_centers_ - datapoint.squeeze())**2
-        dist = dist.sum(axis=1)
-        dist = dist**0.5
-        calc_min_idx = dist.argmin()
-        print(dist)
-        print(f'are equal calc={calc_min_idx}, dist={dist[calc_min_idx]}')
+        # dist = (self._kmeans.cluster_centers_ - datapoint.squeeze())**2
+        # dist = dist.sum(axis=1)
+        # dist = dist**0.5
+        # calc_min_idx = dist.argmin()
+        # print(dist)
+        # print(f'are equal calc={calc_min_idx}, dist={dist[calc_min_idx]}')
+
+        # context_idx = self._kmeans.predict(datapoint)
+        # context_idx = context_idx[0]
 
         self._contexts[context_idx].update(reward, last_arm)
-        print(f'context={context_idx}, arm={last_arm}', end="; ")
+        # print(f'context={context_idx}, arm={last_arm}', end="; ")
 
         self._time2save -= 1
         if self._time2save <= 0:

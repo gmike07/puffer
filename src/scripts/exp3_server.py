@@ -69,9 +69,11 @@ class Exp3Server:
                     elif self.path == "/update":
                         # print(f'curr ver: {outer_self.exp3._version}, got: {parsed_data["version"]}')
                         # print(f'reward={parsed_data["reward"]}, arm={parsed_data["arm"]}')
+                        context_idx = parsed_data["context_idx"]
 
                         updated = outer_self.exp3.update(
                             datapoint,
+                            context_idx,
                             parsed_data["arm"],
                             parsed_data["reward"],
                             parsed_data["version"])
