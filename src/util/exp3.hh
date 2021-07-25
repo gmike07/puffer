@@ -11,7 +11,7 @@ public:
     Exp3();
     Exp3(std::string model_path);
     Exp3(std::string model_path, std::string norm_path, double learning_rate, double delta);
-    std::size_t predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_);
+    std::tuple<std::size_t, std::size_t> predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_);
     void reload_model();
     std::size_t version_;
 private:

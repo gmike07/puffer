@@ -11,6 +11,7 @@ public:
     std::size_t predict(std::vector<double> input);
     std::vector<double> cluster_;
     std::string model_path_;
+    std::size_t context_idx_;
 private:
     std::vector<double> read_file(std::string filename);
     std::vector<double> weights_;

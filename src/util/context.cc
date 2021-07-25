@@ -11,7 +11,9 @@ Context::Context(std::string model_path, double learning_rate) : learning_rate_(
   cluster_ = read_file(model_path + "/" + "cluster.txt");
   weights_ = read_file(model_path + "/" + "weights.txt");
   gamma_ = read_file(model_path + "/" + "gamma.txt").back();
+  context_idx_ = stoi(model_path.substr(model_path.find_last_of('/') + 1, model_path.length()));
 
+  // std::cout << model_path << ", cluster_index_: " << cluster_index_ << std::endl;
   // std::cout << std::setprecision(10) << std::scientific << "check: " << d << std::endl;
 }
 
@@ -39,7 +41,7 @@ std::size_t Context::predict(std::vector<double> input)
   }
   double c = log(sum_of_exp_weights);
   
-  std::cout << "cluster: " << model_path_ << std::endl;
+  std::cout << "cluster: " << model_path_  << ",context_idx: " << context_idx_ << std::endl;
 
   // std::cout << "weights: ";
   for (double weight : weights_)

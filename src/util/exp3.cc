@@ -57,16 +57,14 @@ void Exp3::normalize_inplace(std::vector<double> &input)
   }
 }
 
-std::size_t Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_)
+std::tuple<std::size_t, std::size_t> Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, std::size_t last_format_)
 {
   input.push_back(curr_buffer_);
   input.push_back(last_format_);
 
   normalize_inplace(input);
 
-
-
-  std::cout.precision(17);
+  // std::cout.precision(17);
   // std::cout << "datapoint: ";
   // for (auto &i: input)
   //   std::cout << i << "\t";
@@ -80,7 +78,7 @@ std::size_t Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, s
   
   for (const auto &context : contexts_)
   {
-    std::cout << "cluster: " << context.model_path_ << "," << "dist:" << dist(input, context.cluster_) << std::endl;
+    // std::cout << "cluster: " << context.model_path_ << "," << "dist:" << dist(input, context.cluster_) << std::endl;
 
     if (dist(input, context.cluster_) < dist(input, min_context.cluster_))
     {
@@ -91,7 +89,9 @@ std::size_t Exp3::predict(std::vector<double> input, std::size_t curr_buffer_, s
 
   std::cout << "min cluster dist:" << min_d << std::endl;
 
-  return min_context.predict(input);
+  std::size_t arm = min_context.predict(input);
+  
+  return std::make_tuple(arm, min_context.context_idx_ );
 }
 
 double Exp3::dist(std::vector<double> v1, std::vector<double> v2)
