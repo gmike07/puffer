@@ -100,10 +100,13 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
   }
 
   // std::thread([&](){ 
-  std::vector<double> last_input = inputs_.back();
-  auto [buffer, last_format, format] = last_buffer_formats_.back();
-  
+  std::size_t context_idx = contexts_[curr_ack_round_];
+  std::vector<double> last_input = inputs_[curr_ack_round_];
+  auto [buffer, last_format, format] = last_buffer_formats_[curr_ack_round_];
+  curr_ack_round_++;
+
   json data;
+  data["context_idx"] = context_idx;
   data["datapoint"] = last_input;
   data["buffer_size"] = buffer;
   data["last_format"] = last_format;
@@ -116,6 +119,7 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
   if (status == 406) {
     exp3_agent_.reload_model();
     inputs_.clear();
+    contexts_.clear();
     last_buffer_formats_.clear();
     last_format_ = 0; 
     throw logic_error("weights updated, reinit channel");
@@ -131,11 +135,12 @@ VideoFormat Exp3Policy::select_video_format()
   // auto before_ts = timestamp_ms();
   reinit();
   
-  size_t format = exp3_agent_.predict(inputs_.back(), curr_buffer_, last_format_); //this->get_bitrate();
+  auto [format, context_idx] = exp3_agent_.predict(inputs_.back(), curr_buffer_, last_format_); //this->get_bitrate();
   last_buffer_formats_.push_back(std::tuple<size_t,size_t,size_t>{curr_buffer_, last_format_, format});
+  contexts_.push_back(context_idx);
   last_format_ = format;
 
-  // std::cout <<  "format:" << format << std::endl;
+  // std::cout << "sizes:" << last_buffer_formats_.size() << "," << contexts_.size() << "," << inputs_.size() << std::endl;
 
   // auto after = timestamp_ms() - before_ts;
   // std::cout <<  "diff time:" << after << std::endl;

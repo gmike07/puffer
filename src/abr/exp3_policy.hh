@@ -81,8 +81,11 @@ protected:
   size_t last_format_;
 
   std::deque<std::tuple<size_t,size_t,size_t>> last_buffer_formats_;
+  std::deque<std::size_t> contexts_;
   std::deque<std::vector<double>> inputs_;
   std::vector<double> hidden2_;
+  uint64_t curr_ack_round_ {};
+
 
   double get_qoe(double curr_ssim, 
                     double prev_ssim, 
