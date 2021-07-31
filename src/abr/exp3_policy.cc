@@ -55,6 +55,9 @@ double Exp3Policy::get_qoe(double curr_ssim,
 
   double rebuffer = max(curr_trans_time*0.001 - curr_buffer*unit_buf_length_, 0.0);
   qoe -= rebuffer;
+
+  // std::cout << "qoe:" <<  qoe << ",ssim " << ssim_db(curr_ssim) << ", jitter: " << ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim)) << ", rebuf " << rebuffer << std::endl;
+
   // std::cout << ", rebuf " << curr_trans_time << ", " << curr_buffer*unit_buf_length_ << std::endl;
   // std::cout << "calc qoe " << ssim_db(curr_ssim) << ", jitter: " << ssim_diff_coeff_ * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim)) << ", rebuf " << rebuffer_length_coeff_ * rebuffer << std::endl;
 
@@ -79,11 +82,11 @@ double Exp3Policy::normalize_reward()
   double min_ssim = client_.channel()->vssim(next_vts).at(min_vformat);
   double max_ssim = client_.channel()->vssim(next_vts).at(max_vformat);
 
-  double min_reward = min(this->get_qoe(min_ssim, max_ssim, 5000, 0), reward);
-  double max_reward = ssim_db(max_ssim);
+  double min_reward = this->get_qoe(0, 1, 5000, 0);
+  double max_reward = ssim_db(1);
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
-  // std::cout << "rewards (max,min,curr): " << max_reward << ", max ssim" << reward << std::endl;
+  std::cout << "rewards (max,min,curr, normalized): " << max_reward << ", " << min_reward << ", " << reward << ", " << normalized_reward << std::endl;
    
   return normalized_reward;
 }
@@ -118,9 +121,10 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
 
   if (status == 406) {
     exp3_agent_.reload_model();
-    inputs_.clear();
     contexts_.clear();
+    inputs_.clear();
     last_buffer_formats_.clear();
+    curr_ack_round_ = 0;
     last_format_ = 0; 
     throw logic_error("weights updated, reinit channel");
   }

@@ -41,7 +41,7 @@ std::size_t Context::predict(std::vector<double> input)
   }
   double c = log(sum_of_exp_weights);
   
-  std::cout << "cluster: " << model_path_  << ",context_idx: " << context_idx_ << std::endl;
+  // std::cout << "cluster: " << model_path_  << ",context_idx: " << context_idx_ << std::endl;
 
   // std::cout << "weights: ";
   for (double weight : weights_)
