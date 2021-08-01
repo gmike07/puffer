@@ -36,7 +36,10 @@ def collect_ssim(video_acked_results, postgres_cursor):
         expt_config = retrieve_expt_config(expt_id, expt_id_cache,
                                            postgres_cursor)
         # index x by (abr, cc)
-        version = expt_config["version"] if 'version' in expt_config else ''
+        version = ''
+        if expt_config["abr"] == "puffer_exp3":
+            version = "{}C{}D".format(expt_config["abr_config"]["clusters"], expt_config["abr_config"]["delta"])
+
         abr_cc = (expt_config['abr'], expt_config['cc'], version)
         if abr_cc not in x:
             x[abr_cc] = []
@@ -68,7 +71,10 @@ def collect_rebuffer(client_buffer_results, postgres_cursor):
         expt_config = retrieve_expt_config(expt_id, expt_id_cache,
                                            postgres_cursor)
         # index x by (abr, cc)
-        version = expt_config["version"] if 'version' in expt_config else ''
+        version = ''
+        if expt_config["abr"] == "puffer_exp3":
+            version = "{}C{}D".format(expt_config["abr_config"]["clusters"], expt_config["abr_config"]["delta"])
+
         abr_cc = (expt_config['abr'], expt_config['cc'], version)
         if abr_cc not in x:
             x[abr_cc] = {}
