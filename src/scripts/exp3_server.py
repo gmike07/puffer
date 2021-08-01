@@ -25,7 +25,7 @@ def load_kmeans(kmeans_path):
 
 
 class Exp3Server:
-    CHECKPOINT = 200
+    CHECKPOINT = 500
 
     def __init__(self, kmeans_dir, num_of_arms, save_path, plots_dir, delta, lr):
         kmeans, self.mean, self.std = load_kmeans(kmeans_dir)
@@ -68,10 +68,12 @@ class Exp3Server:
                         self.wfile.write(message)
                     elif self.path == "/update":
                         # print(f'curr ver: {outer_self.exp3._version}, got: {parsed_data["version"]}')
-                        # print(f'reward={parsed_data["reward"]}, arm={parsed_data["arm"]}')
+                        print(f'reward={parsed_data["reward"]}, arm={parsed_data["arm"]}, context={parsed_data["context_idx"]}')
+                        context_idx = parsed_data["context_idx"]
 
                         updated = outer_self.exp3.update(
                             datapoint,
+                            context_idx,
                             parsed_data["arm"],
                             parsed_data["reward"],
                             parsed_data["version"])

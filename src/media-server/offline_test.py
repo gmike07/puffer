@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
+from posix import times_result
 import time
 import os
 import subprocess
 import signal
+import argparse
 
-EPOCHS = 1
-NUM_OF_CLIENTS = 10
 LOGS_FILE = './weights/logs.txt'
 
 BASE_PORT = 9360
@@ -14,7 +14,8 @@ REMOTE_BASE_PORT = 9222
 
 def run_offline_media_servers():
     run_server_html_cmd = 'python3 ./src/portal/manage.py runserver 0:8080'
-    p1 = subprocess.Popen(run_server_html_cmd, shell=True, preexec_fn=os.setsid)
+    p1 = subprocess.Popen(run_server_html_cmd,
+                          shell=True, preexec_fn=os.setsid)
     time.sleep(3)
     run_servers_cmd = './src/media-server/run_servers ./src/settings_offline.yml'
     p2 = subprocess.Popen(run_servers_cmd, shell=True, preexec_fn=os.setsid)
@@ -22,19 +23,25 @@ def run_offline_media_servers():
     return p1, p2
 
 
-def start_maimahi_clients(num_clients):
+def start_mahimahi_clients(num_clients, trace_dir, test=False):
     logs_file = open(LOGS_FILE, 'w')
     plist = []
     try:
-        trace_dir = "./traces/mahimahi"
         files = os.listdir(trace_dir)
-        test_files = files[:800]
 
-        traces = test_files
-        for epoch in range(EPOCHS):
+        if test:
+            traces = files[1200:1300]
+            epochs = 1
+        else:
+            traces = files[800:1000]
+            epochs = 10
+
+        print(f'running {epochs} epochs, test_mode={test}')
+
+        for epoch in range(epochs):
             for f in range(0, len(traces)-num_clients, num_clients):
                 logs_file.write(
-                    f"Epoch: {epoch}/{EPOCHS}. Files: {f}/{len(traces)}\n")
+                    f"Epoch: {epoch}/{epochs}. Files: {f}/{len(traces)}\n")
                 logs_file.flush()
 
                 p1, p2 = run_offline_media_servers()
@@ -71,9 +78,27 @@ def start_maimahi_clients(num_clients):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Run k-means")
+    parser.add_argument(
+        "--clients",
+        default=12,
+        type=int
+    )
+    parser.add_argument(
+        "--trace-dir",
+        default='./traces/mahimahi'
+    )
+    parser.add_argument(
+        "-t",
+        "--test",
+        default=False,
+        action='store_true'
+    )
+    args = parser.parse_args()
+
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     # run_offline_media_servers()
-    start_maimahi_clients(NUM_OF_CLIENTS)
+    start_mahimahi_clients(args.clients, args.trace_dir, args.test)
 
 
 if __name__ == '__main__':
