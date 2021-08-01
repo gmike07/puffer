@@ -59,7 +59,8 @@ class Context:
 
         self.save_history()
 
-        print(f'context_path={self.path}, arm={last_arm}')
+        # print(f'context_path={self.path}, arm={last_arm}')
+        
 
     def save_history(self):
         self.weights_history.append(self.weights)

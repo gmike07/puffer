@@ -150,33 +150,33 @@ experiments:
   #       rebuffer_length_coeff: 100
   #     cc: bbr
 
-  - num_servers: 10
+  #- num_servers: 10
+  #  fingerprint:
+  #   abr: puffer_exp3
+  #   version: D0.01C32
+  #   abr_config:
+  #     model_dir: ./weights/ttp/original
+  #     exp3_dir: ./weights/exp3/
+  #     rebuffer_length_coeff: 100
+  #     max_lookahead_horizon: 1
+  #     normalization_dir: ./weights/kmeans/
+  #     use_puffer: false
+  #     training_mode: false
+  #     learning_rate: 0.01
+  #     delta: 0.01
+  #     clusters: 32
+  #   cc: bbr
+     
+  - num_servers: 12
     fingerprint:
-     abr: puffer_exp3
-     version: D0.7C12
+     abr: puffer_ttp
      abr_config:
        model_dir: ./weights/ttp/original
-       exp3_dir: ./weights/exp3/
        rebuffer_length_coeff: 100
-       max_lookahead_horizon: 1
-       normalization_dir: ./weights/kmeans/
-       use_puffer: false
-       training_mode: true
-       learning_rate: 0.01
-       delta: 0.5
-       clusters: 8
+       collect_data: false
+       hidden2_model_dir: ./weights/ttp/hidden2/
+       max_lookahead_horizon: 5
      cc: bbr
-     
-  # - num_servers: 10
-  #   fingerprint:
-  #    abr: puffer_ttp
-  #    abr_config:
-  #      model_dir: ./weights/ttp/original
-  #      rebuffer_length_coeff: 100
-  #      collect_data: true
-  #      hidden2_model_dir: ./weights/ttp/hidden2/
-  #      max_lookahead_horizon: 1
-  #    cc: bbr
 
   # - num_servers: 1
   #   fingerprint:

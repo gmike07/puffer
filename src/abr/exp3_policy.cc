@@ -79,8 +79,8 @@ double Exp3Policy::normalize_reward()
   double min_ssim = client_.channel()->vssim(next_vts).at(min_vformat);
   double max_ssim = client_.channel()->vssim(next_vts).at(max_vformat);
 
-  double min_reward = min(this->get_qoe(min_ssim, max_ssim, 5000, 0), reward);
-  double max_reward = ssim_db(max_ssim);
+  double min_reward = this->get_qoe(0, 1, 5000, 0);
+  double max_reward = ssim_db(1);
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
   // std::cout << "rewards (max,min,curr): " << max_reward << ", max ssim" << reward << std::endl;
@@ -122,6 +122,7 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
     contexts_.clear();
     last_buffer_formats_.clear();
     last_format_ = 0; 
+    curr_ack_round_ = 0;
     throw logic_error("weights updated, reinit channel");
   }
 

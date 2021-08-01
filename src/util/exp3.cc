@@ -87,7 +87,7 @@ std::tuple<std::size_t, std::size_t> Exp3::predict(std::vector<double> input, st
     }
   }
 
-  std::cout << "min cluster dist:" << min_d << std::endl;
+  // std::cout << "min cluster dist:" << min_d << std::endl;
 
   std::size_t arm = min_context.predict(input);
   
