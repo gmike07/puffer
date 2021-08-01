@@ -30,16 +30,16 @@ def start_mahimahi_clients(num_clients, trace_dir, test=False):
         files = os.listdir(trace_dir)
 
         if test:
-            traces = files[1200:1300]
+            traces = files[1200:1350]
             epochs = 1
         else:
-            traces = files[800:1000]
+            traces = files[800:1100]
             epochs = 10
 
         print(f'running {epochs} epochs, test_mode={test}')
 
         for epoch in range(epochs):
-            for f in range(0, len(traces)-num_clients, num_clients):
+            for f in range(0, len(traces), num_clients):
                 logs_file.write(
                     f"Epoch: {epoch}/{epochs}. Files: {f}/{len(traces)}\n")
                 logs_file.flush()
