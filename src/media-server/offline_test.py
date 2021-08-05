@@ -53,14 +53,14 @@ def start_mahimahi_clients(num_clients, trace_dir, test=False):
                     port = BASE_PORT + i
 
                     time.sleep(2)
-                    mahimahi_chrome_cmd = "mm-delay 40 mm-link /home/ofir/puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
+                    mahimahi_chrome_cmd = "mm-delay 40 mm-link ./puffer/src/media-server/12mbps {}/{} -- sh -c 'chromium disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
                         trace_dir, filename, remote_port, port, port)
 
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
                                          preexec_fn=os.setsid)
                     plist.append(p)
 
-                time.sleep(60*10)
+                time.sleep(60*8)
                 for p in plist:
                     os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                     time.sleep(4)
