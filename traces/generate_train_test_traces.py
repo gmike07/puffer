@@ -18,6 +18,7 @@ def concat_files(paths, num_of_traces, output_dir, trace_len):
 
             str_data += functools.reduce(
                 lambda a, b: str(a)+'\n'+str(b), offset_data)
+            str_data += '\n'
 
             offset = offset_data[-1]
             i += 1
