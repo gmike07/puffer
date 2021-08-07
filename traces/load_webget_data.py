@@ -4,7 +4,7 @@ import os
 import argparse
 
 OUTPUT_PATH = './cooked/'
-NUM_LINES = 20000
+NUM_LINES = np.inf
 TIME_ORIGIN = datetime.datetime.utcfromtimestamp(0)
 
 
