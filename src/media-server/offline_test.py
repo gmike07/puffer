@@ -60,7 +60,7 @@ def start_mahimahi_clients(num_clients, trace_dir, test=False):
                                          preexec_fn=os.setsid)
                     plist.append(p)
 
-                time.sleep(60*8)
+                time.sleep(60*10)
                 for p in plist:
                     os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                     time.sleep(4)
@@ -86,7 +86,7 @@ def main():
     )
     parser.add_argument(
         "--trace-dir",
-        default='./traces/mahimahi'
+        default='./traces/final_traces/'
     )
     parser.add_argument(
         "-t",
