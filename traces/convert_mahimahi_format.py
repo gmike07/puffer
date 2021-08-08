@@ -1,9 +1,8 @@
 import os
 import numpy as np
+import argparse
 
 
-IN_FILE = './cooked/'
-OUT_FILE = './mahimahi/'
 FILE_SIZE = 2000
 BYTES_PER_PKT = 1500.0
 MILLISEC_IN_SEC = 1000.0
@@ -11,8 +10,8 @@ EXP_LEN = 5000.0  # millisecond
 MAX_TRACE_TIME = (10*60*1000)
 
 
-def convert_file(trace_file):
-    with open(IN_FILE + trace_file, 'rb') as f, open(OUT_FILE + trace_file, 'wb') as mf:
+def convert_file(trace_file, output_file):
+    with open(trace_file, 'rb') as f, open(output_file, 'wb') as mf:
         millisec_time = 0
         mf.write(str(millisec_time) + '\n')
         for line in f:
@@ -40,10 +39,37 @@ def convert_file(trace_file):
 
 
 def main():
-    files = os.listdir(IN_FILE)
-    for trace_file in files:
-        if os.stat(IN_FILE + trace_file).st_size >= FILE_SIZE:
-            convert_file(trace_file)
+    parser = argparse.ArgumentParser(description="Traces converter")
+    parser.add_argument(
+        "--cooked",
+        default='./cooked/',
+        help='cooked traces dir'
+    )
+    parser.add_argument(
+        "--output",
+        default='./mahimahi/',
+        help='mahimahi trace dir'
+    )
+    parser.add_argument(
+        "-c",
+        "--count",
+        type=int,
+        default=10,
+        help='num of traces'
+    )
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.output):
+        os.mkdir(args.output)
+
+    files = os.listdir(args.cooked)
+    for i, trace_file in enumerate(files):
+        if i > args.count:
+            return
+
+        if os.stat(args.cooked + trace_file).st_size >= FILE_SIZE:
+            convert_file(args.cooked + trace_file, args.output + trace_file)
 
 
 if __name__ == '__main__':

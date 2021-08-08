@@ -30,10 +30,10 @@ def start_mahimahi_clients(num_clients, trace_dir, test=False):
         files = os.listdir(trace_dir)
 
         if test:
-            traces = files[1200:1350]
+            traces = files[:120]
             epochs = 1
         else:
-            traces = files[800:1100]
+            traces = files[:120]
             epochs = 10
 
         print(f'running {epochs} epochs, test_mode={test}')
@@ -98,7 +98,9 @@ def main():
 
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     # run_offline_media_servers()
-    start_mahimahi_clients(args.clients, args.trace_dir, args.test)
+
+    trace_dir = args.trace_dir + "test/" if args.test else args.trace_dir + "train/"
+    start_mahimahi_clients(args.clients, trace_dir, args.test)
 
 
 if __name__ == '__main__':
