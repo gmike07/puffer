@@ -31,7 +31,7 @@ def concat_files(paths, num_of_traces, output_dir, trace_len):
 
 def main(traces_dir, output_dir):
     files = [traces_dir + file for file in os.listdir(traces_dir)]
-    random_files = np.random.choice(files)
+    np.random.shuffle(files)
 
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -45,10 +45,10 @@ def main(traces_dir, output_dir):
     if not os.path.exists(test_dir):
         os.mkdir(test_dir)
 
-    for f in random_files[:0.8*int(len(random_files))]:
+    for f in files[:int(0.8*len(files))]:
         copy2(f, train_dir)
 
-    for f in random_files[0.8*int(len(random_files)):]:
+    for f in files[int(0.8*len(files)):]:
         copy2(f, test_dir)
 
 
