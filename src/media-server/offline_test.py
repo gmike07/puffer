@@ -5,6 +5,7 @@ import os
 import subprocess
 import signal
 import argparse
+import yaml
 
 LOGS_FILE = './weights/logs.txt'
 
@@ -23,20 +24,20 @@ def run_offline_media_servers():
     return p1, p2
 
 
-def start_mahimahi_clients(num_clients, trace_dir, test=False):
+def start_mahimahi_clients(num_clients, trace_dir, training_mode):
     logs_file = open(LOGS_FILE, 'w')
     plist = []
     try:
         files = os.listdir(trace_dir)
 
-        if test:
-            traces = files[:120]
-            epochs = 1
+        if training_mode:
+            traces = files[600:800]
+            epochs = 2
         else:
             traces = files[:120]
-            epochs = 10
+            epochs = 1
 
-        print(f'running {epochs} epochs, test_mode={test}')
+        print(f'running {epochs} epochs, training_mode={training_mode}')
 
         for epoch in range(epochs):
             for f in range(0, len(traces)-num_clients, num_clients):
@@ -81,7 +82,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run k-means")
     parser.add_argument(
         "--clients",
-        default=12,
+        default=10,
         type=int
     )
     parser.add_argument(
@@ -94,13 +95,28 @@ def main():
         default=False,
         action='store_true'
     )
+    parser.add_argument(
+        "--yaml-settings",
+        default='./src/settings_offline.yml'
+    )
     args = parser.parse_args()
+
+    with open(args.yaml_settings, 'r') as fh:
+        yaml_settings = yaml.safe_load(fh)
+
+    training_mode = not args.test
+    if 'training_mode' in yaml_settings["experiments"][0]['fingerprint']['abr_config']:
+        training_mode = bool(
+            yaml_settings["experiments"][0]['fingerprint']['abr_config']['training_mode'])
 
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     # run_offline_media_servers()
 
-    trace_dir = args.trace_dir + "test/" if args.test else args.trace_dir + "train/"
-    start_mahimahi_clients(args.clients, trace_dir, args.test)
+    trace_dir = args.trace_dir + "train/" if training_mode else args.trace_dir + "test/"
+
+    print(trace_dir, training_mode)
+    time.sleep(1)
+    start_mahimahi_clients(args.clients, trace_dir, training_mode)
 
 
 if __name__ == '__main__':
