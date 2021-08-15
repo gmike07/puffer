@@ -55,6 +55,7 @@ Data is collected from the streaming and written to influxdb.
     - set UTC: `precision rfc3339`
     - delete all measurements `drop series from /.*/` 
     - delete by id: `delete from video_acked where expt_id='36'`
+    - `delete from active_streams, client_buffer, client_sysinfo, video_acked, video_sent where expt_id='180'`
 
 # Postgress
 psotgress quick guide:
@@ -74,5 +75,5 @@ psotgress quick guide:
 * TTP (install torch==1.0.0, matplotlib==3.0.0): `python3.7 src/scripts/ttp.py src/settings_offline.yml --save-model weights/ttp/original/ --tune`
 * TTP check inference: `python3.7 src/scripts/ttp.py src/settings_offline.yml --inference --load-model ./weights/ttp/original/ --from 2021-07-25T12:28:28.381Z --to 2021-07-25T15:19:25.682Z`
 * Data Collect Server: `python3.7 src/scripts/data_collect_server.py -f`
-* Clustering: `python3.7 src/scripts/clustering.py --inputs-file data_points/raw_input.npy --buffer-format-file data_points/raw_mpc.npy -f`
+* Clustering: `python3.7 src/scripts/clustering.py -f`
 * Exp3Server: `python3.7 src/scripts/exp3_server.py`

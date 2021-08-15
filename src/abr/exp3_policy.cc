@@ -86,7 +86,7 @@ double Exp3Policy::normalize_reward()
   double max_reward = ssim_db(1);
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
-  std::cout << "rewards (max,min,curr, normalized): " << max_reward << ", " << min_reward << ", " << reward << ", " << normalized_reward << std::endl;
+  // std::cout << "rewards (max,min,curr, normalized): " << max_reward << ", " << min_reward << ", " << reward << ", " << normalized_reward << std::endl;
    
   return normalized_reward;
 }

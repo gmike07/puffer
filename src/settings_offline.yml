@@ -133,41 +133,41 @@ experiments:
   #        nn_path: "/home/ubuntu/puffer/models/pensieve/nn_model_ep_77400.ckpt"
 
 
-  - num_servers: 4
-    fingerprint:
-      abr: linear_bba
-      cc: bbr 
-      abr_config:
-        upper_reservoir: 0.9
-  - num_servers: 4
-    fingerprint:
-      abr: robust_mpc
-      cc: bbr
-  - num_servers: 4
-    fingerprint:
-      abr: mpc
-      abr_config:
-        rebuffer_length_coeff: 100
-      cc: bbr
-
-
-  # - num_servers: 1
+  # - num_servers: 4
   #   fingerprint:
-  #    abr: puffer_exp3
-  #    abr_config:
-  #      model_dir: ./weights/ttp/original
-  #      exp3_dir: ./weights/exp3/
-  #      rebuffer_length_coeff: 100
-  #      max_lookahead_horizon: 1
-  #      normalization_dir: ./weights/kmeans/
-  #      use_puffer: false
-  #      training_mode: true
-  #      learning_rate: 0.01
-  #      delta: 0.5
-  #      clusters: 8
-  #    cc: bbr
+  #     abr: linear_bba
+  #     cc: bbr 
+  #     abr_config:
+  #       upper_reservoir: 0.9
+  # - num_servers: 4
+  #   fingerprint:
+  #     abr: robust_mpc
+  #     cc: bbr
+  # - num_servers: 4
+  #   fingerprint:
+  #     abr: mpc
+  #     abr_config:
+  #       rebuffer_length_coeff: 100
+  #     cc: bbr
+
+
+  - num_servers: 10
+    fingerprint:
+     abr: puffer_exp3
+     abr_config:
+       model_dir: ./weights/ttp/original
+       exp3_dir: ./weights/exp3/
+       rebuffer_length_coeff: 100
+       max_lookahead_horizon: 1
+       normalization_dir: ./weights/kmeans/
+       use_puffer: false
+       training_mode: true
+       learning_rate: 0.01
+       delta: 0.9
+       clusters: 8
+     cc: bbr
      
-  # - num_servers: 1
+  # - num_servers: 10
   #   fingerprint:
   #    abr: puffer_ttp
   #    abr_config:
