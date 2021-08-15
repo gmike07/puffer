@@ -24,15 +24,15 @@ def run_offline_media_servers():
     return p1, p2
 
 
-def start_mahimahi_clients(num_clients, trace_dir, training_mode):
+def start_mahimahi_clients(num_clients, trace_dir, training_mode, req_epochs, num_of_files):
     logs_file = open(LOGS_FILE, 'w')
     plist = []
     try:
         files = os.listdir(trace_dir)
 
         if training_mode:
-            traces = files[600:800]
-            epochs = 2
+            traces = files[600:600+num_of_files]
+            epochs = req_epochs
         else:
             traces = files[:120]
             epochs = 1
@@ -40,7 +40,7 @@ def start_mahimahi_clients(num_clients, trace_dir, training_mode):
         print(f'running {epochs} epochs, training_mode={training_mode}')
 
         for epoch in range(epochs):
-            for f in range(0, len(traces)-num_clients, num_clients):
+            for f in range(0, len(traces)-num_clients+1, num_clients):
                 logs_file.write(
                     f"Epoch: {epoch}/{epochs}. Files: {f}/{len(traces)}\n")
                 logs_file.flush()
@@ -86,6 +86,10 @@ def main():
         type=int
     )
     parser.add_argument(
+        "--yaml-settings",
+        default='./src/settings_offline.yml'
+    )
+    parser.add_argument(
         "--trace-dir",
         default='./traces/final_traces/'
     )
@@ -96,8 +100,14 @@ def main():
         action='store_true'
     )
     parser.add_argument(
-        "--yaml-settings",
-        default='./src/settings_offline.yml'
+        "--epochs",
+        type=int,
+        default=2
+    )
+    parser.add_argument(
+        "--num-of-traces",
+        type=int,
+        default=200
     )
     args = parser.parse_args()
 
@@ -116,7 +126,8 @@ def main():
 
     print(trace_dir, training_mode)
     time.sleep(1)
-    start_mahimahi_clients(args.clients, trace_dir, training_mode)
+    start_mahimahi_clients(args.clients, trace_dir,
+                           training_mode, args.epochs, args.num_of_traces)
 
 
 if __name__ == '__main__':
