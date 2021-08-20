@@ -102,6 +102,10 @@ double Exp3Policy::normalize_reward()
   double min_reward = this->get_qoe(min_ssim, max_ssim, 5000, 0);
   double max_reward = ssim_db(max_ssim);
 
+  // max/min global normalization
+  // double min_reward = this->get_qoe(0, 1, 5000, 0);
+  // double max_reward = ssim_db(1);
+
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
   // std::cout << "rewards (max,min,curr, normalized): " << max_reward << ", " << min_reward << ", " << reward << ", " << normalized_reward << std::endl;
    
