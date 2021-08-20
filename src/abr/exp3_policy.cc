@@ -76,8 +76,17 @@ double Exp3Policy::normalize_reward()
   double reward = this->get_qoe(curr_chunk.ssim, prev_chunk.ssim, curr_chunk.trans_time, curr_buffer_);
 
   uint64_t next_vts = client_.next_vts().value() - 180180*(last_buffer_formats_.size()-curr_ack_round_); // get current_vts - by subtract video chunk length
-  const VideoFormat & min_vformat = client_.channel()->vformats().front();
-  const VideoFormat & max_vformat = client_.channel()->vformats().back();
+  const VideoFormat & min_vformat = *std::min_element(client_.channel()->vformats().begin(), 
+                                                        client_.channel()->vformats().end(), 
+                                                        [&](VideoFormat format1, VideoFormat format2){
+    return client_.channel()->vssim(next_vts).at(format1) < client_.channel()->vssim(next_vts).at(format2);
+  });
+  const VideoFormat & max_vformat = *std::max_element(client_.channel()->vformats().begin(), 
+                                                        client_.channel()->vformats().end(), 
+                                                        [&](VideoFormat format1, VideoFormat format2){
+    return client_.channel()->vssim(next_vts).at(format1) < client_.channel()->vssim(next_vts).at(format2);
+  });
+  
 
   double min_ssim = client_.channel()->vssim(next_vts).at(min_vformat);
   double max_ssim = client_.channel()->vssim(next_vts).at(max_vformat);
@@ -94,7 +103,7 @@ double Exp3Policy::normalize_reward()
   double max_reward = ssim_db(max_ssim);
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
-  std::cout << "rewards (max,min,curr, normalized): " << max_reward << ", " << min_reward << ", " << reward << ", " << normalized_reward << std::endl;
+  // std::cout << "rewards (max,min,curr, normalized): " << max_reward << ", " << min_reward << ", " << reward << ", " << normalized_reward << std::endl;
    
   return normalized_reward;
 }
