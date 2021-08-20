@@ -55,12 +55,12 @@ std::size_t Context::predict(std::vector<double> input)
 
   int arm = distribution(generator_);
 
-  std::cout << "probs: ";
-  for (double elem: probs) {
-    std::cout << "," << elem;
-  }                          
+  // std::cout << "probs: ";
+  // for (double elem: probs) {
+  //   std::cout << "," << elem;
+  // }                          
 
-  std::cout << std::endl;   
+  // std::cout << std::endl;   
   
   // std::cout << "arm: " << arm << std::endl;
 

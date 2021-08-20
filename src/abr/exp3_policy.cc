@@ -75,18 +75,26 @@ double Exp3Policy::normalize_reward()
 
   double reward = this->get_qoe(curr_chunk.ssim, prev_chunk.ssim, curr_chunk.trans_time, curr_buffer_);
 
-  uint64_t next_vts = client_.next_vts().value();
+  uint64_t next_vts = client_.next_vts().value() - 180180*(last_buffer_formats_.size()-curr_ack_round_); // get current_vts - by subtract video chunk length
   const VideoFormat & min_vformat = client_.channel()->vformats().front();
   const VideoFormat & max_vformat = client_.channel()->vformats().back();
-  
+
   double min_ssim = client_.channel()->vssim(next_vts).at(min_vformat);
   double max_ssim = client_.channel()->vssim(next_vts).at(max_vformat);
 
-  double min_reward = this->get_qoe(0, 1, 5000, 0);
-  double max_reward = ssim_db(1);
+  // auto [buffer, last_format, format] = last_buffer_formats_[curr_ack_round_];
+  // std::cout << "validate equal " << curr_chunk.format << ", " << prev_chunk.format << ", " << client_.channel()->vformats()[format] << std::endl;
+
+
+  if (!(min_ssim <= curr_chunk.ssim && curr_chunk.ssim <= max_ssim)){
+    std::cout << "something is wrong with vts or normalization " << min_ssim << ", " << curr_chunk.ssim << ", " << max_ssim << std::endl;
+  }
+
+  double min_reward = this->get_qoe(min_ssim, max_ssim, 5000, 0);
+  double max_reward = ssim_db(max_ssim);
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
-  // std::cout << "rewards (max,min,curr, normalized): " << max_reward << ", " << min_reward << ", " << reward << ", " << normalized_reward << std::endl;
+  std::cout << "rewards (max,min,curr, normalized): " << max_reward << ", " << min_reward << ", " << reward << ", " << normalized_reward << std::endl;
    
   return normalized_reward;
 }
@@ -106,7 +114,6 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
   std::size_t context_idx = contexts_[curr_ack_round_];
   std::vector<double> last_input = inputs_[curr_ack_round_];
   auto [buffer, last_format, format] = last_buffer_formats_[curr_ack_round_];
-  curr_ack_round_++;
 
   json data;
   data["context_idx"] = context_idx;
@@ -130,6 +137,7 @@ void Exp3Policy::video_chunk_acked(Chunk && c)
     throw logic_error("weights updated, reinit channel");
   }
 
+  curr_ack_round_++;
     // inputs_.pop_front();
     // last_buffer_formats_.pop_front();
   // }).detach();
@@ -140,7 +148,7 @@ VideoFormat Exp3Policy::select_video_format()
   // auto before_ts = timestamp_ms();
   reinit();
   
-  auto [format, context_idx] = exp3_agent_.predict(inputs_.back(), curr_buffer_, last_format_); //this->get_bitrate();
+  auto [format, context_idx] = exp3_agent_.predict(inputs_.back(), curr_buffer_, last_format_);
   last_buffer_formats_.push_back(std::tuple<size_t,size_t,size_t>{curr_buffer_, last_format_, format});
   contexts_.push_back(context_idx);
   last_format_ = format;
