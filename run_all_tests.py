@@ -60,7 +60,10 @@ def train(slim_train=True):
         offline_test_command, shell=True, stdout=offline_test_log)
 
     offline_test.wait()
-    exp3_server.kill()
+
+    os.killpg(os.getpgid(offline_test.pid), signal.SIGTERM)
+    os.killpg(os.getpgid(exp3_server.pid), signal.SIGTERM)
+
     time.sleep(5)
 
     exp3_server_log.close()
@@ -115,7 +118,7 @@ def test():
 
 def main():
     deltas = [0.9]
-    clusters = [8, 16, 32]
+    clusters = [8]
 
     for delta in deltas:
         for cluster in clusters:
@@ -127,7 +130,7 @@ def main():
                 slim_train = False
 
             train(slim_train)
-            test()
+            # test()
 
 
 if __name__ == "__main__":
