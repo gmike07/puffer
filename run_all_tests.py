@@ -51,6 +51,7 @@ def train(slim_train=True):
 
     exp3_server = subprocess.Popen(
         RUN_EXP3_SERVER, shell=True, stdout=exp3_server_log)
+    time.sleep(5)
 
     offline_test_command = RUN_OFFLINE_TEST
     if not slim_train:
@@ -111,6 +112,9 @@ def test():
 
     offline_test.wait()
 
+    os.killpg(os.getpgid(offline_test.pid), signal.SIGTERM)
+    time.sleep(5)
+
     offline_test_log.close()
 
     print('end testing')
@@ -130,7 +134,7 @@ def main():
                 slim_train = False
 
             train(slim_train)
-            # test()
+            test()
 
 
 if __name__ == "__main__":
