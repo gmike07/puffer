@@ -62,7 +62,6 @@ def train(slim_train=True):
 
     offline_test.wait()
 
-    os.killpg(os.getpgid(offline_test.pid), signal.SIGTERM)
     os.killpg(os.getpgid(exp3_server.pid), signal.SIGTERM)
 
     time.sleep(5)
@@ -111,9 +110,6 @@ def test():
         RUN_OFFLINE_TEST, shell=True, stdout=offline_test_log)
 
     offline_test.wait()
-
-    os.killpg(os.getpgid(offline_test.pid), signal.SIGTERM)
-    time.sleep(5)
 
     offline_test_log.close()
 
