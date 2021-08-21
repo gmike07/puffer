@@ -130,7 +130,7 @@ def main():
                 slim_train = False
 
             train(slim_train)
-            # test()
+            test()
 
 
 if __name__ == "__main__":
