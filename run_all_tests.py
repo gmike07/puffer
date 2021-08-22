@@ -50,7 +50,7 @@ def train(slim_train=True):
     offline_test_log = open("offline_train_logs.txt", 'w')
 
     exp3_server = subprocess.Popen(
-        RUN_EXP3_SERVER, shell=True, stdout=exp3_server_log)
+        RUN_EXP3_SERVER, shell=True, stdout=exp3_server_log, preexec_fn=os.setpgrp)
     time.sleep(5)
 
     offline_test_command = RUN_OFFLINE_TEST
@@ -61,7 +61,7 @@ def train(slim_train=True):
         offline_test_command, shell=True, stdout=offline_test_log)
 
     offline_test.wait()
-
+    
     os.killpg(os.getpgid(exp3_server.pid), signal.SIGTERM)
 
     time.sleep(5)
