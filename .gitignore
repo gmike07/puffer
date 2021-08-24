@@ -130,3 +130,11 @@ traces/final_traces/8.com
 traces/final_traces/9.com
 traces/final_traces/10.com
 traces/final_traces/11.com
+*.pt
+data-raw-2016-jan.tar.gz
+libpqxx/
+media-181230.tar.gz
+*.ssim
+*.com
+*.up
+third_party/libtorch.tar.gz
