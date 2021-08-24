@@ -213,6 +213,7 @@ void TCPSocket::verify_no_errors() const
 
 void TCPSocket::set_congestion_control( const string & cc )
 {
+    current_cc = cc;
     char optval[ TCP_CC_NAME_MAX ];
     strncpy( optval, cc.c_str(), TCP_CC_NAME_MAX );
 
@@ -225,12 +226,12 @@ void TCPSocket::set_congestion_control( const string & cc )
     }
 }
 
-string TCPSocket::get_congestion_control() const
-{
-    char optval[ TCP_CC_NAME_MAX ];
-    getsockopt( IPPROTO_TCP, TCP_CONGESTION, optval );
-    return optval;
-}
+// string TCPSocket::get_congestion_control() const
+// {
+//     char optval[ TCP_CC_NAME_MAX ];
+//     getsockopt( IPPROTO_TCP, TCP_CONGESTION, optval );
+//     return optval;
+// }
 
 TCPInfo TCPSocket::get_tcp_info() const
 {
@@ -247,4 +248,46 @@ TCPInfo TCPSocket::get_tcp_info() const
   ret.delivery_rate = x.tcpi_delivery_rate;
 
   return ret;
+}
+
+
+tcp_info TCPSocket::get_tcp_full_info() const
+{
+  /* get tcp_info from the kernel */
+  tcp_info x;
+  getsockopt( IPPROTO_TCP, TCP_INFO, x );
+  return x;
+}
+
+
+string TCPSocket::get_congestion_control_tcp() const
+{
+    char optval[ TCP_CC_NAME_MAX ];
+    getsockopt( IPPROTO_TCP, TCP_CONGESTION, optval );
+    return optval;
+}
+
+string TCPSocket::get_congestion_control() const
+{
+    return current_cc;
+}
+
+void TCPSocket::add_chunk(ChunkInfo& info)
+{
+    if(not info.is_video) 
+    {
+        return;
+    }
+    is_new_chunk_logging = true;
+    is_new_chunk_scoring = true;
+    is_new_chunk_model = true;
+    if(not curr_chunk.is_video)
+    {
+        curr_chunk = info;
+    }
+    else
+    {
+        prev_chunk = curr_chunk;
+        curr_chunk = info;
+    }
 }

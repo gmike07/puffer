@@ -787,8 +787,6 @@ int run_websocket_server()
           handle_client_init(server, client, msg);
 
           client.set_server_socket(server.get_socket(connection_id));
-
-          client.set_server_socket(server.get_socket(connection_id));
           
           client.get_socket()->random_cc = get_attribute(cc_config, "random_cc", false);
           client.get_socket()->model_path = get_attribute<string>(cc_config, "model_path", "");
