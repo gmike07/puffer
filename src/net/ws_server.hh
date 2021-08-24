@@ -7,6 +7,9 @@
 #include <set>
 #include <functional>
 #include <deque>
+#include <iostream>
+#include <thread>
+#include <chrono>
 
 #include "socket.hh"
 #include "nb_secure_socket.hh"
@@ -29,6 +32,8 @@ private:
 
   struct Connection
   {
+    bool is_first_write = true;
+    std::thread log_cc_thread;
     enum class State {
       NotConnected = 0,
       Connecting,

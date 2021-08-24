@@ -33,12 +33,18 @@ ws_media_server_LDADD = ../util/libutil.a ../net/libnet.a ../util/libutil.a \
 	$(POSTGRES_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) -lstdc++fs \
 	-ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread 
 
+run_servers_LDFLAGS = -L../../third_party/libtorch/lib \
+	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib'
 run_servers_SOURCES = run_servers.cc
 	../monitoring/influxdb_client.hh ../monitoring/influxdb_client.cc
 run_servers_LDADD = ../util/libutil.a ../net/libnet.a \
-	$(POSTGRES_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) -lstdc++fs
+	$(POSTGRES_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) -lstdc++fs \
+	-ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread 
 
+maintenance_server_LDFLAGS = -L../../third_party/libtorch/lib \
+	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib'
 maintenance_server_SOURCES = maintenance_server.cc \
 	server_message.hh server_message.cc
 maintenance_server_LDADD = ../util/libutil.a ../net/libnet.a ../util/libutil.a \
-	$(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS)
+	$(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) \
+	-ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread 

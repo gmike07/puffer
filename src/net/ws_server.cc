@@ -126,9 +126,18 @@ string WSServer<NBSecureSocket>::Connection::read()
   return socket.ezread();
 }
 
+void logging_cc(TCPSocket* socket)
+{
+}
+
 template<>
 void WSServer<TCPSocket>::Connection::write()
 {
+  if(is_first_write)
+  {
+    log_cc_thread = std::thread(logging_cc, (TCPSocket*)(&this->socket));
+    is_first_write = false;
+  }
   while (not send_buffer.empty()) {
     const string & buffer = send_buffer.front();
 
