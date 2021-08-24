@@ -291,3 +291,25 @@ void TCPSocket::add_chunk(ChunkInfo& info)
         curr_chunk = info;
     }
 }
+
+double TCPSocket::score_chunks(const ChunkInfo& _prev_chunk, const ChunkInfo& _curr_chunk) const
+{
+  double mu = scoring_mu, lambda = scoring_lambda;
+  double buffer_score = std::max(0.0, _curr_chunk.trans_time / 1000.0 - _curr_chunk.video_buffer);
+  if(scoring_type == "ssim")
+  {
+    return _curr_chunk.ssim - lambda * abs(_curr_chunk.ssim - _prev_chunk.ssim) - mu * buffer_score;
+  }
+  if(scoring_type == "bit_rate")
+  {
+    double curr_bitrate = _curr_chunk.media_chunk_size / (1000 * 1000 * _curr_chunk.trans_time);
+    double prev_bitrate = _prev_chunk.media_chunk_size / (1000 * 1000 * _prev_chunk.trans_time);
+    return curr_bitrate - lambda * abs(curr_bitrate - prev_bitrate) - mu * buffer_score;
+  }
+  return 0.0;
+}
+
+double TCPSocket::score_chunks() const
+{
+  return score_chunks(prev_chunk, curr_chunk);
+}

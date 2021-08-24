@@ -101,8 +101,8 @@ struct ChunkInfo
 class TCPSocket : public Socket
 {
 private:
-    static const double million = 1000000;
-    static const double pkt_bytes = 1500;
+    static constexpr double million = 1000000;
+    static constexpr double pkt_bytes = 1500;
     bool is_pcc = false;
     std::vector<std::string> supported_ccs{"bbr", "vegas", "cubic"};
     std::string current_cc = "";
@@ -187,7 +187,7 @@ public:
     double score_chunks(const ChunkInfo& prev_chunk, const ChunkInfo& curr_chunk) const;
     double score_chunks() const;
 
-    const std::vector<std::string>& get_supported_cc() const
+    std::vector<std::string>& get_supported_cc()
     {
         return supported_ccs;
     }

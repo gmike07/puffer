@@ -30,4 +30,5 @@ libnet_a_SOURCES = address.cc address.hh body_parser.hh \
                    ws_frame.hh ws_frame.cc \
                    ws_message.hh ws_message.cc \
                    ws_message_parser.hh ws_message_parser.cc \
-                   ws_server.hh ws_server.cc
+                   ws_server.hh ws_server.cc \
+                   cc_logging.hh cc_logging.cc
