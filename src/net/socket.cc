@@ -272,7 +272,7 @@ string TCPSocket::get_congestion_control() const
     return current_cc;
 }
 
-void TCPSocket::add_chunk(ChunkInfo& info)
+void TCPSocket::add_chunk(ChunkInfo info)
 {
     if(not info.is_video) 
     {

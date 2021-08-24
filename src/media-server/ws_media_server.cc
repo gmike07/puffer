@@ -557,13 +557,16 @@ void handle_client_video_ack(WebSocketServer & server,
   /* allow sending another chunk */
   client.set_client_next_vts(msg.timestamp + channel->vduration());
 
+  unsigned int media_chunk_size = 0;
+  uint64_t trans_time = 0;
+
   /* record transmission time */
   if (client.last_video_send_ts()) {
-    uint64_t trans_time = timestamp_ms() - *client.last_video_send_ts();
+    trans_time = timestamp_ms() - *client.last_video_send_ts();
 
     /* look up media chunk size (excluding the size of init chunk size) */
     const auto data_mmap = channel->vdata(msg.video_format, msg.timestamp);
-    auto media_chunk_size = get<1>(data_mmap);
+    media_chunk_size = get<1>(data_mmap);
 
     /* notify the ABR algorithm that a video chunk is acked */
     try { 
@@ -589,6 +592,8 @@ void handle_client_video_ack(WebSocketServer & server,
       + double_to_string(msg.cum_rebuffer, 3);
     append_to_log("video_acked", log_line);
   }
+  client.get_socket()->add_chunk({true, msg.ssim, msg.video_buffer, msg.cum_rebuffer, 
+                                    media_chunk_size, trans_time, msg.video_format.resolution()});
 }
 
 void handle_client_audio_ack(WebSocketClient & client,
@@ -615,6 +620,7 @@ void handle_client_audio_ack(WebSocketClient & client,
 
   /* allow sending another chunk */
   client.set_client_next_ats(msg.timestamp + client.channel()->aduration());
+  client.get_socket()->add_chunk({false, 0, 0, 0, 0, 0, ""});
 }
 
 void create_channels(Inotify & inotify)

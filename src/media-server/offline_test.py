@@ -86,7 +86,7 @@ def start_maimahi_clients(args, filedir, abr):
                 if args.test:
                     arr = CCS + ['nn']
                     for i in range(len(arr)):
-                        filepath = f'{filedir}{i+1}_abr_{abr}_{arr[i]}_{j}.txt'
+                        filepath = f'{filedir}{i+1}_abr_{abr}_{arr[i]}_{int(f / args.clients)}.txt'
                         if not os.path.exists(filepath):
                             with open(filepath, 'w') as f:
                                 pass
@@ -165,7 +165,7 @@ def create_settings(args):
 
 
 
-def create_settings(input_yaml_dir, yaml_output_dir):
+def create_settings_not_random(input_yaml_dir, yaml_output_dir):
     default_dictionary = yaml.load(open(input_yaml_dir + "default.yml", 'r'), Loader=yaml.FullLoader)
     cc_dictionary = yaml.load(open(input_yaml_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)
     abr_dictionary = yaml.load(open(input_yaml_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)
@@ -179,7 +179,7 @@ def create_settings(input_yaml_dir, yaml_output_dir):
         fingerprint['abr_config'] = abr_dictionary
     
     delete_keys_dct(cc_dictionary, ['model_path', 'cc_scoring_path'])
-    cc_dictionary['random_cc'] = True
+    cc_dictionary['random_cc'] = False
     fingerprint['cc_config'] = cc_dictionary
     default_dictionary.update({'experiments': [{
         'num_servers': 3,
@@ -255,7 +255,7 @@ if __name__ == '__main__':
         print('var')
         show_table(filedir, abr, 16, np.var, is_max=False)
     else:
-        create_settings()
+        create_settings_not_random(args.yml_input_dir, args.yml_output_dir)
         args.clients = 3 * len(CCS)
         args.count_iters = 3
         main(args, filedir, abr)

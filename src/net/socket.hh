@@ -182,7 +182,7 @@ public:
 
     tcp_info get_tcp_full_info() const;
 
-    void add_chunk(ChunkInfo& info);
+    void add_chunk(ChunkInfo info);
 
     double score_chunks(const ChunkInfo& prev_chunk, const ChunkInfo& curr_chunk) const;
     double score_chunks() const;

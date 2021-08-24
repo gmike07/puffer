@@ -337,7 +337,6 @@ void logging_cc_func(TCPSocket* socket)
     logging_chunk.logging_file << "new run," << std::endl;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(logging_chunk.MILLISECONDS_TO_SLEEP));
-  int counter = 0;
   try{
     while(true)
     {
