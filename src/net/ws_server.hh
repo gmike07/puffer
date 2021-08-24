@@ -11,6 +11,7 @@
 #include <thread>
 #include <chrono>
 
+#include "cc_logging.hh"
 #include "socket.hh"
 #include "nb_secure_socket.hh"
 #include "poller.hh"
