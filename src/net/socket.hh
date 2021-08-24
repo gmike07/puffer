@@ -83,6 +83,20 @@ protected:
     TCPSocket( FileDescriptor && fd ) : Socket( std::move( fd ), AF_INET, SOCK_STREAM ) {}
 
 public:
+    bool created_socket = false;
+    bool random_cc = true;
+
+    std::string logging_path = "";
+    std::string scoring_path = "";
+    std::string model_path = "";
+
+    int history_size = 40;
+    int sample_size = 7;
+
+    double scoring_mu = 1.0;
+    double scoring_lambda = 1.0;
+    std::string scoring_type = "ssim";
+
     TCPSocket() : Socket( AF_INET, SOCK_STREAM ) {}
 
     /* mark the socket as listening for incoming connections */

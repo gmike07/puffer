@@ -122,6 +122,11 @@ public:
   void clean_idle_connection(const uint64_t connection_id);
 
   TCPInfo get_tcp_info(const uint64_t connection_id) const;
+
+  TCPSocket* get_socket(int connection_id)
+  {
+    return &(connections_.at(connection_id).socket);
+  }
 };
 
 using WebSocketTCPServer = WSServer<TCPSocket>;

@@ -6,6 +6,7 @@
 #include <signal.h>
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <map>
 #include <memory>
@@ -650,12 +651,35 @@ void validate_id(const string & id)
   }
 }
 
+int find_index(string& path)
+{
+  for(int i = 0;; i++)
+  {
+    ifstream f(path + to_string(i) + ".txt");
+    if (!f.good())
+    {
+      return i;
+    }
+  }
+}
+
+template<typename T>
+T get_attribute(YAML::Node& cc_config, std::string atribute_name, T default_value)
+{
+  if(cc_config && cc_config[atribute_name])
+  {
+    return cc_config[atribute_name].as<T>();
+  }
+  return default_value;
+}
+
+
 int run_websocket_server()
 {
   /* default congestion control and ABR algorithm */
   string cc_name = "cubic";
   string abr_name = "linear_bba";
-  YAML::Node abr_config;
+  YAML::Node abr_config, cc_config;
 
   /* read congestion control and ABR from experimental settings */
   int server_id_int = -1;
@@ -680,6 +704,9 @@ int run_websocket_server()
     abr_name = fingerprint["abr"].as<string>();
     if (fingerprint["abr_config"]) {
       abr_config = fingerprint["abr_config"];
+    }
+    if (fingerprint["cc_config"]) {
+      cc_config = fingerprint["cc_config"];
     }
   }
 
@@ -719,7 +746,7 @@ int run_websocket_server()
 
   /* set server callbacks */
   server.set_message_callback(
-    [&server](const uint64_t connection_id, const WSMessage & ws_msg)
+    [&server, &abr_name, &cc_config](const uint64_t connection_id, const WSMessage & ws_msg)
     {
       try {
         WebSocketClient & client = clients.at(connection_id);
@@ -758,6 +785,44 @@ int run_websocket_server()
 
           /* handle client-init and initialize client's channel */
           handle_client_init(server, client, msg);
+
+          client.set_server_socket(server.get_socket(connection_id));
+
+          client.set_server_socket(server.get_socket(connection_id));
+          
+          client.get_socket()->random_cc = get_attribute(cc_config, "random_cc", false);
+          client.get_socket()->model_path = get_attribute<string>(cc_config, "model_path", "");
+          client.get_socket()->history_size = get_attribute(cc_config, "history_size", 40);
+          client.get_socket()->sample_size = get_attribute(cc_config, "sample_size", 5);
+          client.get_socket()->scoring_mu = get_attribute(cc_config, "scoring_mu", 1.0);
+          client.get_socket()->scoring_lambda = get_attribute(cc_config, "scoring_lambda", 1.0);
+          client.get_socket()->scoring_type = get_attribute<string>(cc_config, "scoring_type", "ssim");
+          string monitoring_path = get_attribute<string>(cc_config, "cc_monitoring_path", "");
+          string scoring_path = get_attribute<string>(cc_config, "cc_scoring_path", "");
+
+          if(monitoring_path != "")
+          {
+            int index = find_index(monitoring_path);
+            monitoring_path = monitoring_path + server_id + "_abr_" + abr_name + "_" + to_string(index) + ".txt";
+          }
+          client.get_socket()->logging_path = monitoring_path;
+
+          if(scoring_path != "")
+          {
+            int index = find_index(scoring_path);
+            bool model_created = client.get_socket()->model_path != "";
+            string cc = "nn";
+            if(not model_created)
+            {
+              cc = client.get_socket()->get_congestion_control();
+            }
+            scoring_path = scoring_path + server_id + "_abr_" + abr_name + "_" + cc + "_" + to_string(index) + ".txt";
+          }
+          client.get_socket()->scoring_path = scoring_path;
+
+          client.get_socket()->created_socket = true;
+          
+
         } else {
           switch (msg_parser.msg_type()) {
           case ClientMsgParser::Type::Info:

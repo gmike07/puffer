@@ -123,9 +123,14 @@ public:
   VideoFormat select_video_format();
   AudioFormat select_audio_format();
 
+  void set_server_socket(TCPSocket* sock) { socket = sock; }
+  TCPSocket* get_socket() { return socket; }
+
+
   static constexpr double MAX_BUFFER_S = 15.0;  /* seconds */
 
 private:
+  TCPSocket* socket = nullptr;
   uint64_t connection_id_;
 
   /* ABR algorithm */
