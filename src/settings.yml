@@ -1,144 +1,175 @@
-ws_port: 9360
+channel_configs:
+  abc:
+    audio:
+    - 128k
+    - 64k
+    - 32k
+    live: true
+    present_delay_chunk: 300
+    video:
+      1280x720:
+      - 20
+      - 22
+      - 24
+      - 26
+      426x240:
+      - 26
+      640x360:
+      - 24
+      - 26
+      854x480:
+      - 22
+      - 24
+      - 26
+  cbs:
+    audio:
+    - 128k
+    - 64k
+    - 32k
+    live: true
+    present_delay_chunk: 300
+    video:
+      1280x720:
+      - 20
+      - 22
+      - 24
+      - 26
+      1920x1080:
+      - 22
+      - 24
+      426x240:
+      - 26
+      640x360:
+      - 24
+      854x480:
+      - 24
+      - 26
+  fox:
+    audio:
+    - 128k
+    - 64k
+    - 32k
+    live: true
+    present_delay_chunk: 300
+    video:
+      1280x720:
+      - 20
+      - 22
+      - 24
+      - 26
+      426x240:
+      - 26
+      640x360:
+      - 24
+      - 26
+      854x480:
+      - 22
+      - 24
+      - 26
+  nbc:
+    audio:
+    - 128k
+    - 64k
+    - 32k
+    live: true
+    present_delay_chunk: 300
+    video:
+      1280x720:
+      - 20
+      - 22
+      - 24
+      - 26
+      1920x1080:
+      - 22
+      - 24
+      426x240:
+      - 26
+      640x360:
+      - 24
+      854x480:
+      - 24
+      - 26
+  pbs:
+    audio:
+    - 128k
+    - 64k
+    - 32k
+    live: true
+    present_delay_chunk: 300
+    video:
+      1280x720:
+      - 20
+      - 22
+      - 24
+      - 26
+      1920x1080:
+      - 22
+      - 24
+      426x240:
+      - 26
+      640x360:
+      - 24
+      854x480:
+      - 24
+      - 26
+  univision:
+    audio:
+    - 128k
+    - 64k
+    - 32k
+    live: true
+    present_delay_chunk: 300
+    video:
+      1280x720:
+      - 20
+      - 22
+      - 24
+      - 26
+      426x240:
+      - 26
+      640x360:
+      - 24
+      - 26
+      854x480:
+      - 22
+      - 24
+      - 26
+channels:
+- cbs
+enable_logging: true
+enforce_moving_live_edge: false
+experiments:
+- fingerprint:
+    abr: linear_bba
+    abr_config:
+      upper_reservoir: 0.9
+    cc: bbr
+    cc_config:
+      cc_monitoring_path: /home/mike/cc_monitoring/cc_
+      history_size: 7
+      random_cc: true
+      sample_size: 40
+      scoring_lambda: 1.0
+      scoring_mu: 1.0
+      scoring_type: ssim
+  num_servers: 30
+influxdb_connection:
+  dbname: puffer1
+  host: 127.0.0.1
+  password: INFLUXDB_PASSWORD
+  port: 8086
+  user: puffer1
+log_dir: /home/mike/puffer/src/monitoring
+media_dir: /home/mike/puffer/media-181230
 portal_settings:
   allowed_hosts:
-    - '*'
+  - '*'
   debug: true
   secret_key: PUFFER_PORTAL_SECRET_KEY
 postgres_connection:
+  dbname: puffer1
   host: 127.0.0.1
-  port: 5432
-  dbname: puffer
-  user: puffer
   password: PUFFER_PORTAL_DB_KEY
-experiments:
-  - num_servers: 1
-    fingerprint:
-      abr: puffer_reinforce
-      abr_name: puffer_reinforce
-      abr_config:
-        model_dir: /home/csuser/puffer/ttp/models/reinforce
-        rebuffer_length_coeff: 100
-        max_lookahead_horizon: 1
-      cc: bbr
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: puffer_ttp
-  #     abr_config:
-  #       model_dir: /home/ubuntu/puffer/ttp/models/bbr-20210114-1
-  #       rebuffer_length_coeff: 100
-  #     cc: cubic
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: linear_bba
-  #     cc: cubic
-  #     abr_config:
-  #       upper_reservoir: 0.9
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: linear_bba
-  #     cc: bbr
-  #     abr_config:
-  #       upper_reservoir: 0.9
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: robust_mpc
-  #     cc: cubic
-  # - num_servers: 1
-  #   fingerprint:
-  #     abr: robust_mpc
-  #     cc: bbr
- 
-enable_logging: true
-log_dir: /home/csuser/puffer/src/monitoring
-influxdb_connection:  
-  host: 127.0.0.1
-  port: 8086
-  dbname: puffer
-  user: puffer
-  password: INFLUXDB_PASSWORD
-
-media_dir: /home/csuser/ubuntu/media-181230
-enforce_moving_live_edge: false
-channels:
-  - abc
-  - nbc
-  - fox
-  - pbs
-  - cbs
-  - univision
-channel_configs:
-  abc:
-    live: true
-    video:
-      1280x720: [20, 22, 24, 26]
-      854x480: [22, 24, 26]
-      640x360: [24, 26]
-      426x240: [26]
-    audio:
-      - 128k
-      - 64k
-      - 32k
-    present_delay_chunk: 300
-  nbc:
-    live: true
-    video:
-      1920x1080: [22, 24]
-      1280x720: [20, 22, 24, 26]
-      854x480: [24, 26]
-      640x360: [24]
-      426x240: [26]
-    audio:
-      - 128k
-      - 64k
-      - 32k
-    present_delay_chunk: 300
-  fox:
-    live: true
-    video:
-      1280x720: [20, 22, 24, 26]
-      854x480: [22, 24, 26]
-      640x360: [24, 26]
-      426x240: [26]
-    audio:
-      - 128k
-      - 64k
-      - 32k
-    present_delay_chunk: 300
-  pbs:
-    live: true
-    video:
-      1920x1080: [22, 24]
-      1280x720: [20, 22, 24, 26]
-      854x480: [24, 26]
-      640x360: [24]
-      426x240: [26]
-    audio:
-      - 128k
-      - 64k
-      - 32k
-    present_delay_chunk: 300
-  cbs:
-    live: true
-    video:
-      1920x1080: [22, 24] #crf x264 video encoder [codec] (less is better quality)
-      1280x720: [20, 22, 24, 26]
-      854x480: [24, 26]
-      640x360: [24]
-      426x240: [26]
-    audio:
-      - 128k
-      - 64k
-      - 32k
-    present_delay_chunk: 300
-  univision:
-    live: true
-    video:
-      1280x720: [20, 22, 24, 26]
-      854x480: [22, 24, 26]
-      640x360: [24, 26]
-      426x240: [26]
-    audio:
-      - 128k
-      - 64k
-      - 32k
-    present_delay_chunk: 300
+  port: 5432
+  user: puffer1
+ws_port: 9360

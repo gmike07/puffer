@@ -23,7 +23,7 @@ DELAYS = {1: 30, 2: 40, 3: 60, 0: 100}
 LOSSES = {1: 0.02, 2: 0.05, 3: 0.01, 0: 0.00}
 
 
-def get_delay_loss(index):
+def get_delay_loss(args, index):
     index = index % (len(DELAYS) * len(LOSSES))
     return DELAYS[int(index % len(DELAYS))], LOSSES[int(index / len(DELAYS))]
 
@@ -37,11 +37,25 @@ def run_offline_media_servers():
     time.sleep(5)
     return p1, p2
 
+def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
+    remote_port = REMOTE_BASE_PORT + trace_index
+    port = BASE_PORT + trace_index
+    mahimahi_chrome_cmd = "mm-delay {} ".format(delay)
+    if loss != 0:
+        mahimahi_chrome_cmd += "mm-loss uplink {} ".format(loss)
+    mahimahi_chrome_cmd += "mm-link "
+    # mahimahi_chrome_cmd += "--meter-downlink "
+    mahimahi_chrome_cmd += "/home/mike/puffer/src/media-server/12mbps "
+    mahimahi_chrome_cmd += "{}/{} ".format(trace_dir, filename)
+    mahimahi_chrome_cmd += "-- sh -c 'chromium-browser disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
+                        remote_port, port, port)
+    return mahimahi_chrome_cmd
 
 def start_maimahi_clients(args, filedir, abr):
     logs_file = open(LOGS_FILE, 'w')
     plist = []
     try:
+        count_iter = 0
         trace_dir = args.trace_dir + 'test/' if args.test else args.trace_dir + 'train/'
         traces = os.listdir(trace_dir)
         for epoch in range(EPOCHS):
@@ -53,29 +67,16 @@ def start_maimahi_clients(args, filedir, abr):
                 p1, p2 = run_offline_media_servers()
                 plist = [p1, p2]
                 sleep_time = 3
-                j = (int(f / args.clients)) % 16
+                delay, loss = get_delay_loss(args, (int(f / args.clients)))
                 for i in range(1, args.clients + 1):
                     index = f + 2 if args.test else f + i - 1
-                    filename = traces[index]
-                    remote_port = REMOTE_BASE_PORT + i
-                    port = BASE_PORT + i
                     time.sleep(sleep_time)
-                    mahimahi_chrome_cmd = "mm-delay {} ".format(DELAYS[int(j / 4)])
-                    if j % 4 != 0:
-                        mahimahi_chrome_cmd += "mm-loss uplink {} ".format(LOSSES[j % 4])
-                    mahimahi_chrome_cmd += "mm-link "
-                    # mahimahi_chrome_cmd += "--meter-downlink "
-                    mahimahi_chrome_cmd += "/home/mike/puffer/src/media-server/12mbps "
-                    mahimahi_chrome_cmd += "{}/{} ".format(trace_dir, filename)
-                    # mahimahi_chrome_cmd += "--downlink-log={} ".format('./uplink/uplink_{}.up'.format(str(f+i))) # , './uplink/uplink_{}.down'.format(str(f+i)))
-                    mahimahi_chrome_cmd += "-- sh -c 'chromium-browser disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
-                        remote_port, port, port)
+                    mahimahi_chrome_cmd  = get_mahimahi_command(trace_dir, traces[index], i, delay, loss)
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
                                          preexec_fn=os.setsid)
                     plist.append(p)
 
                 time.sleep(60*10 - sleep_time * args.clients)
-                # time.sleep(60*10)
                 for p in plist[2:]:
                     os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                     time.sleep(sleep_time)
@@ -91,9 +92,11 @@ def start_maimahi_clients(args, filedir, abr):
                                 pass
                 subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
-                if j == 15 and args.test:
+                if int(f / args.clients) == len(DELAYS) * len(LOSSES) and args.test:
                     break
-                create_settings(args)
+                count_iter += 1
+                if args.count_iter != -1 and count_iter >= args.count_iter:
+                    break
     except Exception as e:
         print("exception: " + str(e))
     finally:
@@ -145,7 +148,6 @@ def create_settings(args):
             default_dictionary['experiments'][i]['fingerprint']['cc'] = CCS[i]
         default_dictionary['experiments'][-1]['fingerprint']['cc'] = 'bbr'
         default_dictionary['experiments'][-1]['fingerprint']['cc_config']['model_path'] = model_path
-        # random.shuffle(default_dictionary['experiments'])
     else:
         delete_keys_dct(cc_dictionary, ['model_path', 'cc_scoring_path'])
         cc_dictionary['random_cc'] = True
@@ -160,6 +162,37 @@ def create_settings(args):
     with open(args.yml_output_dir + 'settings_offline.yml', 'w') as outfile:
         yaml.dump(default_dictionary, outfile)
     return (cc_scoring_path, abr) if args.test else (cc_monitoring_path, abr)
+
+
+
+def create_settings(input_yaml_dir, yaml_output_dir):
+    default_dictionary = yaml.load(open(input_yaml_dir + "default.yml", 'r'), Loader=yaml.FullLoader)
+    cc_dictionary = yaml.load(open(input_yaml_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)
+    abr_dictionary = yaml.load(open(input_yaml_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)
+    abr = abr_dictionary['abr']
+    cc = cc_dictionary['cc']
+    delete_keys_dct(abr_dictionary, ['abr'])
+    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path'])
+    cc_monitoring_path = cc_dictionary['cc_monitoring_path']
+    fingerprint = {'cc': cc, 'abr': abr}
+    if len(abr_dictionary) != 0:
+        fingerprint['abr_config'] = abr_dictionary
+    
+    delete_keys_dct(cc_dictionary, ['model_path', 'cc_scoring_path'])
+    cc_dictionary['random_cc'] = True
+    fingerprint['cc_config'] = cc_dictionary
+    default_dictionary.update({'experiments': [{
+        'num_servers': 3,
+        'fingerprint': copy.deepcopy(fingerprint)
+    } for _ in range(len(CCS))]})
+    for i in range(len(CCS)):
+        default_dictionary['experiments'][i]['fingerprint']['cc'] = CCS[i]
+
+    with open(yaml_output_dir + 'settings.yml', 'w') as outfile:
+        yaml.dump(default_dictionary, outfile)
+    with open(yaml_output_dir + 'settings_offline.yml', 'w') as outfile:
+        yaml.dump(default_dictionary, outfile)
+    return cc_monitoring_path, abr
 
 
 def create_arr(filedir, abr, i, ccs, func):
@@ -200,11 +233,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--clients", default=30, type=int)
     parser.add_argument("--trace-dir", default='./traces/final_traces/')
+    parser.add_argument("--count_iter", default=-1)
     parser.add_argument("-t", "--test", default=False, action='store_true')
     parser.add_argument("-yid", "--yml-input-dir", default='/home/mike/puffer/helper_scripts/')
     parser.add_argument("-yod", "--yml-output-dir", default='/home/mike/puffer/src/')
     
     args = parser.parse_args()
+
 
     if args.test:
         args.clients = len(CCS) + 1
@@ -219,3 +254,8 @@ if __name__ == '__main__':
         print('='*60)
         print('var')
         show_table(filedir, abr, 16, np.var, is_max=False)
+    else:
+        create_settings()
+        args.clients = 3 * len(CCS)
+        args.count_iters = 3
+        main(args, filedir, abr)
