@@ -798,6 +798,8 @@ int run_websocket_server()
           client.get_socket()->model_path = get_attribute<string>(cc_config, "model_path", "");
           client.get_socket()->history_size = get_attribute(cc_config, "history_size", 40);
           client.get_socket()->sample_size = get_attribute(cc_config, "sample_size", 5);
+          client.get_socket()->abr_time = get_attribute(cc_config, "abr_time", false);
+          client.get_socket()->nn_roundup = get_attribute(cc_config, "nn_roundup", 1000);
           client.get_socket()->scoring_mu = get_attribute(cc_config, "scoring_mu", 1.0);
           client.get_socket()->scoring_lambda = get_attribute(cc_config, "scoring_lambda", 1.0);
           client.get_socket()->scoring_type = get_attribute<string>(cc_config, "scoring_type", "ssim");

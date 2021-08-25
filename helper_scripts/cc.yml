@@ -10,3 +10,5 @@ history_size: 7
 sample_size: 40
 python_weights_path: '/home/mike/puffer/cc_weights/'
 cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/'
+abr_time: false
+nn_roundup: 1000

@@ -55,7 +55,6 @@ def start_maimahi_clients(args, filedir, abr):
     logs_file = open(LOGS_FILE, 'w')
     plist = []
     try:
-        count_iter = 0
         trace_dir = args.trace_dir + 'test/' if args.test else args.trace_dir + 'train/'
         traces = os.listdir(trace_dir)
         for epoch in range(EPOCHS):
@@ -94,8 +93,7 @@ def start_maimahi_clients(args, filedir, abr):
                                       executable='/bin/bash')
                 if int(f / args.clients) == len(DELAYS) * len(LOSSES) and args.test:
                     break
-                count_iter += 1
-                if args.count_iter != -1 and count_iter >= args.count_iter:
+                if args.count_iter != -1 and int(f / args.clients) >= args.count_iter:
                     break
     except Exception as e:
         print("exception: " + str(e))

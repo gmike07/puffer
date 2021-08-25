@@ -38,9 +38,9 @@ libutil_a_SOURCES = \
 	exp3.cc ex3.hh \
 	context.cc context.hh
 
-libutil_a_LDFLAGS = -L../../third_party/libtorch/lib \
-	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib' \
-	../../third_party/libtorch/lib/libtorch.so \
-	../../third_party/libtorch/lib/libcaffe2.so \
-	../../third_party/libtorch/lib/libc10.so  -g
+# libutil_a_LDFLAGS = -L../../third_party/libtorch/lib \
+# 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib' \
+# 	../../third_party/libtorch/lib/libtorch.so \
+# 	../../third_party/libtorch/lib/libcaffe2.so \
+# 	../../third_party/libtorch/lib/libc10.so  -g
 
