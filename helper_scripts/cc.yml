@@ -1,14 +1,21 @@
 cc: bbr
 cc_monitoring_path: "/home/mike/cc_monitoring/cc_"
 random_cc: false
+
 cc_scoring_path: "/home/mike/cc_scoring/cc_score_"
+
 scoring_type: "ssim"
 scoring_mu: 100.0
 scoring_lambda: 1.0
+
+# scoring_type: "bit_rate"
+# scoring_mu: 4.3
+# scoring_lambda: 1.0
+
 model_path: "/home/mike/puffer/cc_cpp_weights/weights_19_abr_linear_bba_v1.0.pt"
 history_size: 7
 sample_size: 40
-python_weights_path: '/home/mike/puffer/cc_weights/'
-cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/'
 abr_time: false
 nn_roundup: 1000
+python_weights_path: '/home/mike/puffer/cc_weights/'
+cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/'
