@@ -806,23 +806,27 @@ int run_websocket_server()
 
           if(monitoring_path != "")
           {
+            monitoring_path = monitoring_path + server_id + "_abr_" + abr_name + "_";
             int index = find_index(monitoring_path);
-            monitoring_path = monitoring_path + server_id + "_abr_" + abr_name + "_" + to_string(index) + ".txt";
+            monitoring_path = monitoring_path + to_string(index) + ".txt";
           }
           client.get_socket()->logging_path = monitoring_path;
-
+          //std::cout << "logging path: " << monitoring_path << std::endl;
           if(scoring_path != "")
           {
-            int index = find_index(scoring_path);
             bool model_created = client.get_socket()->model_path != "";
             string cc = "nn";
             if(not model_created)
             {
               cc = client.get_socket()->get_congestion_control();
             }
-            scoring_path = scoring_path + server_id + "_abr_" + abr_name + "_" + cc + "_" + to_string(index) + ".txt";
+            scoring_path = scoring_path + server_id + "_abr_" + abr_name + "_" + cc + "_";
+            int index = find_index(scoring_path);
+            scoring_path = scoring_path + to_string(index) + ".txt";
+
           }
           client.get_socket()->scoring_path = scoring_path;
+          //std::cout << "scoring path: " << scoring_path << std::endl;
 
           client.get_socket()->created_socket = true;
           

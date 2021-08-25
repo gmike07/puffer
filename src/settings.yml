@@ -147,7 +147,35 @@ experiments:
     cc_config:
       cc_monitoring_path: /home/mike/cc_monitoring/cc_
       history_size: 7
-      random_cc: true
+      random_cc: false
+      sample_size: 40
+      scoring_lambda: 1.0
+      scoring_mu: 1.0
+      scoring_type: ssim
+  num_servers: 3
+- fingerprint:
+    abr: linear_bba
+    abr_config:
+      upper_reservoir: 0.9
+    cc: vegas
+    cc_config:
+      cc_monitoring_path: /home/mike/cc_monitoring/cc_
+      history_size: 7
+      random_cc: false
+      sample_size: 40
+      scoring_lambda: 1.0
+      scoring_mu: 1.0
+      scoring_type: ssim
+  num_servers: 3
+- fingerprint:
+    abr: linear_bba
+    abr_config:
+      upper_reservoir: 0.9
+    cc: cubic
+    cc_config:
+      cc_monitoring_path: /home/mike/cc_monitoring/cc_
+      history_size: 7
+      random_cc: false
       sample_size: 40
       scoring_lambda: 1.0
       scoring_mu: 1.0

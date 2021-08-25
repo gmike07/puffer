@@ -37,7 +37,7 @@ CONFIG['input_size'] = CONFIG['history_size'] * CONFIG['random_sample'] * \
 
 
 class DataLoaderRandom:
-    def __init__(self, chunks, answers):
+    def __init__(self, answers):
         self.answers = answers
         self.N = len(answers)
         self.chunks = None
@@ -260,11 +260,11 @@ def main():
         generate_dfs(files)
     answer_path = f"{CONFIG['input_dir']}dfs/answers.npy"
     answers = npl.load_numpickle(answer_path)
-    max_file_index = np.max(answers['file_index']) + 1
-    print('preparing chunks...')
-    chunks = [npl.load_numpickle(f"{CONFIG['input_dir']}dfs/chunks_{file_index}.npy")
-                for file_index in tqdm(range(int(max_file_index)))]
-    loader = DataLoaderRandom(chunks, answers)
+    # max_file_index = np.max(answers['file_index']) + 1
+    # print('preparing chunks...')
+    # chunks = [npl.load_numpickle(f"{CONFIG['input_dir']}dfs/chunks_{file_index}.npy")
+    #             for file_index in tqdm(range(int(max_file_index)))]
+    loader = DataLoaderRandom(answers)
     model = Model()
     print('training...')
     train(model, loader)
