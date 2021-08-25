@@ -3,7 +3,7 @@ cc_monitoring_path: "/home/mike/cc_monitoring/cc_"
 random_cc: false
 cc_scoring_path: "/home/mike/cc_scoring/cc_score_"
 scoring_type: "ssim"
-scoring_mu: 1.0
+scoring_mu: 100.0
 scoring_lambda: 1.0
 model_path: "/home/mike/puffer/cc_cpp_weights/weights_19_abr_linear_bba_v1.0.pt"
 history_size: 7
