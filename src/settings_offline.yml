@@ -145,42 +145,65 @@ experiments:
       upper_reservoir: 0.9
     cc: bbr
     cc_config:
-      cc_monitoring_path: /home/mike/cc_monitoring/cc_
+      abr_time: false
+      cc_scoring_path: /home/mike/cc_scoring/cc_score_
       history_size: 7
+      nn_roundup: 1000
       random_cc: false
       sample_size: 40
       scoring_lambda: 1.0
-      scoring_mu: 1.0
+      scoring_mu: 100.0
       scoring_type: ssim
-  num_servers: 3
+  num_servers: 1
 - fingerprint:
     abr: linear_bba
     abr_config:
       upper_reservoir: 0.9
     cc: vegas
     cc_config:
-      cc_monitoring_path: /home/mike/cc_monitoring/cc_
+      abr_time: false
+      cc_scoring_path: /home/mike/cc_scoring/cc_score_
       history_size: 7
+      nn_roundup: 1000
       random_cc: false
       sample_size: 40
       scoring_lambda: 1.0
-      scoring_mu: 1.0
+      scoring_mu: 100.0
       scoring_type: ssim
-  num_servers: 3
+  num_servers: 1
 - fingerprint:
     abr: linear_bba
     abr_config:
       upper_reservoir: 0.9
     cc: cubic
     cc_config:
-      cc_monitoring_path: /home/mike/cc_monitoring/cc_
+      abr_time: false
+      cc_scoring_path: /home/mike/cc_scoring/cc_score_
       history_size: 7
+      nn_roundup: 1000
       random_cc: false
       sample_size: 40
       scoring_lambda: 1.0
-      scoring_mu: 1.0
+      scoring_mu: 100.0
       scoring_type: ssim
-  num_servers: 3
+  num_servers: 1
+- fingerprint:
+    abr: linear_bba
+    abr_config:
+      upper_reservoir: 0.9
+    cc: bbr
+    cc_config:
+      abr_time: false
+      cc_scoring_path: /home/mike/cc_scoring/cc_score_
+      history_size: 7
+      model_path: /home/mike/puffer/cc_cpp_weights/weights_9_abr_linear_bba_v1.0.pt
+      nn_roundup: 1000
+      random_cc: false
+      sample_size: 40
+      scoring_lambda: 1.0
+      scoring_mu: 100.0
+      scoring_type: ssim
+  num_servers: 1
 influxdb_connection:
   dbname: puffer1
   host: 127.0.0.1

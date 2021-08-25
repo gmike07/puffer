@@ -12,7 +12,7 @@ scoring_lambda: 1.0
 # scoring_mu: 4.3
 # scoring_lambda: 1.0
 
-model_path: "/home/mike/puffer/cc_cpp_weights/weights_19_abr_linear_bba_v1.0.pt"
+model_path: "/home/mike/puffer/cc_cpp_weights/weights_9_abr_linear_bba_v1.0.pt"
 history_size: 7
 sample_size: 40
 abr_time: false

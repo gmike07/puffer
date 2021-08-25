@@ -18,14 +18,15 @@ CCS = ['bbr', 'vegas', 'cubic']
 
 BASE_PORT = 9360
 REMOTE_BASE_PORT = 9222
-
-DELAYS = {1: 30, 2: 40, 3: 60, 0: 100}
-LOSSES = {1: 0.02, 2: 0.05, 3: 0.01, 0: 0.00}
+DELAYS = [100, 30, 40, 60]
+LOSSES = [0, 0.02, 0.05, 0.01]
+SETTINGS = np.array([(delay, loss) for delay in DELAYS for loss in LOSSES])
+# DELAYS = {1: 30, 2: 40, 3: 60, 0: 100}
+# LOSSES = {1: 0.02, 2: 0.05, 3: 0.01, 0: 0.00}
 
 
 def get_delay_loss(args, index):
-    index = index % (len(DELAYS) * len(LOSSES))
-    return DELAYS[int(index % len(DELAYS))], LOSSES[int(index / len(DELAYS))]
+    return SETTINGS[index % len(SETTINGS)]
 
 
 def run_offline_media_servers():
@@ -57,8 +58,9 @@ def start_maimahi_clients(args, filedir, abr):
     try:
         trace_dir = args.trace_dir + 'test/' if args.test else args.trace_dir + 'train/'
         traces = os.listdir(trace_dir)
+        clients = args.clients if not args.test else len(CCS) + 1
         for epoch in range(EPOCHS):
-            for f in range(0, len(traces), args.clients):
+            for f in range(0, len(traces), clients):
                 logs_file.write(
                     f"Epoch: {epoch}/{EPOCHS}. Files: {f}/{len(traces)}\n")
                 logs_file.flush()
@@ -66,16 +68,17 @@ def start_maimahi_clients(args, filedir, abr):
                 p1, p2 = run_offline_media_servers()
                 plist = [p1, p2]
                 sleep_time = 3
-                delay, loss = get_delay_loss(args, (int(f / args.clients)))
-                for i in range(1, args.clients + 1):
+                setting = (epoch * int(len(traces) / clients)) + int(f / clients)
+                delay, loss = get_delay_loss(args, setting)
+                for i in range(1, clients + 1):
                     index = f + 2 if args.test else f + i - 1
                     time.sleep(sleep_time)
-                    mahimahi_chrome_cmd  = get_mahimahi_command(trace_dir, traces[index], i, delay, loss)
+                    mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index], i, delay, loss)
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
                                          preexec_fn=os.setsid)
                     plist.append(p)
 
-                time.sleep(60*10 - sleep_time * args.clients)
+                time.sleep(60*10 - sleep_time * clients)
                 for p in plist[2:]:
                     os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                     time.sleep(sleep_time)
@@ -85,15 +88,16 @@ def start_maimahi_clients(args, filedir, abr):
                 if args.test:
                     arr = CCS + ['nn']
                     for i in range(len(arr)):
-                        filepath = f'{filedir}{i+1}_abr_{abr}_{arr[i]}_{int(f / args.clients)}.txt'
+                        filepath = f'{filedir}{i+1}_abr_{abr}_{arr[i]}_{setting}.txt'
                         if not os.path.exists(filepath):
                             with open(filepath, 'w') as f:
                                 pass
                 subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
-                if int(f / args.clients) == len(DELAYS) * len(LOSSES) and args.test:
+                print(setting)
+                if (setting + 1) == len(SETTINGS) and args.test:
                     break
-                if args.count_iter != -1 and int(f / args.clients) >= args.count_iter:
+                if args.count_iter != -1 and setting >= args.count_iter and (not args.test):
                     break
     except Exception as e:
         print("exception: " + str(e))
@@ -223,7 +227,8 @@ def show_table(filedir, abr, max_iter, func, is_max=True):
         df['max-nn'] = np.max(df, axis=1) - df['nn']
     else:
         df['min-nn'] = df['nn'] - np.min(df, axis=1)
-    df.insert(0, "exp", arr)
+    df.insert(0, "loss", SETTINGS[arr - 1, 1])
+    df.insert(0, "delay", SETTINGS[arr - 1, 0])
     print(df)
 
 
@@ -242,16 +247,16 @@ if __name__ == '__main__':
     if args.test:
         args.clients = len(CCS) + 1
     filedir, abr = create_settings(args)
-    main(args, filedir, abr)
-
+    # main(args, filedir, abr)
+    print('finished generating data')
     if args.test:
         filedir = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['cc_scoring_path']
         abr = yaml.load(open(args.yml_input_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)['abr']
         print('mean')
-        show_table(filedir, abr, 16, np.mean)
+        show_table(filedir, abr, 9, np.mean)
         print('='*60)
         print('var')
-        show_table(filedir, abr, 16, np.var, is_max=False)
+        show_table(filedir, abr, 9, np.var, is_max=False)
     else:
         create_settings_not_random(args.yml_input_dir, args.yml_output_dir)
         args.clients = 3 * len(CCS)

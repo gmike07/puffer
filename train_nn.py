@@ -24,7 +24,7 @@ CC_COLS = ['file_index', 'chunk_index', 'sndbuf_limited', 'rwnd_limited', 'busy_
             'retrans', 'lost', 'sacked', 'unacked', 'rcv_mss', 'snd_mss', 'ato',
             'rto', 'backoff', 'probes', 'ca_state', 'timestamp'] + CCS
 
-CONFIG = {'epochs': 20, 'network_sizes': [400, 160, 80, 40, 20],
+CONFIG = {'epochs': 20, 'network_sizes': [700, 200, 100, 50, 20],
           'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
           'batch_size': 16, 'lr': 1e-4, 'betas': (0.5, 0.999),
           'weights_decay': 1e-4, 'version': 1.0, 'history_size': 7,
@@ -144,6 +144,9 @@ def train(model, loader):
         pbar = tqdm(iterable=iter(loader), ncols=200)
         for (chunks, metrics) in pbar:
             predictions = model(chunks)
+            # 'ssim', 'video_buffer', 'cum_rebuffer', 'media_chunk_size', 'trans_time'] --> 0, 3, 5
+            predictions = predictions[:, 0, 3, 5, 6, 8, 9]
+            metrics = metrics[:, 0, 3, 5, 6, 8, 9]
             loss = model.loss_metrics(predictions, metrics)
             model.optimizer.zero_grad()
             loss.backward()

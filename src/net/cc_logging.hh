@@ -4,6 +4,9 @@
 #define CC_LOGGING_HH
 #include "socket.hh"
 
+/*
+ * handles the thread to store statistics of the socket and change the cc
+*/
 void logging_cc_func(TCPSocket* socket);
 
 

@@ -40,8 +40,8 @@ def normalize_chunks(df_chunks):
 
 
 def normalize_answers(df_answers):
-    answer_norm = ['video_buffer', 'media_chunk_size', 'trans_time']
+    answer_norm = ['media_chunk_size']
     for col in answer_norm:
         df_answers[col] /= 100.0
-    df_answers['cum_rebuffer'] /= 1000.0
+    # df_answers['cum_rebuffer'] /= 1000.0
     return df_answers
