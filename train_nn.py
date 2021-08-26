@@ -10,7 +10,6 @@ import torch.nn.functional as F
 import numpickle as npl
 
 
-CCS = ['bbr', 'vegas', 'cubic']
 QUALITIES = ['426x240', '640x360', '854x480', '1280x720', '1920x1080']
 QUALITY_COLS = ['file_index', 'chunk_index', 'ssim', 'video_buffer',
                 'cum_rebuffer', 'media_chunk_size', 'trans_time']
@@ -22,18 +21,14 @@ CC_COLS = ['file_index', 'chunk_index', 'sndbuf_limited', 'rwnd_limited', 'busy_
             'snd_cwnd', 'snd_ssthresh', 'rttvar', 'rtt', 'rcv_ssthresh', 'pmtu',
             'last_ack_recv', 'last_data_recv', 'last_data_sent', 'fackets',
             'retrans', 'lost', 'sacked', 'unacked', 'rcv_mss', 'snd_mss', 'ato',
-            'rto', 'backoff', 'probes', 'ca_state', 'timestamp'] + CCS
+            'rto', 'backoff', 'probes', 'ca_state', 'timestamp']
 
-CONFIG = {'epochs': 20, 'network_sizes': [700, 200, 100, 50, 20],
+CONFIG = {'epochs': 20, 'network_sizes': [500, 180, 100, 50, 20],
           'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
           'batch_size': 16, 'lr': 1e-4, 'betas': (0.5, 0.999),
-          'weights_decay': 1e-4, 'version': 1.0, 'history_size': 7,
+          'weights_decay': 1e-4, 'version': 2.0, 'history_size': 7,
           'random_sample': 40,
-          'sample_size': len(set(CC_COLS) - set(DELETED_COLS)),
-          'prediction_size': len(set(QUALITY_COLS) -
-                                 {'file_index', 'chunk_index'})}
-CONFIG['input_size'] = CONFIG['history_size'] * CONFIG['random_sample'] * \
-                       CONFIG['sample_size'] + len(CCS)
+          'prediction_size': len(set(QUALITY_COLS) - {'file_index', 'chunk_index'})}
 
 
 class DataLoaderRandom:
@@ -70,7 +65,7 @@ class DataLoaderRandom:
             chunk_i = chunk_i.iloc[random_indexes].to_numpy()
             helper_arr = np.append(helper_arr, chunk_i.reshape(-1))
         mask = chunks['chunk_index'] == (chunk_index + 1)
-        next_ccs = chunks[mask].iloc[0][-len(CCS):]
+        next_ccs = chunks[mask].iloc[0][-len(CONFIG['ccs']):]
         return np.append(helper_arr, next_ccs.to_numpy().reshape(-1))
 
     def __next__(self):
@@ -142,11 +137,12 @@ def save_cpp_model(model, model_path):
 def train(model, loader):
     for epoch in range(CONFIG['epochs']):
         pbar = tqdm(iterable=iter(loader), ncols=200)
+        indexes = np.array([0, 3, 5, 6, 8, 9])
         for (chunks, metrics) in pbar:
             predictions = model(chunks)
             # 'ssim', 'video_buffer', 'cum_rebuffer', 'media_chunk_size', 'trans_time'] --> 0, 3, 5
-            predictions = predictions[:, 0, 3, 5, 6, 8, 9]
-            metrics = metrics[:, 0, 3, 5, 6, 8, 9]
+            predictions = predictions[:, indexes]
+            metrics = metrics[:, indexes]
             loss = model.loss_metrics(predictions, metrics)
             model.optimizer.zero_grad()
             loss.backward()
@@ -198,7 +194,7 @@ def generate_csv_from_file(file, file_index, f_chunk, f_answer, vector_cc,
                     chunks.append(chunk)
                 counter = (counter + 1) % skip
         except Exception as e:
-            print(e)
+            print('shit', e, type(e))
             return
     return
 
@@ -206,8 +202,8 @@ def generate_csv_from_file(file, file_index, f_chunk, f_answer, vector_cc,
 def generate_dfs(files):
     chunks_csv_path = f"{CONFIG['input_dir']}chunks.csv"
     answers_csv_path = f"{CONFIG['input_dir']}answers.csv"
-    vector_cc = {CCS[i]: (np.arange(len(CCS)) == i).astype(np.uint64)
-                 for i in range(len(CCS))}
+    vector_cc = {CONFIG['ccs'][i]: (np.arange(len(CONFIG['ccs'])) == i).astype(np.uint64)
+                 for i in range(len(CONFIG['ccs']))}
     files = list(files)
     f_answer = open(answers_csv_path, 'w')
     f_answer.write(','.join(QUALITY_COLS) + '\n')
@@ -216,7 +212,7 @@ def generate_dfs(files):
     for i, file in enumerate(tqdm(iterable=files)):
         f = open(f"{CONFIG['input_dir']}{file}", 'r')
         f_chunk = open(chunks_csv_path, 'w')
-        f_chunk.write(','.join(CC_COLS) + '\n')
+        f_chunk.write(','.join(CC_COLS + CONFIG['ccs']) + '\n')
         generate_csv_from_file(f, i, f_chunk, f_answer, vector_cc)
         f.close()
         f_chunk.close()
@@ -255,7 +251,10 @@ def main():
         CONFIG['random_sample'] = cc_dct['sample_size']
         CONFIG['weights_path'] = cc_dct['python_weights_path']
         CONFIG['weights_cpp_path'] = cc_dct['cpp_weights_path']
-    
+        CONFIG['ccs'] = cc_dct['ccs']
+        CONFIG['sample_size'] = len(set(CC_COLS + CONFIG['ccs']) - set(DELETED_COLS))
+        CONFIG['input_size'] = CONFIG['history_size'] * CONFIG['random_sample'] * \
+                        CONFIG['sample_size'] + len(CONFIG['ccs'])
     CONFIG.update({'input_dir': args.input_dir, 'resample': args.resample})
     if args.generate_dfs:
         files = list(filter(filter_path, os.listdir(CONFIG['input_dir'])))
@@ -269,6 +268,7 @@ def main():
     #             for file_index in tqdm(range(int(max_file_index)))]
     loader = DataLoaderRandom(answers)
     model = Model()
+    print(answers.describe())
     print('training...')
     train(model, loader)
 

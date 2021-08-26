@@ -249,11 +249,11 @@ double calc_score_nn(TCPSocket& socket, std::shared_ptr<torch::jit::script::Modu
   
   torch::Tensor preds = model->forward(torch_inputs).toTensor().squeeze().detach();
 
-  ChunkInfo prev_chunk {true, preds[0].item<double>(), preds[1].item<double>(), 
+  ChunkInfo prev_chunk {true, preds[0].item<double>(), preds[1].item<double>() * 10.0, 
                         preds[2].item<double>(), // ignored
                         (unsigned int) (preds[3].item<double>() * 100.0 * 100000.0),
                         (uint64_t) (preds[9].item<double>() * 1000.0), ""};
-  ChunkInfo curr_chunk {true, preds[5].item<double>(), preds[6].item<double>(), 
+  ChunkInfo curr_chunk {true, preds[5].item<double>(), preds[6].item<double>() * 10.0, 
                         preds[7].item<double>(), // ignored
                         (unsigned int) (preds[8].item<double>() * 100.0 * 100000.0),
                         (uint64_t) (preds[9].item<double>() *  1000.0), ""};

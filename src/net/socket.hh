@@ -192,6 +192,11 @@ public:
         return supported_ccs;
     }
 
+    void add_cc(std::string cc)
+    {
+        supported_ccs.push_back(cc);
+    }
+
     inline std::string generate_chunk_statistics() const
     {
         if(not curr_chunk.is_video)

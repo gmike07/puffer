@@ -1,10 +1,14 @@
-cc: bbr
-cc_monitoring_path: "/home/mike/cc_monitoring/cc_"
-random_cc: false
+ccs: [bbr, vegas, cubic]
+# monitoring statistics
+cc: bbr # starting cc
+cc_monitoring_path: "/home/mike/cc_monitoring/cc_" # start path to save the logging file of the cc data
+random_cc: false # should replace the cc during runtime, ignored in the code
 
-cc_scoring_path: "/home/mike/cc_scoring/cc_score_"
+cc_scoring_path: "/home/mike/cc_scoring/cc_score_" # start path to save the scoring file of the abr data
 
-scoring_type: "ssim"
+# function: q(Ci) - lambda * abs(q(Ci) - q(Ci-1)) - mu * rebuffer_time_i, supported scorings: ssim, bit_rate
+
+scoring_type: "ssim" # the scoring method
 scoring_mu: 100.0
 scoring_lambda: 1.0
 
@@ -12,10 +16,10 @@ scoring_lambda: 1.0
 # scoring_mu: 4.3
 # scoring_lambda: 1.0
 
-model_path: "/home/mike/puffer/cc_cpp_weights/weights_9_abr_linear_bba_v1.0.pt"
-history_size: 7
-sample_size: 40
-abr_time: false
-nn_roundup: 1000
-python_weights_path: '/home/mike/puffer/cc_weights/'
-cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/'
+model_path: "/home/mike/puffer/cc_cpp_weights/weights_9_abr_linear_bba_v1.0.pt" # the path to the trained model
+history_size: 7 # how much previous chunks does the nn remember
+sample_size: 40 # how much from previous chunks it gets as input
+abr_time: false # replace cc each abr or once every _ time
+nn_roundup: 1000 # control the rate of change cc in case abr_time is false
+python_weights_path: '/home/mike/puffer/cc_weights/' # start path to the place where to store the nn weights for python
+cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/' # start path to the place where to store the nn weights for cpp

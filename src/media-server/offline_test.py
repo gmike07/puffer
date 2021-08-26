@@ -9,24 +9,18 @@ import os
 import yaml
 import argparse
 import copy
-import random
 
 
-EPOCHS = 1
-LOGS_FILE = './weights/logs.txt'
-CCS = ['bbr', 'vegas', 'cubic']
-
-BASE_PORT = 9360
-REMOTE_BASE_PORT = 9222
 DELAYS = [100, 30, 40, 60]
 LOSSES = [0, 0.02, 0.05, 0.01]
-SETTINGS = np.array([(delay, loss) for delay in DELAYS for loss in LOSSES])
+CONFIG = {'settings': np.array([(delay, loss) for delay in DELAYS for loss in LOSSES]),
+          'remote_base_port': 9222, 'base_port': 9360}
 # DELAYS = {1: 30, 2: 40, 3: 60, 0: 100}
 # LOSSES = {1: 0.02, 2: 0.05, 3: 0.01, 0: 0.00}
 
 
 def get_delay_loss(args, index):
-    return SETTINGS[index % len(SETTINGS)]
+    return CONFIG['settings'][index % len(CONFIG['settings'])]
 
 
 def run_offline_media_servers():
@@ -39,8 +33,8 @@ def run_offline_media_servers():
     return p1, p2
 
 def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
-    remote_port = REMOTE_BASE_PORT + trace_index
-    port = BASE_PORT + trace_index
+    remote_port = CONFIG['remote_base_port'] + trace_index
+    port = CONFIG['base_port'] + trace_index
     mahimahi_chrome_cmd = "mm-delay {} ".format(delay)
     if loss != 0:
         mahimahi_chrome_cmd += "mm-loss uplink {} ".format(loss)
@@ -52,18 +46,14 @@ def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
                         remote_port, port, port)
     return mahimahi_chrome_cmd
 
-def start_maimahi_clients(args, filedir, abr):
-    logs_file = open(LOGS_FILE, 'w')
+
+def start_maimahi_clients(args, clients, filedir, abr, exit_condition):
     plist = []
     try:
         trace_dir = args.trace_dir + 'test/' if args.test else args.trace_dir + 'train/'
         traces = os.listdir(trace_dir)
-        clients = args.clients if not args.test else len(CCS) + 1
-        for epoch in range(EPOCHS):
+        for epoch in range(args.epochs):
             for f in range(0, len(traces), clients):
-                logs_file.write(
-                    f"Epoch: {epoch}/{EPOCHS}. Files: {f}/{len(traces)}\n")
-                logs_file.flush()
 
                 p1, p2 = run_offline_media_servers()
                 plist = [p1, p2]
@@ -86,7 +76,7 @@ def start_maimahi_clients(args, filedir, abr):
                     os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                     time.sleep(3)
                 if args.test:
-                    arr = CCS + ['nn']
+                    arr = CONFIG['ccs'] + ['nn']
                     for i in range(len(arr)):
                         filepath = f'{filedir}{i+1}_abr_{abr}_{arr[i]}_{setting}.txt'
                         if not os.path.exists(filepath):
@@ -95,27 +85,24 @@ def start_maimahi_clients(args, filedir, abr):
                 subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
                 print(setting)
-                if (setting + 1) == len(SETTINGS) and args.test:
-                    break
-                if args.count_iter != -1 and setting >= args.count_iter and (not args.test):
+                if exit_condition(setting):
                     break
     except Exception as e:
         print("exception: " + str(e))
     finally:
-        logs_file.close()
         for p in plist:
             os.killpg(os.getpgid(p.pid), signal.SIGTERM)
             subprocess.check_call("rm -rf ./*.profile", shell=True,
                                   executable='/bin/bash')
 
 
-def main(args, filedir, abr):
+def main(args, clients, filedir, abr, exit_condition):
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
     subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
     if not os.path.exists('../cc_monitoring'):
         os.mkdir('../cc_monitoring')
-    start_maimahi_clients(args, filedir, abr)
+    start_maimahi_clients(args, clients, filedir, abr, exit_condition)
 
 
 def delete_keys_dct(dct, keys):
@@ -130,10 +117,10 @@ def create_settings(args):
     abr = abr_dictionary['abr']
     cc = cc_dictionary['cc']
     delete_keys_dct(abr_dictionary, ['abr'])
-    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path'])
+    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path', 'ccs'])
     cc_scoring_path = cc_dictionary['cc_scoring_path']
     cc_monitoring_path = cc_dictionary['cc_monitoring_path']
-    fingerprint = {'cc': cc, 'abr': abr}
+    fingerprint = {'cc': cc, 'abr': abr, 'ccs': CONFIG['ccs']}
     if len(abr_dictionary) != 0:
         fingerprint['abr_config'] = abr_dictionary
     if args.test:
@@ -145,9 +132,9 @@ def create_settings(args):
         default_dictionary.update({'experiments': [{
             'num_servers': 1,
             'fingerprint': copy.deepcopy(fingerprint)
-        } for _ in range(len(CCS) + 1)]}) 
-        for i in range(len(CCS)):
-            default_dictionary['experiments'][i]['fingerprint']['cc'] = CCS[i]
+        } for _ in range(len(CONFIG['ccs']) + 1)]}) 
+        for i in range(len(CONFIG['ccs'])):
+            default_dictionary['experiments'][i]['fingerprint']['cc'] = CONFIG['ccs'][i]
         default_dictionary['experiments'][-1]['fingerprint']['cc'] = 'bbr'
         default_dictionary['experiments'][-1]['fingerprint']['cc_config']['model_path'] = model_path
     else:
@@ -167,16 +154,16 @@ def create_settings(args):
 
 
 
-def create_settings_not_random(input_yaml_dir, yaml_output_dir):
+def create_settings_not_random(input_yaml_dir, yaml_output_dir, clients=3):
     default_dictionary = yaml.load(open(input_yaml_dir + "default.yml", 'r'), Loader=yaml.FullLoader)
     cc_dictionary = yaml.load(open(input_yaml_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)
     abr_dictionary = yaml.load(open(input_yaml_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)
     abr = abr_dictionary['abr']
     cc = cc_dictionary['cc']
     delete_keys_dct(abr_dictionary, ['abr'])
-    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path'])
+    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path', 'ccs'])
     cc_monitoring_path = cc_dictionary['cc_monitoring_path']
-    fingerprint = {'cc': cc, 'abr': abr}
+    fingerprint = {'cc': cc, 'abr': abr, 'ccs': CONFIG['ccs']}
     if len(abr_dictionary) != 0:
         fingerprint['abr_config'] = abr_dictionary
     
@@ -184,11 +171,11 @@ def create_settings_not_random(input_yaml_dir, yaml_output_dir):
     cc_dictionary['random_cc'] = False
     fingerprint['cc_config'] = cc_dictionary
     default_dictionary.update({'experiments': [{
-        'num_servers': 3,
+        'num_servers': clients,
         'fingerprint': copy.deepcopy(fingerprint)
-    } for _ in range(len(CCS))]})
-    for i in range(len(CCS)):
-        default_dictionary['experiments'][i]['fingerprint']['cc'] = CCS[i]
+    } for _ in range(len(CONFIG['ccs']))]})
+    for i in range(len(CONFIG['ccs'])):
+        default_dictionary['experiments'][i]['fingerprint']['cc'] = CONFIG['ccs'][i]
 
     with open(yaml_output_dir + 'settings.yml', 'w') as outfile:
         yaml.dump(default_dictionary, outfile)
@@ -213,7 +200,7 @@ def create_arr(filedir, abr, i, ccs, func):
 
 def show_table(filedir, abr, max_iter, func, is_max=True):
     dfs = []
-    ccs = CCS + ['nn']
+    ccs = CONFIG['ccs'] + ['nn']
     for i in range(max_iter):
         a = create_arr(filedir, abr, i, ccs, func)
         if a is not None:
@@ -227,14 +214,15 @@ def show_table(filedir, abr, max_iter, func, is_max=True):
         df['max-nn'] = np.max(df, axis=1) - df['nn']
     else:
         df['min-nn'] = df['nn'] - np.min(df, axis=1)
-    df.insert(0, "loss", SETTINGS[arr - 1, 1])
-    df.insert(0, "delay", SETTINGS[arr - 1, 0])
+    df.insert(0, "loss", CONFIG['settings'][arr - 1, 1])
+    df.insert(0, "delay", CONFIG['settings'][arr - 1, 0])
     print(df)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--clients", default=30, type=int)
+    parser.add_argument("--epochs", default=1, type=int)
     parser.add_argument("--trace-dir", default='./traces/final_traces/')
     parser.add_argument("--count_iter", default=-1)
     parser.add_argument("-t", "--test", default=False, action='store_true')
@@ -243,12 +231,13 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-
-    if args.test:
-        args.clients = len(CCS) + 1
+    CONFIG['ccs'] = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['ccs']
     filedir, abr = create_settings(args)
-    # main(args, filedir, abr)
+    clients = len(CONFIG['ccs']) + 1 if args.test else args.clients
+    exit_condition = lambda setting_number: args.test and (setting_number == (len(CONFIG['settings']) - 1))
+    main(args, clients, filedir, abr, exit_condition)
     print('finished generating data')
+
     if args.test:
         filedir = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['cc_scoring_path']
         abr = yaml.load(open(args.yml_input_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)['abr']
@@ -259,6 +248,6 @@ if __name__ == '__main__':
         show_table(filedir, abr, 9, np.var, is_max=False)
     else:
         create_settings_not_random(args.yml_input_dir, args.yml_output_dir)
-        args.clients = 3 * len(CCS)
-        args.count_iters = 3
-        main(args, filedir, abr)
+        clients = 3 * len(CONFIG['ccs']) # 3 per client
+        exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
+        main(args, clients, filedir, abr, exit_condition)

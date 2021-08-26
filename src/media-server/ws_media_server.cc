@@ -685,7 +685,7 @@ int run_websocket_server()
   /* default congestion control and ABR algorithm */
   string cc_name = "cubic";
   string abr_name = "linear_bba";
-  YAML::Node abr_config, cc_config;
+  YAML::Node abr_config, cc_config, ccs;
 
   /* read congestion control and ABR from experimental settings */
   int server_id_int = -1;
@@ -714,6 +714,7 @@ int run_websocket_server()
     if (fingerprint["cc_config"]) {
       cc_config = fingerprint["cc_config"];
     }
+    ccs = fingerprint["ccs"];
   }
 
   const string ip = "0.0.0.0";
@@ -752,7 +753,7 @@ int run_websocket_server()
 
   /* set server callbacks */
   server.set_message_callback(
-    [&server, &abr_name, &cc_config](const uint64_t connection_id, const WSMessage & ws_msg)
+    [&server, &abr_name, &cc_config, &ccs](const uint64_t connection_id, const WSMessage & ws_msg)
     {
       try {
         WebSocketClient & client = clients.at(connection_id);
@@ -793,7 +794,9 @@ int run_websocket_server()
           handle_client_init(server, client, msg);
 
           client.set_server_socket(server.get_socket(connection_id));
-          
+          for (const auto & cc : ccs) {
+            client.get_socket()->add_cc(cc.as<string>());
+          }
           client.get_socket()->random_cc = get_attribute(cc_config, "random_cc", false);
           client.get_socket()->model_path = get_attribute<string>(cc_config, "model_path", "");
           client.get_socket()->history_size = get_attribute(cc_config, "history_size", 40);
