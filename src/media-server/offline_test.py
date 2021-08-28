@@ -35,13 +35,14 @@ def run_offline_media_servers():
 def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
     remote_port = CONFIG['remote_base_port'] + trace_index
     port = CONFIG['base_port'] + trace_index
-    mahimahi_chrome_cmd = "mm-delay {} ".format(delay)
+    mahimahi_chrome_cmd = "mm-delay {} ".format(int(delay))
     if loss != 0:
         mahimahi_chrome_cmd += "mm-loss uplink {} ".format(loss)
     mahimahi_chrome_cmd += "mm-link "
     # mahimahi_chrome_cmd += "--meter-downlink "
     mahimahi_chrome_cmd += "/home/mike/puffer/src/media-server/12mbps "
     mahimahi_chrome_cmd += "{}/{} ".format(trace_dir, filename)
+    # mahimahi_chrome_cmd += "--downlink-log={} ".format('./uplink/uplink_{}.up'.format(str(f+i)))
     mahimahi_chrome_cmd += "-- sh -c 'chromium-browser disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
                         remote_port, port, port)
     return mahimahi_chrome_cmd
@@ -61,7 +62,7 @@ def start_maimahi_clients(args, clients, filedir, abr, exit_condition):
                 setting = (epoch * int(len(traces) / clients)) + int(f / clients)
                 delay, loss = get_delay_loss(args, setting)
                 for i in range(1, clients + 1):
-                    index = f + 2 if args.test else f + i - 1
+                    index = f if args.test else f + i - 1
                     time.sleep(sleep_time)
                     mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index], i, delay, loss)
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
@@ -84,7 +85,6 @@ def start_maimahi_clients(args, clients, filedir, abr, exit_condition):
                                 pass
                 subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
-                print(setting)
                 if exit_condition(setting):
                     break
     except Exception as e:
@@ -116,8 +116,9 @@ def create_settings(args):
     abr_dictionary = yaml.load(open(args.yml_input_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)
     abr = abr_dictionary['abr']
     cc = cc_dictionary['cc']
+    predict_score = cc_dictionary['predict_score']
     delete_keys_dct(abr_dictionary, ['abr'])
-    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path', 'ccs'])
+    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path', 'ccs', 'predict_score'])
     cc_scoring_path = cc_dictionary['cc_scoring_path']
     cc_monitoring_path = cc_dictionary['cc_monitoring_path']
     fingerprint = {'cc': cc, 'abr': abr, 'ccs': CONFIG['ccs']}
@@ -137,6 +138,7 @@ def create_settings(args):
             default_dictionary['experiments'][i]['fingerprint']['cc'] = CONFIG['ccs'][i]
         default_dictionary['experiments'][-1]['fingerprint']['cc'] = 'bbr'
         default_dictionary['experiments'][-1]['fingerprint']['cc_config']['model_path'] = model_path
+        default_dictionary['experiments'][-1]['fingerprint']['cc_config']['predict_score'] = predict_score
     else:
         delete_keys_dct(cc_dictionary, ['model_path', 'cc_scoring_path'])
         cc_dictionary['random_cc'] = True
@@ -161,7 +163,7 @@ def create_settings_not_random(input_yaml_dir, yaml_output_dir, clients=3):
     abr = abr_dictionary['abr']
     cc = cc_dictionary['cc']
     delete_keys_dct(abr_dictionary, ['abr'])
-    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path', 'ccs'])
+    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path', 'ccs', 'predict_score'])
     cc_monitoring_path = cc_dictionary['cc_monitoring_path']
     fingerprint = {'cc': cc, 'abr': abr, 'ccs': CONFIG['ccs']}
     if len(abr_dictionary) != 0:
@@ -189,7 +191,6 @@ def create_arr(filedir, abr, i, ccs, func):
     filedir = filedir[:filedir.rfind('/')]
     files = os.listdir(filedir)
     for j in range(len(ccs)):
-        # print(i, ccs[j])
         file = [f for f in files if f.find(f'abr_{abr}_{ccs[j]}_{i}.txt') != -1][0]
         lines = open(filedir + '/' + file, 'r').readlines()
         if len(lines) < 100:
@@ -219,6 +220,18 @@ def show_table(filedir, abr, max_iter, func, is_max=True):
     print(df)
 
 
+def eval_scores():
+    filedir = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['cc_scoring_path']
+    abr = yaml.load(open(args.yml_input_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)['abr']
+    files = os.listdir(filedir[:filedir.rfind('/')])
+    max_num = max(int(file[file.rfind('_') + 1:-len('.txt')]) for file in files if file.endswith('.txt'))
+    print('mean')
+    show_table(filedir, abr, max_num, np.mean)
+    print('='*60)
+    print('var')
+    show_table(filedir, abr, max_num, np.var, is_max=False)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--clients", default=30, type=int)
@@ -226,26 +239,33 @@ if __name__ == '__main__':
     parser.add_argument("--trace-dir", default='./traces/final_traces/')
     parser.add_argument("--count_iter", default=-1)
     parser.add_argument("-t", "--test", default=False, action='store_true')
+    parser.add_argument("-v", "--eval", default=False, action='store_true')
     parser.add_argument("-yid", "--yml-input-dir", default='/home/mike/puffer/helper_scripts/')
     parser.add_argument("-yod", "--yml-output-dir", default='/home/mike/puffer/src/')
     
     args = parser.parse_args()
-
+    
     CONFIG['ccs'] = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['ccs']
     filedir, abr = create_settings(args)
     clients = len(CONFIG['ccs']) + 1 if args.test else args.clients
     exit_condition = lambda setting_number: args.test and (setting_number == (len(CONFIG['settings']) - 1))
+
+    if args.eval:
+        eval_scores()
+        exit()
+
     main(args, clients, filedir, abr, exit_condition)
     print('finished generating data')
 
     if args.test:
-        filedir = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['cc_scoring_path']
-        abr = yaml.load(open(args.yml_input_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)['abr']
-        print('mean')
-        show_table(filedir, abr, 9, np.mean)
-        print('='*60)
-        print('var')
-        show_table(filedir, abr, 9, np.var, is_max=False)
+        eval_scores()
+        # filedir = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['cc_scoring_path']
+        # abr = yaml.load(open(args.yml_input_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)['abr']
+        # print('mean')
+        # show_table(filedir, abr, 16, np.mean)
+        # print('='*60)
+        # print('var')
+        # show_table(filedir, abr, 16, np.var, is_max=False)
     else:
         create_settings_not_random(args.yml_input_dir, args.yml_output_dir)
         clients = 3 * len(CONFIG['ccs']) # 3 per client

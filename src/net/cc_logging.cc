@@ -248,7 +248,10 @@ double calc_score_nn(TCPSocket& socket, std::shared_ptr<torch::jit::script::Modu
   torch_inputs.push_back(torch::from_blob(state, {(signed long)length}, torch::kDouble).unsqueeze(0));
   
   torch::Tensor preds = model->forward(torch_inputs).toTensor().squeeze().detach();
-
+  if(socket.predict_score)
+  {
+    return preds[0].item<double>();
+  }
   ChunkInfo prev_chunk {true, preds[0].item<double>(), preds[1].item<double>() * 10.0, 
                         preds[2].item<double>(), // ignored
                         (unsigned int) (preds[3].item<double>() * 100.0 * 100000.0),
@@ -343,6 +346,7 @@ void handle_nn_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistor
   chunk_history.update_chunk(convert_tcp_info_normalized_vec(socket, logging_chunk.start_time_nn));
   logging_chunk.counter += 1;
   bool change_cc_1 = (logging_chunk.abr_time and socket.is_new_chunk_model);
+  socket.is_new_chunk_model = false;
   bool change_cc_2 = ((not logging_chunk.abr_time) and (logging_chunk.counter % logging_chunk.SKIP_NN == 0));
   if((not change_cc_1) and (not change_cc_2))
   {
@@ -374,6 +378,7 @@ void handle_nn_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistor
       score = current_score;
     }
   }
+  delete[] state;
   change_cc(socket, best_cc);
 }
 

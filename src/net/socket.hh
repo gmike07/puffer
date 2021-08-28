@@ -104,7 +104,7 @@ private:
     static constexpr double million = 1000000;
     static constexpr double pkt_bytes = 1500;
     bool is_pcc = false;
-    std::vector<std::string> supported_ccs{"bbr", "vegas", "cubic"};
+    std::vector<std::string> supported_ccs{};
     std::string current_cc = "";
 
     std::string get_congestion_control_tcp() const;
@@ -145,6 +145,7 @@ public:
     int sample_size = 7;
     bool abr_time = false;
     int nn_roundup = 1000;
+    bool predict_score = false;
 
     //scoring data
     double scoring_mu = 1.0;

@@ -23,10 +23,10 @@ CC_COLS = ['file_index', 'chunk_index', 'sndbuf_limited', 'rwnd_limited', 'busy_
             'retrans', 'lost', 'sacked', 'unacked', 'rcv_mss', 'snd_mss', 'ato',
             'rto', 'backoff', 'probes', 'ca_state', 'timestamp']
 
-CONFIG = {'epochs': 20, 'network_sizes': [500, 180, 100, 50, 20],
+CONFIG = {'epochs': 20, 'network_sizes': [500, 200, 100, 80, 50, 40, 30, 20],
           'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
           'batch_size': 16, 'lr': 1e-4, 'betas': (0.5, 0.999),
-          'weights_decay': 1e-4, 'version': 2.0, 'history_size': 7,
+          'weights_decay': 1e-4, 'version': 3.0, 'history_size': 7,
           'random_sample': 40,
           'prediction_size': len(set(QUALITY_COLS) - {'file_index', 'chunk_index'})}
 
@@ -68,9 +68,22 @@ class DataLoaderRandom:
         next_ccs = chunks[mask].iloc[0][-len(CONFIG['ccs']):]
         return np.append(helper_arr, next_ccs.to_numpy().reshape(-1))
 
+    def apply_scoring(self, answers):
+        # ['ssim', 'video_buffer', 'cum_rebuffer', 'media_chunk_size', 'trans_time']
+        rebuffer_time = np.maximum(0, answers[:, 6] - answers[:, 9]) # next video_buffer - next trans_time
+        next_quality, curr_quality = 0, 0
+        if CONFIG['scoring_type'] == 'ssim':
+            curr_quality = answers[:, 0]
+            next_quality = answers[:, 5]
+        if CONFIG['scoring_type'] == 'bit_rate':
+            curr_quality = (answers[:, 3] * 100.0 * 100000.0) / (1000 * 1000 * answers[9])
+            next_quality = (answers[:, 8] * 100.0 * 100000.0) / (1000 * 1000 * answers[9])
+        return next_quality - CONFIG['scoring_lambda'] * abs(next_quality - curr_quality) - CONFIG['scoring_mu'] * rebuffer_time
+
     def __next__(self):
         batch_size = CONFIG['batch_size']
         answer_chunks = np.empty((batch_size, CONFIG['input_size']))
+        # answer_metrics_size = 1 if CONFIG['scoring_func'] else 2 * CONFIG['prediction_size']
         answer_metrics = np.empty((batch_size, 2 * CONFIG['prediction_size']))
         i = 0
         drop_lst = ['file_index', 'chunk_index']
@@ -94,6 +107,8 @@ class DataLoaderRandom:
             answer_metrics[i] = np.append(answer, next_answer)
             i += 1
         answer_chunks = torch.from_numpy(answer_chunks).to(CONFIG['device'])
+        if CONFIG['scoring_func']:
+            answer_metrics = self.apply_scoring(answer_metrics).reshape((-1, 1)) / 100
         answer_metrics = torch.from_numpy(answer_metrics).to(CONFIG['device'])
         return answer_chunks, answer_metrics
 
@@ -102,23 +117,39 @@ class Model(torch.nn.Module):
     def __init__(self):
         super(Model, self).__init__()
         sizes = CONFIG['network_sizes']
+        output_size = 1 if CONFIG['scoring_func'] else 2 * CONFIG['prediction_size']
         self.model = torch.nn.Sequential(
             torch.nn.Linear(CONFIG['input_size'], sizes[0]),
-            torch.nn.ReLU(),
+            # torch.nn.ReLU(),
+            torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[0], sizes[1]),
-            torch.nn.Dropout(0.3),
-            torch.nn.ReLU(),
+            # torch.nn.Dropout(0.3),
+            # torch.nn.ReLU(),
+            torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[1], sizes[2]),
-            torch.nn.ReLU(),
+            # torch.nn.ReLU(),
+            torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[2], sizes[3]),
-            torch.nn.ReLU(),
+            # torch.nn.ReLU(),
+            torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[3], sizes[4]),
-            torch.nn.ReLU(),
-            torch.nn.Linear(sizes[4], 2 * CONFIG['prediction_size'])
+            # torch.nn.ReLU(),
+            torch.nn.LeakyReLU(0.2),
+            torch.nn.Linear(sizes[4], sizes[5]),
+            # torch.nn.ReLU(),
+            torch.nn.LeakyReLU(0.2),
+            torch.nn.Linear(sizes[5], sizes[6]),
+            # torch.nn.ReLU(),
+            torch.nn.LeakyReLU(0.2),
+            torch.nn.Linear(sizes[6], sizes[7]),
+            # torch.nn.ReLU(),
+            torch.nn.LeakyReLU(0.2),
+            torch.nn.Linear(sizes[7], output_size)
         ).double().to(CONFIG['device'])
         self.loss_quality = torch.nn.CrossEntropyLoss().to(
             device=CONFIG['device'])
-        self.loss_metrics = torch.nn.MSELoss().to(device=CONFIG['device'])
+        # self.loss_metrics = torch.nn.MSELoss().to(device=CONFIG['device'])
+        self.loss_metrics = torch.nn.L1Loss().to(device=CONFIG['device'])
 
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=CONFIG['lr'],
@@ -141,8 +172,9 @@ def train(model, loader):
         for (chunks, metrics) in pbar:
             predictions = model(chunks)
             # 'ssim', 'video_buffer', 'cum_rebuffer', 'media_chunk_size', 'trans_time'] --> 0, 3, 5
-            predictions = predictions[:, indexes]
-            metrics = metrics[:, indexes]
+            if not CONFIG['scoring_func']:
+                predictions = predictions[:, indexes]
+                metrics = metrics[:, indexes]
             loss = model.loss_metrics(predictions, metrics)
             model.optimizer.zero_grad()
             loss.backward()
@@ -247,11 +279,14 @@ def main():
         CONFIG['abr'] = args.abr
     with open(args.yaml_input_dir + 'cc.yml', 'r') as f:
         cc_dct = yaml.safe_load(f)
-        CONFIG['history_size'] = cc_dct['history_size']
+        CONFIG.update({key: cc_dct[key] for key in 
+                    ['history_size', 'ccs', 'scoring_type', 'scoring_mu', 'scoring_lambda']})
+
         CONFIG['random_sample'] = cc_dct['sample_size']
         CONFIG['weights_path'] = cc_dct['python_weights_path']
         CONFIG['weights_cpp_path'] = cc_dct['cpp_weights_path']
-        CONFIG['ccs'] = cc_dct['ccs']
+        CONFIG['scoring_func'] = cc_dct['predict_score']
+
         CONFIG['sample_size'] = len(set(CC_COLS + CONFIG['ccs']) - set(DELETED_COLS))
         CONFIG['input_size'] = CONFIG['history_size'] * CONFIG['random_sample'] * \
                         CONFIG['sample_size'] + len(CONFIG['ccs'])
@@ -262,10 +297,6 @@ def main():
         generate_dfs(files)
     answer_path = f"{CONFIG['input_dir']}dfs/answers.npy"
     answers = npl.load_numpickle(answer_path)
-    # max_file_index = np.max(answers['file_index']) + 1
-    # print('preparing chunks...')
-    # chunks = [npl.load_numpickle(f"{CONFIG['input_dir']}dfs/chunks_{file_index}.npy")
-    #             for file_index in tqdm(range(int(max_file_index)))]
     loader = DataLoaderRandom(answers)
     model = Model()
     print(answers.describe())

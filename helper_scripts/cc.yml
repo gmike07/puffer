@@ -1,4 +1,4 @@
-ccs: [bbr, vegas, cubic]
+ccs: ["bbr", "vegas", "cubic"]
 # monitoring statistics
 cc: bbr # starting cc
 cc_monitoring_path: "/home/mike/cc_monitoring/cc_" # start path to save the logging file of the cc data
@@ -16,10 +16,11 @@ scoring_lambda: 1.0
 # scoring_mu: 4.3
 # scoring_lambda: 1.0
 
-model_path: "/home/mike/puffer/cc_cpp_weights/weights_9_abr_linear_bba_v1.0.pt" # the path to the trained model
-history_size: 7 # how much previous chunks does the nn remember
-sample_size: 40 # how much from previous chunks it gets as input
-abr_time: false # replace cc each abr or once every _ time
-nn_roundup: 1000 # control the rate of change cc in case abr_time is false
+model_path: "/home/mike/puffer/cc_cpp_weights/weights_19_abr_linear_bba_v3.0.pt" # the path to the trained model
+history_size: 8 # how much previous chunks does the nn remember
+sample_size: 100 # how much from previous chunks it gets as input
+abr_time: true # replace cc each abr or once every _ time
+nn_roundup: 500 # control the rate of change cc in case abr_time is false
 python_weights_path: '/home/mike/puffer/cc_weights/' # start path to the place where to store the nn weights for python
 cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/' # start path to the place where to store the nn weights for cpp
+predict_score: true # learn score or the params

@@ -1,25 +1,25 @@
-ws_port: 9360
+ws_port: 9360 # default port for puffer
 portal_settings:
-  secret_key: PUFFER_PORTAL_SECRET_KEY
+  secret_key: PUFFER_PORTAL_SECRET_KEY # change to puffer export password
   debug: true
   allowed_hosts:
     - '*'
 postgres_connection:
   host: 127.0.0.1
-  port: 5432
-  dbname: puffer1
-  user: puffer1
-  password: PUFFER_PORTAL_DB_KEY
+  port: 5432 # change to the port setup for the DB, default is 5432
+  dbname: puffer1 # change to DB name
+  user: puffer1 # change to DB username
+  password: PUFFER_PORTAL_DB_KEY # change to DB export password
 enable_logging: true
-log_dir: /home/mike/puffer/src/monitoring
+log_dir: /home/mike/puffer/src/monitoring # change to your own logging dir
 influxdb_connection:
   host: 127.0.0.1
-  port: 8086
-  dbname: puffer1
-  user: puffer1
-  password: INFLUXDB_PASSWORD
+  port: 8086 # change to the port setup for the DB, default is 8086
+  dbname: puffer1 # change to DB name
+  user: puffer1 # change to DB username
+  password: INFLUXDB_PASSWORD # change to DB export password
 enforce_moving_live_edge: false
-media_dir: /home/mike/puffer/media-181230
+media_dir: /home/mike/puffer/media-181230 # change to your own media dir
 channels:
   - cbs
 channel_configs:
@@ -98,7 +98,7 @@ channel_configs:
       - 64k
       - 32k
     present_delay_chunk: 300
-experiments:
+# experiments:
   # - num_servers: 1
   #   fingerprint:
   #     abr: pensieve
