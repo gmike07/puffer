@@ -6,7 +6,8 @@ git submodule update --recursive --init
 
 sudo apt-get update -qq
 cwd=$(pwd)
-sudo apt-get install -y xmlto
+sudo apt-get install -y xmlto libboost-all-dev aptitude
+aptitude search boost
 sudo apt-get install -y -q gcc-7 g++-7 libmpeg2-4-dev libpq-dev \
                           libssl-dev libcrypto++-dev libyaml-cpp-dev \
                           libboost-dev liba52-dev opus-tools libopus-dev \

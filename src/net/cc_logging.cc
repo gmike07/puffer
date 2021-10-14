@@ -20,7 +20,10 @@
 #include <algorithm>
 #include <random>
 #include <iterator>
-
+#include <curlpp/cURLpp.hpp>
+#include <curlpp/Easy.hpp>
+#include <curlpp/Options.hpp>
+#include <curlpp/Infos.hpp>
 
 #include "http_response.hh"
 #include "exception.hh"
@@ -32,11 +35,38 @@
 #include "ws_message_parser.hh"
 #include "cc_logging.hh"
 
+#include "json.hpp"
+
+using json = nlohmann::json;
+
 /* nanoseconds per millisecond */
 static const uint64_t MILLION = 1000000;
 
 /* nanoseconds per second */
 static const uint64_t BILLION = 1000 * MILLION;
+
+inline ChunkInfo normalize_chunk(std::vector<double> chunk)
+{
+  return {true, 60.0 * chunk[0], chunk[1], chunk[2], (unsigned int) (chunk[3] * 100 * 100000.0),
+          (uint64_t) (chunk[4] * 1000), ""};
+}
+
+double score_nn_prediction(TCPSocket& socket, const torch::Tensor& preds)
+{
+  if(socket.predict_score)
+  {
+    return preds.item<double>();
+  }
+  ChunkInfo prev_chunk = normalize_chunk({preds[0].item<double>(), preds[1].item<double>(),
+                                          preds[2].item<double>(), preds[3].item<double>(),
+                                          preds[4].item<double>()});
+  ChunkInfo curr_chunk = normalize_chunk({preds[5].item<double>(), preds[6].item<double>(),
+                                          preds[7].item<double>(), preds[8].item<double>(),
+                                          preds[9].item<double>()});
+
+  return socket.score_chunks(prev_chunk, curr_chunk);
+}
+
 
 /*
  * returns the current time in uint64_t type
@@ -107,23 +137,6 @@ void sample_random_elements(std::vector<T>& elements, std::vector<T>& sampled_el
   }
 }
 
-double score_chunks(TCPSocket& socket, ChunkInfo& prev_chunk, ChunkInfo& curr_chunk)
-{
-  double mu = socket.scoring_mu, lambda = socket.scoring_lambda;
-  double buffer_score = std::max(0.0, curr_chunk.trans_time / 1000.0 - curr_chunk.video_buffer);
-  if(socket.scoring_type == "ssim")
-  {
-    return curr_chunk.ssim - lambda * abs(curr_chunk.ssim - prev_chunk.ssim) - mu * buffer_score;
-  }
-  if(socket.scoring_type == "bit_rate")
-  {
-    double curr_bitrate = curr_chunk.media_chunk_size / (1000 * 1000 * curr_chunk.trans_time);
-    double prev_bitrate = prev_chunk.media_chunk_size / (1000 * 1000 * prev_chunk.trans_time);
-    return curr_bitrate - lambda * abs(curr_bitrate - prev_bitrate) - mu * buffer_score;
-  }
-  return 0.0;
-}
-
 /*
 * a class to store the thread's data
 */
@@ -131,7 +144,7 @@ struct LoggingChunk
 {
   const int MILLISECONDS_TO_SLEEP = 1;
   const int SKIP_NN = 300;
-  bool logging_file_created, scoring_file_created, model_created, first_run, abr_time;
+  bool logging_file_created, scoring_file_created, model_created, rl_created, first_run, abr_time;
   std::ofstream logging_file, scoring_file;
   std::shared_ptr<torch::jit::script::Module> model;
   uint64_t monitoring_start_time, start_time_nn;
@@ -143,6 +156,7 @@ struct LoggingChunk
     logging_file_created(socket.logging_path != ""), 
     scoring_file_created(socket.scoring_path != ""),
     model_created(socket.model_path != ""),
+    rl_created(socket.rl_model_path != ""),
     first_run(true), abr_time(socket.abr_time),
     logging_file(std::ofstream(socket.logging_path, std::ios::out | std::ios::app)),
     scoring_file(std::ofstream(socket.scoring_path, std::ios::out | std::ios::app)),
@@ -189,19 +203,39 @@ public:
     }
   }
 
+  void push_statistic(const ChunkInfo& info)
+  {
+    qoe_statistics.push_back(info);
+    if(qoe_statistics.size() > (size_t) history_size)
+    {
+      qoe_statistics.pop_front();
+    }
+  }
+
+  inline std::vector<double> normalize_statistics(const ChunkInfo& info)
+  {
+    return {TCPSocket::ssim_db_cc(info.ssim) / 60.0, info.video_buffer / 20.0, info.cum_rebuffer, 
+        info.media_chunk_size /  (100.0 * 100000.0), info.trans_time / 1000.0};
+  }
+
   /*
   * adds to vec a random sample of each chunk of the history
   */
   void get_sample_history(std::vector<double>& vec)
   {
-    for(auto& chunk : history_chunks)
+    for(size_t i = 0; i < history_chunks.size(); i++)
     {
+      auto& chunk = history_chunks[i];
       std::vector<std::vector<double>> sample_chunk(0);
       sample_random_elements(chunk, sample_chunk, sample_size);
       for(auto& curr_state : sample_chunk)
       {
         vec.insert(std::end(vec), std::begin(curr_state), std::end(curr_state));
       }
+      auto vec_statistics = normalize_statistics(qoe_statistics[i]);
+      vec.insert(std::end(vec), std::begin(vec_statistics), std::end(vec_statistics));
+      // auto& last_sample = chunk[chunk.size() - 1];
+      // vec.push_back(last_sample[last_sample.size() - 1]); //the transmition of the own chunk
     }
   }
 
@@ -218,6 +252,7 @@ private:
   const int sample_size;
   std::vector<std::vector<double>> curr_chunk;
   std::deque<std::vector<std::vector<double>>> history_chunks;
+  std::deque<ChunkInfo> qoe_statistics;
 };
 
 
@@ -250,18 +285,16 @@ double calc_score_nn(TCPSocket& socket, std::shared_ptr<torch::jit::script::Modu
   torch::Tensor preds = model->forward(torch_inputs).toTensor().squeeze().detach();
   if(socket.predict_score)
   {
-    return preds[0].item<double>();
+    return preds[0].item<double>() - preds[1].item<double>() - preds[2].item<double>();
   }
-  ChunkInfo prev_chunk {true, preds[0].item<double>(), preds[1].item<double>() * 10.0, 
-                        preds[2].item<double>(), // ignored
-                        (unsigned int) (preds[3].item<double>() * 100.0 * 100000.0),
-                        (uint64_t) (preds[9].item<double>() * 1000.0), ""};
-  ChunkInfo curr_chunk {true, preds[5].item<double>(), preds[6].item<double>() * 10.0, 
-                        preds[7].item<double>(), // ignored
-                        (unsigned int) (preds[8].item<double>() * 100.0 * 100000.0),
-                        (uint64_t) (preds[9].item<double>() *  1000.0), ""};
+  ChunkInfo prev_chunk = normalize_chunk({preds[0].item<double>(), preds[1].item<double>(),
+                                          preds[2].item<double>(), preds[3].item<double>(),
+                                          preds[4].item<double>()});
+  ChunkInfo curr_chunk = normalize_chunk({preds[5].item<double>(), preds[6].item<double>(),
+                                          preds[7].item<double>(), preds[8].item<double>(),
+                                          preds[9].item<double>()});
 
-  return score_chunks(socket, prev_chunk, curr_chunk);
+  return socket.score_chunks(prev_chunk, curr_chunk);
 }
 
 /*
@@ -284,12 +317,69 @@ std::pair<double*, size_t> create_state_from_history(TCPSocket& socket, ChunkHis
   return {state, inputs.size()};
 }
 
+std::pair<double*, size_t> create_nn_input(TCPSocket& socket, ChunkHistory& chunk_history)
+{
+  size_t number_ccs = socket.get_supported_cc().size();
+  std::vector<double> inputs(0);
+  chunk_history.get_sample_history(inputs);
+  for(size_t j = 0; j < number_ccs; j++)
+  {
+    inputs.push_back(0.0);
+  }
+
+  size_t input_size = inputs.size();
+  double* nn_input = new double[number_ccs * input_size];
+  for(size_t i = 0; i < number_ccs; i++)
+  {
+    std::copy(std::begin(inputs), std::end(inputs), nn_input + (i - 1) * input_size);
+    nn_input[(i - 1) * input_size + (input_size - number_ccs + i)] = 1.0;
+  }
+  return {nn_input, number_ccs * input_size};
+}
+
+
+void change_nn_cc(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
+{
+  size_t number_ccs = socket.get_supported_cc().size();
+  std::pair<double*, size_t> pair = create_nn_input(socket, chunk_history);
+  std::vector<torch::jit::IValue> torch_inputs;
+  torch_inputs.push_back(torch::from_blob(pair.first, {(signed long) number_ccs, (signed long) (pair.second / number_ccs)}, torch::kDouble));
+  torch::Tensor preds = logging_chunk.model->forward(torch_inputs).toTensor().detach();
+  int best_cc = -1;
+  double best_score = 0;
+  for(size_t cc = 0; cc < number_ccs; cc++)
+  {
+    double score = score_nn_prediction(socket, preds[cc]);
+    if((best_cc == -1) or (best_score < score))
+    {
+      best_cc = cc;
+      best_score = score;
+    }
+  }
+  delete[] pair.first;
+  change_cc(socket, best_cc);
+}
+
+inline int congestion_control_index(TCPSocket& socket, std::string& cc)
+{
+  auto& ccs = socket.get_supported_cc();
+  for(int i = 0; i < ccs.size(); i++)
+  {
+    if(ccs[i] == cc)
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+
 /*
  * handles the thread to store statistics of the cc
 */
 inline void handle_monitoring(TCPSocket& socket, LoggingChunk& logging_chunk)
 {
   std::string data = "";
+  std::string cc = socket.get_congestion_control();
   if(socket.is_new_chunk_logging)
   {
     logging_chunk.monitoring_start_time = get_timestamp_ms();
@@ -297,15 +387,24 @@ inline void handle_monitoring(TCPSocket& socket, LoggingChunk& logging_chunk)
     random_cc(socket); //works only if random_cc is true
     socket.is_new_chunk_logging = false;
   }
-  data += socket.get_congestion_control() + ",";
-  auto vec = socket.get_tcp_full_vector();
-  for(const uint64_t& num : vec)
+  // auto vec = socket.get_tcp_full_vector();
+  // vec.push_back(get_timestamp_ms() - logging_chunk.monitoring_start_time);
+  auto vec = socket.get_tcp_full_normalized_vector(get_timestamp_ms() - logging_chunk.monitoring_start_time);
+  int cc_index = congestion_control_index(socket, cc);
+  int ccs_size = socket.get_supported_cc().size();
+
+  for(int i = 0; i < ccs_size; i++)
   {
-    data += std::to_string(num);
+    vec.push_back((cc_index == i) ? 1 : 0);
+  }
+
+  for(const auto& val: vec)
+  {
+    data += std::to_string(val);
     data += ",";
   }
-  data += std::to_string(get_timestamp_ms() - logging_chunk.monitoring_start_time);
-  logging_chunk.logging_file << data << std::endl;
+
+  logging_chunk.logging_file << data.substr(0, data.size() - 1) << std::endl;
 }
 
 /*
@@ -324,7 +423,7 @@ inline void handle_scoring(TCPSocket& socket, LoggingChunk& logging_chunk, bool 
     socket.is_new_chunk_scoring = false;
     return;
   }
-  double score = score_chunks(socket, socket.prev_chunk, socket.curr_chunk);
+  double score = socket.score_chunks();
   if(not socket.random_cc)
   {
     std::string s = socket.get_congestion_control() + " " + std::to_string(score);
@@ -338,23 +437,33 @@ inline void handle_scoring(TCPSocket& socket, LoggingChunk& logging_chunk, bool 
   socket.is_new_chunk_scoring = false;
 }
 
-/*
- * handles the thread to store statistics of the socket for the model and change the cc via the model
-*/
-void handle_nn_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
+bool update_history(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
 {
   chunk_history.update_chunk(convert_tcp_info_normalized_vec(socket, logging_chunk.start_time_nn));
-  logging_chunk.counter += 1;
+  logging_chunk.counter = (logging_chunk.counter + 1) % logging_chunk.SKIP_NN;
   bool change_cc_1 = (logging_chunk.abr_time and socket.is_new_chunk_model);
   socket.is_new_chunk_model = false;
   bool change_cc_2 = ((not logging_chunk.abr_time) and (logging_chunk.counter % logging_chunk.SKIP_NN == 0));
   if((not change_cc_1) and (not change_cc_2))
   {
-    return;
+    return false;
   }
   //should change cc
   chunk_history.push_chunk();
+  chunk_history.push_statistic(socket.get_current_chunk());
   if(chunk_history.size() != ((size_t) socket.history_size))
+  {
+    return false;
+  }
+  return true;
+}
+
+/*
+ * handles the thread to store statistics of the socket for the model and change the cc via the model
+*/
+void handle_nn_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
+{ 
+  if(not update_history(socket, logging_chunk, chunk_history))
   {
     return;
   }
@@ -380,6 +489,58 @@ void handle_nn_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistor
   }
   delete[] state;
   change_cc(socket, best_cc);
+}
+
+
+void handle_rl_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
+{
+  if(not update_history(socket, logging_chunk, chunk_history))
+  {
+    return;
+  }
+
+  std::pair<double*, size_t> inputs = create_state_from_history(socket, chunk_history);
+  //remove the current cc 
+  double* state = inputs.first;
+  size_t inputs_size = inputs.second;
+  size_t number_ccs = socket.get_supported_cc().size();
+  std::vector<double> state_vec(inputs_size - number_ccs, 0);
+  for(size_t i = 0; i < state_vec.size(); i++)
+  {
+    state_vec[i] = state[i];
+  }
+  json json_state(state_vec);
+  
+  json data;
+  data["state"] = json_state;
+  data["server_id"] = socket.server_id;
+  data["qoe"] = socket.score_chunks();
+
+  // send request
+  std::list<std::string> header;
+  header.push_back("Content-Type: application/json");
+
+  curlpp::Cleanup clean;
+  curlpp::Easy request;
+  std::ostringstream response;
+  request.setOpt(new curlpp::options::Url(socket.rl_model_path));
+  request.setOpt(new curlpp::options::HttpHeader(header));
+  request.setOpt(new curlpp::options::PostFields(data.dump()));
+  request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
+  request.setOpt(new curlpp::options::WriteStream(&response));
+  try {
+    request.perform(); // 200 = ok and not enough data to switch, 409 = ok and sent json with {"cc": cc_to switch to}
+    long status = curlpp::infos::ResponseCode::get(request);
+    if ((status == 409))
+    {
+      int cc_index = json::parse(response.str())["cc"].get<int>();
+      change_cc(socket, cc_index);
+    }
+  }
+  catch (std::exception& e) {
+    std::cout << "exception " << e.what() << std::endl;
+    // throw e;
+  }
 }
 
 
@@ -417,6 +578,10 @@ void logging_cc_func(TCPSocket* socket)
       if(logging_chunk.model_created)
       {
         handle_nn_model(sock, logging_chunk, chunk_history);
+      }
+      if(logging_chunk.rl_created)
+      {
+        handle_rl_model(sock, logging_chunk, chunk_history);
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(logging_chunk.MILLISECONDS_TO_SLEEP));
     }

@@ -8,7 +8,7 @@ AM_CPPFLAGS = $(CXX17_FLAGS) $(SSL_CFLAGS) $(POSTGRES_CFLAGS) \
 	-I/home/ubuntu/.local/lib/python3.7/site-packages/pybind11/include
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
-bin_PROGRAMS = run_servers maintenance_server ws_media_server
+bin_PROGRAMS = run_servers maintenance_server ws_media_server train_nn
 
 ws_media_server_SOURCES = ws_media_server.cc \
 	ws_client.hh ws_client.cc channel.hh channel.cc \
@@ -48,3 +48,10 @@ maintenance_server_SOURCES = maintenance_server.cc \
 maintenance_server_LDADD = ../util/libutil.a ../net/libnet.a ../util/libutil.a \
 	$(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) \
 	-ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread 
+
+
+train_nn_LDFLAGS = -L../../third_party/libtorch/lib \
+	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib' -O3
+train_nn_SOURCES = train_nn_try.hh train_nn_try.cc tqdm.hpp
+train_nn_LDADD = ../util/libutil.a  $(YAML_LIBS) -lstdc++fs \
+	-ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread -lboost_program_options -lboost_system -lboost_filesystem

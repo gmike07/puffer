@@ -101,6 +101,8 @@ struct ChunkInfo
 class TCPSocket : public Socket
 {
 private:
+    static constexpr double MAX_SSIM = 60;
+    static constexpr double MIN_SSIM = 0;
     static constexpr double million = 1000000;
     static constexpr double pkt_bytes = 1500;
     bool is_pcc = false;
@@ -108,12 +110,6 @@ private:
     std::string current_cc = "";
 
     std::string get_congestion_control_tcp() const;
-    std::string socket_double_to_string(const double input, const int precision) const
-    {
-        std::stringstream stream;
-        stream << std::fixed << std::setprecision(precision) << input;
-        return stream.str();
-    }
 
 protected:
     /* constructor used by accept() and SecureSocket() */
@@ -125,6 +121,7 @@ protected:
     }
 
 public:
+    int server_id;
     //finished initializing all variables
     bool created_socket = false;
     //should randomize cc
@@ -134,11 +131,14 @@ public:
     bool is_new_chunk_logging = false;
     bool is_new_chunk_scoring = false;
     bool is_new_chunk_model = false;
+    bool is_new_chunk_rl = false;
 
     //paths
     std::string logging_path = "";
     std::string scoring_path = "";
     std::string model_path = "";
+    std::string rl_model_path = "";
+
 
     //data for model
     int history_size = 40;
@@ -148,8 +148,8 @@ public:
     bool predict_score = false;
 
     //scoring data
-    double scoring_mu = 1.0;
-    double scoring_lambda = 1.0;
+    double quality_change_qoef = 1.0;
+    double buffer_length_coef = 1.0;
     std::string scoring_type = "ssim";
     ChunkInfo prev_chunk = {false, 0, 0, 0, 0, 0, ""};
     ChunkInfo curr_chunk = {false, 0, 0, 0, 0, 0, ""};
@@ -185,12 +185,49 @@ public:
 
     void add_chunk(ChunkInfo info);
 
-    double score_chunks(const ChunkInfo& prev_chunk, const ChunkInfo& curr_chunk) const;
-    double score_chunks() const;
-
-    std::vector<std::string>& get_supported_cc()
+    std::string socket_double_to_string(const double input, const int precision) const
     {
-        return supported_ccs;
+        std::stringstream stream;
+        stream << std::fixed << std::setprecision(precision) << input;
+        return stream.str();
+    }
+
+    inline double quality_chunk(const ChunkInfo& chunk, const std::string& score_type) const
+    {
+        if(score_type == "ssim")
+        {
+            return ssim_db_cc(chunk.ssim);
+        }
+        if(score_type == "bit_rate")
+        {
+            return chunk.media_chunk_size / (1000 * 1000 * chunk.trans_time);
+        }
+        return 0.0;
+    }
+
+    inline double quality_chunk(const ChunkInfo& chunk) const
+    {
+        return quality_chunk(chunk, scoring_type);
+    }
+
+    inline double calc_rebuffer(const ChunkInfo& curr_chunk) const
+    {
+        return std::max(0.0, curr_chunk.trans_time / 1000.0 - curr_chunk.video_buffer);
+    }
+
+    inline double score_chunks(const ChunkInfo& prev_chunk, const ChunkInfo& curr_chunk) const
+    {
+        double curr_quality = quality_chunk(curr_chunk);
+        double prev_quality = quality_chunk(prev_chunk);
+        double rebuffer_time = calc_rebuffer(curr_chunk);
+        return curr_quality - 
+        quality_change_qoef * abs(curr_quality - prev_quality) -
+        buffer_length_coef * rebuffer_time; 
+    }
+
+    inline double score_chunks() const
+    {
+        return score_chunks(prev_chunk, curr_chunk);
     }
 
     void add_cc(std::string cc)
@@ -204,12 +241,31 @@ public:
         {
             return "audio,";
         }
+        double curr_quality_ssim = quality_chunk(curr_chunk, "ssim"), prev_quality_ssim = 0;
+        double change_quality_ssim = 0, curr_quality_bit = quality_chunk(curr_chunk, "bit_rate");
+        double prev_quality_bit = 0, change_quality_bit = 0;
+        double rebuffer_time = calc_rebuffer(curr_chunk);
+        
+        if(prev_chunk.is_video)
+        {
+            prev_quality_ssim = quality_chunk(prev_chunk, "ssim");
+            change_quality_ssim = std::abs(curr_quality_ssim - prev_quality_ssim);
+            prev_quality_bit = quality_chunk(prev_chunk, "bit_rate");
+            change_quality_bit = std::abs(curr_quality_bit - prev_quality_bit);
+        }
+        // media / 100 / 100000.0
+        // time / 1000
         return "video," + std::to_string(curr_chunk.ssim) + "," +
                 socket_double_to_string(curr_chunk.video_buffer, 8) + "," + 
                 socket_double_to_string(curr_chunk.cum_rebuffer, 8) + "," +
-                std::to_string(curr_chunk.media_chunk_size) + "," +
-                std::to_string(curr_chunk.trans_time) + "," + 
-                curr_chunk.resolution;
+                std::to_string(curr_chunk.media_chunk_size / 100000.0 / 100.0) + "," +
+                std::to_string(curr_chunk.trans_time / 1000.0) + "," +
+                std::to_string(curr_quality_ssim - change_quality_ssim * quality_change_qoef - change_quality_ssim * quality_change_qoef) + "," +
+                std::to_string(curr_quality_ssim) + "," +
+                std::to_string(change_quality_ssim * quality_change_qoef) + "," +
+                std::to_string(buffer_length_coef * rebuffer_time) + "," +
+                std::to_string(curr_quality_bit) + "," +
+                std::to_string(quality_change_qoef * change_quality_bit);
     }
 
     inline std::vector<uint64_t> get_tcp_full_vector() const
@@ -252,6 +308,45 @@ public:
         };
     }
 
+    inline std::vector<double> get_tcp_full_normalized_vector(const std::vector<uint64_t>& vec) const
+    {
+        return 
+        {
+            vec[0] / (10 * million), vec[1] / (10 * million), 
+            vec[2] / (1000 * million), vec[3] / (10 * million),
+            vec[4] / (16 * pkt_bytes), vec[5] / (16 * pkt_bytes), 
+            vec[6] / (10 * million), vec[7] / (1024 *  pkt_bytes),
+            vec[8] / (16 * pkt_bytes), vec[9] / (16 * pkt_bytes), 
+            vec[10] / (1024 *  pkt_bytes), vec[11] / (16 * 1024 *  pkt_bytes), 
+            vec[12] / 100.0,vec[13] / (16 * pkt_bytes), 
+            vec[14] / (10 * million), vec[15] / (16 * pkt_bytes), 
+            vec[16] / (1000 * 1024 * pkt_bytes), vec[17] / (10 * million),
+            vec[18] / (10 * million), vec[19] / (1000 * 16 * pkt_bytes), 
+            vec[20] / (16 * pkt_bytes), vec[21] / (16 * pkt_bytes),
+            vec[22] / (16 * pkt_bytes), vec[23] / 1024.0, 
+            vec[24] / 1024.0, vec[25] / 1024.0, 
+            vec[26] / 1024.0, vec[27] / (16 * pkt_bytes), 
+            vec[28] / (10 * million), vec[29] / (10 * million), 
+            vec[30] / 1.0, vec[31] / 4.0,
+            vec[32] / (10 * million)
+        };
+    }
+
+    inline static double ssim_db_cc(const double ssim)
+    {
+        if (ssim != 1) {
+            return std::max(MIN_SSIM, std::min(MAX_SSIM, -10 * log10(1 - ssim)));
+        } else {
+            return MAX_SSIM;
+        }
+    }
+
+    const ChunkInfo& get_current_chunk() const {return curr_chunk;}
+
+    inline std::vector<std::string>& get_supported_cc()
+    {
+        return supported_ccs;
+    }
 };
 
 #endif /* SOCKET_HH */

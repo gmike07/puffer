@@ -1,4 +1,5 @@
 import argparse
+from numpy.core.fromnumeric import squeeze
 import yaml
 import os
 from tqdm import tqdm
@@ -26,21 +27,40 @@ CC_COLS = ['file_index', 'chunk_index', 'sndbuf_limited', 'rwnd_limited', 'busy_
 CONFIG = {'epochs': 20, 'network_sizes': [500, 200, 100, 80, 50, 40, 30, 20],
           'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
           'batch_size': 16, 'lr': 1e-4, 'betas': (0.5, 0.999),
-          'weights_decay': 1e-4, 'version': 3.0, 'history_size': 7,
+          'weights_decay': 1e-4, 'version': 2.0, 'history_size': 7,
           'random_sample': 40,
           'prediction_size': len(set(QUALITY_COLS) - {'file_index', 'chunk_index'})}
-
+MIN_SSIM = 0.0
+MAX_SSIM = 60.0
 
 class DataLoaderRandom:
     def __init__(self, answers):
         self.answers = answers
-        self.N = len(answers)
         self.chunks = None
         self.current_df = -1
         self.offset = 0
         self.perm = None
+        
+        mask = (self.answers['ssim'] != -1)
+        self.answers['ssim'][~mask] = MAX_SSIM
+        helper = np.maximum(MIN_SSIM, np.minimum(MAX_SSIM, -10 * np.log10(1 - self.answers['ssim'][mask])))
+        self.answers['ssim'][mask] = helper
+        self.answers['ssim'] /= MAX_SSIM
+        self.answers['video_buffer'] /= 20.0
+        file_indexes = self.answers['file_index'].unique()
+        good_files = []
+        for file_index in file_indexes:
+            file_answers = self.answers[self.answers['file_index'] == file_index]
+            next_answers, curr_answers = file_answers[1:], file_answers[:-1]
+            qoe = MAX_SSIM * next_answers['ssim'] - MAX_SSIM * CONFIG['scoring_lambda'] * np.abs(next_answers['ssim'] - curr_answers['ssim']) - \
+                CONFIG['scoring_mu'] * np.maximum(0, answers['trans_time'] - answers['video_buffer'] * 20.0)
+            if np.mean(qoe) < 17:
+                good_files.append(file_index)
+        self.answers = self.answers[self.answers.file_index.isin(good_files)]
+        self.N = len(self.answers)
         self.items = np.sum(self.answers['chunk_index'] >= CONFIG['history_size']) \
                      - len(self.answers['file_index'].unique())
+
 
     def __len__(self):
         return int(self.items / CONFIG['batch_size'])
@@ -56,28 +76,35 @@ class DataLoaderRandom:
         mask2 = chunks['chunk_index'] <= chunk_index
         chunk_history = chunks[mask1 & mask2]
         helper_arr = np.array([])
+        helper_answer = self.answers.drop(['chunk_index', 'file_index'], 1)
         for history in range(CONFIG['history_size'] - 1, -1, -1):
             mask = chunk_history['chunk_index'] == (chunk_index - history)
             chunk_i = chunk_history[mask].drop(['chunk_index'], 1)
             random_indexes = np.random.choice(np.arange(len(chunk_i)),
                                               CONFIG['random_sample'],
                                               replace=CONFIG['resample'])
-            chunk_i = chunk_i.iloc[random_indexes].to_numpy()
-            helper_arr = np.append(helper_arr, chunk_i.reshape(-1))
+            # chunk_i = chunk_i.iloc[random_indexes].to_numpy()
+            helper_arr = np.append(helper_arr, chunk_i.iloc[random_indexes].to_numpy().reshape(-1))
+            helper_arr = np.append(helper_arr, helper_answer.iloc[self.offset - history].to_numpy().reshape(-1))
         mask = chunks['chunk_index'] == (chunk_index + 1)
         next_ccs = chunks[mask].iloc[0][-len(CONFIG['ccs']):]
         return np.append(helper_arr, next_ccs.to_numpy().reshape(-1))
 
     def apply_scoring(self, answers):
         # ['ssim', 'video_buffer', 'cum_rebuffer', 'media_chunk_size', 'trans_time']
-        rebuffer_time = np.maximum(0, answers[:, 6] - answers[:, 9]) # next video_buffer - next trans_time
-        next_quality, curr_quality = 0, 0
-        if CONFIG['scoring_type'] == 'ssim':
-            curr_quality = answers[:, 0]
-            next_quality = answers[:, 5]
-        if CONFIG['scoring_type'] == 'bit_rate':
-            curr_quality = (answers[:, 3] * 100.0 * 100000.0) / (1000 * 1000 * answers[9])
-            next_quality = (answers[:, 8] * 100.0 * 100000.0) / (1000 * 1000 * answers[9])
+        rebuffer_time = np.maximum(0, answers[:, 9] - answers[:, 6] * 20.0) # next trans_time - next video_buffer
+        # next_quality, curr_quality = 0, 0
+        curr_quality1 = MAX_SSIM * answers[:, 0]
+        next_quality1 = MAX_SSIM * answers[:, 5]
+        # curr_quality2 = (answers[:, 3] * 100.0 * 100000.0) / (1000 * 1000 * answers[:, 9])
+        # next_quality2 = (answers[:, 8] * 100.0 * 100000.0) / (1000 * 1000 * answers[:, 9])
+        return pd.DataFrame({
+                        'quality1': next_quality1, 
+                        'diff_quality1':  CONFIG['scoring_lambda'] * abs(next_quality1 - curr_quality1), 
+                        'rebuffer': CONFIG['scoring_mu'] * rebuffer_time,
+                        # 'quality2': next_quality2, 
+                        # 'diff_quality2':  CONFIG['scoring_lambda'] * abs(next_quality2 - curr_quality2),
+                        }).to_numpy()
         return next_quality - CONFIG['scoring_lambda'] * abs(next_quality - curr_quality) - CONFIG['scoring_mu'] * rebuffer_time
 
     def __next__(self):
@@ -108,7 +135,7 @@ class DataLoaderRandom:
             i += 1
         answer_chunks = torch.from_numpy(answer_chunks).to(CONFIG['device'])
         if CONFIG['scoring_func']:
-            answer_metrics = self.apply_scoring(answer_metrics).reshape((-1, 1)) / 100
+            answer_metrics = self.apply_scoring(answer_metrics).reshape((batch_size, -1)) / 100
         answer_metrics = torch.from_numpy(answer_metrics).to(CONFIG['device'])
         return answer_chunks, answer_metrics
 
@@ -117,39 +144,39 @@ class Model(torch.nn.Module):
     def __init__(self):
         super(Model, self).__init__()
         sizes = CONFIG['network_sizes']
-        output_size = 1 if CONFIG['scoring_func'] else 2 * CONFIG['prediction_size']
+        output_size = 3 if CONFIG['scoring_func'] else 2 * CONFIG['prediction_size']
         self.model = torch.nn.Sequential(
             torch.nn.Linear(CONFIG['input_size'], sizes[0]),
-            # torch.nn.ReLU(),
-            torch.nn.LeakyReLU(0.2),
+            torch.nn.ReLU(),
+            # torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[0], sizes[1]),
             # torch.nn.Dropout(0.3),
-            # torch.nn.ReLU(),
-            torch.nn.LeakyReLU(0.2),
+            torch.nn.ReLU(),
+            # torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[1], sizes[2]),
-            # torch.nn.ReLU(),
-            torch.nn.LeakyReLU(0.2),
+            torch.nn.ReLU(),
+            # torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[2], sizes[3]),
-            # torch.nn.ReLU(),
-            torch.nn.LeakyReLU(0.2),
+            torch.nn.ReLU(),
+            # torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[3], sizes[4]),
-            # torch.nn.ReLU(),
-            torch.nn.LeakyReLU(0.2),
+            torch.nn.ReLU(),
+            # torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[4], sizes[5]),
-            # torch.nn.ReLU(),
-            torch.nn.LeakyReLU(0.2),
+            torch.nn.ReLU(),
+            # torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[5], sizes[6]),
-            # torch.nn.ReLU(),
-            torch.nn.LeakyReLU(0.2),
+            torch.nn.ReLU(),
+            # torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[6], sizes[7]),
-            # torch.nn.ReLU(),
-            torch.nn.LeakyReLU(0.2),
+            torch.nn.ReLU(),
+            # torch.nn.LeakyReLU(0.2),
             torch.nn.Linear(sizes[7], output_size)
         ).double().to(CONFIG['device'])
         self.loss_quality = torch.nn.CrossEntropyLoss().to(
             device=CONFIG['device'])
-        # self.loss_metrics = torch.nn.MSELoss().to(device=CONFIG['device'])
-        self.loss_metrics = torch.nn.L1Loss().to(device=CONFIG['device'])
+        self.loss_metrics = torch.nn.MSELoss().to(device=CONFIG['device'])
+        # self.loss_metrics = torch.nn.L1Loss().to(device=CONFIG['device'])
 
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=CONFIG['lr'],
@@ -182,7 +209,7 @@ def train(model, loader):
             pbar.set_description_str('epoch #{}'.format(epoch))
             pbar.set_postfix(loss=loss.mean().item())
         pbar.close()
-        filename = f"weights_{str(epoch)}_abr_{CONFIG['abr']}_v{str(CONFIG['version'])}.pt"
+        filename = f"weights_{str(epoch)}_abr_{CONFIG['abr']}_v{str(CONFIG['version'])}_{CONFIG['scoring_type']}.pt"
         torch.save({
             'model_state_dict': model.model.state_dict()
         }, f"{CONFIG['weights_path']}{filename}")
@@ -288,8 +315,8 @@ def main():
         CONFIG['scoring_func'] = cc_dct['predict_score']
 
         CONFIG['sample_size'] = len(set(CC_COLS + CONFIG['ccs']) - set(DELETED_COLS))
-        CONFIG['input_size'] = CONFIG['history_size'] * CONFIG['random_sample'] * \
-                        CONFIG['sample_size'] + len(CONFIG['ccs'])
+        CONFIG['input_size'] = CONFIG['history_size'] * (CONFIG['random_sample'] * \
+                        CONFIG['sample_size'] + CONFIG['prediction_size']) + len(CONFIG['ccs'])
     CONFIG.update({'input_dir': args.input_dir, 'resample': args.resample})
     if args.generate_dfs:
         files = list(filter(filter_path, os.listdir(CONFIG['input_dir'])))

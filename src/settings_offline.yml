@@ -145,20 +145,60 @@ experiments:
       upper_reservoir: 0.9
     cc: bbr
     cc_config:
-      abr_time: false
+      abr_time: true
+      buffer_length_coef: 100.0
       cc_monitoring_path: /home/mike/cc_monitoring/cc_
-      history_size: 7
+      history_size: 8
       nn_roundup: 500
-      random_cc: true
-      sample_size: 40
-      scoring_lambda: 1.0
-      scoring_mu: 100.0
-      scoring_type: ssim
+      quality_change_qoef: 1.0
+      random_cc: false
+      random_sample_size: 100
+      scoring_function_type: ssim
     ccs:
     - bbr
     - vegas
     - cubic
-  num_servers: 30
+  num_servers: 1
+- fingerprint:
+    abr: linear_bba
+    abr_config:
+      upper_reservoir: 0.9
+    cc: vegas
+    cc_config:
+      abr_time: true
+      buffer_length_coef: 100.0
+      cc_monitoring_path: /home/mike/cc_monitoring/cc_
+      history_size: 8
+      nn_roundup: 500
+      quality_change_qoef: 1.0
+      random_cc: false
+      random_sample_size: 100
+      scoring_function_type: ssim
+    ccs:
+    - bbr
+    - vegas
+    - cubic
+  num_servers: 1
+- fingerprint:
+    abr: linear_bba
+    abr_config:
+      upper_reservoir: 0.9
+    cc: cubic
+    cc_config:
+      abr_time: true
+      buffer_length_coef: 100.0
+      cc_monitoring_path: /home/mike/cc_monitoring/cc_
+      history_size: 8
+      nn_roundup: 500
+      quality_change_qoef: 1.0
+      random_cc: false
+      random_sample_size: 100
+      scoring_function_type: ssim
+    ccs:
+    - bbr
+    - vegas
+    - cubic
+  num_servers: 1
 influxdb_connection:
   dbname: puffer1
   host: 127.0.0.1

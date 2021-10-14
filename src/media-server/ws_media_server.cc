@@ -753,7 +753,7 @@ int run_websocket_server()
 
   /* set server callbacks */
   server.set_message_callback(
-    [&server, &abr_name, &cc_config, &ccs](const uint64_t connection_id, const WSMessage & ws_msg)
+    [&server, &abr_name, &cc_config, &ccs, &server_id_int](const uint64_t connection_id, const WSMessage & ws_msg)
     {
       try {
         WebSocketClient & client = clients.at(connection_id);
@@ -801,14 +801,17 @@ int run_websocket_server()
           client.get_socket()->abr_time = get_attribute(cc_config, "abr_time", false);
           client.get_socket()->predict_score = get_attribute(cc_config, "predict_score", false);
           client.get_socket()->nn_roundup = get_attribute(cc_config, "nn_roundup", 1000);
-          client.get_socket()->scoring_mu = get_attribute(cc_config, "scoring_mu", 1.0);
-          client.get_socket()->scoring_lambda = get_attribute(cc_config, "scoring_lambda", 1.0);
-          client.get_socket()->scoring_type = get_attribute<string>(cc_config, "scoring_type", "ssim");
+          client.get_socket()->buffer_length_coef = get_attribute(cc_config, "buffer_length_coef", 100.0);
+          client.get_socket()->quality_change_qoef = get_attribute(cc_config, "quality_change_qoef", 1.0);
+          client.get_socket()->scoring_type = get_attribute<string>(cc_config, "scoring_function_type", "ssim");
 
+          client.get_socket()->rl_model_path = get_attribute<string>(cc_config, "rl_path", "");
+
+          client.get_socket()->server_id = server_id_int;
           for (const auto & cc : ccs) {
             client.get_socket()->add_cc(cc.as<string>());
           }
-          std::string cc_string = "\nsupported ccs:";
+          std::string cc_string = "\nsupported ccs:\n";
           for(const auto& cc: client.get_socket()->get_supported_cc())
           {
             cc_string += cc + "\n";

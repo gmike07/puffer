@@ -72,6 +72,12 @@
         "regex": "cpp",
         "shared_mutex": "cpp",
         "variant": "cpp",
-        "charconv": "cpp"
+        "charconv": "cpp",
+        "strstream": "cpp",
+        "cfenv": "cpp",
+        "typeindex": "cpp",
+        "csetjmp": "cpp",
+        "cuchar": "cpp",
+        "scoped_allocator": "cpp"
     },
 }
