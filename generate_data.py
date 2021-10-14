@@ -5,7 +5,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import numpickle as npl
-from config_creator import CC_COLS, QUALITY_COLS, create_config, get_config
+from config_creator import CC_COLS, QUALITY_COLS, DELETED_COLS, create_config, get_config
 
 def generate_csv_from_file(file, file_index, f_chunk, f_answer, skip=1):
     chunk_index, counter = 0, 0
@@ -48,10 +48,11 @@ def generate_dfs(files, input_dir, ccs):
     f_answer.write(','.join(QUALITY_COLS) + '\n')
     if not os.path.exists(f"{input_dir}dfs"):
         os.mkdir(f"{input_dir}dfs")
+    cc_cols = ['file_index', 'chunk_index'] + [cc_col for cc_col in CC_COLS if cc_col not in DELETED_COLS] + ccs
     for i, file in enumerate(tqdm(iterable=files)):
         f = open(f"{input_dir}{file}", 'r')
         f_chunk = open(chunks_csv_path, 'w')
-        f_chunk.write(','.join(CC_COLS + ccs) + '\n')
+        f_chunk.write(','.join(cc_cols) + '\n')
         generate_csv_from_file(f, i, f_chunk, f_answer)
         f.close()
         f_chunk.close()

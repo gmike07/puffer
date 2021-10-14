@@ -41,10 +41,10 @@ class SL_Model(NN_Model):
        self.buffer_coef, self.change_coef = self.CONFIG['buffer_length_coef'], self.CONFIG['quality_change_qoef']
        self.scoring_type = self.CONFIG['scoring_function_type']
        self.output_size = OUTPUT_DIMS[output_type]
-       self.actions = [np.cat([np.arange(len(ccs)) == i for _ in range(len(ccs))], axis=0) for i in range(len(ccs))]
+       self.actions = [np.vstack([np.arange(len(ccs)) == i for _ in range(len(ccs))]) for i in range(len(ccs))]
     
     def calc_score(self, state, action):
-        x = super.forward(np.cat([state, action], axis=1))
+        x = super.forward(np.hstack([state, action]))
         if self.output_size == 1:
             return x
         if self.output_size == 3 or self.scoring_type == 'ssim':

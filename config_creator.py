@@ -21,7 +21,7 @@ CC_COLS = ['file_index', 'chunk_index', 'sndbuf_limited', 'rwnd_limited', 'busy_
             'retrans', 'lost', 'sacked', 'unacked', 'rcv_mss', 'snd_mss', 'ato',
             'rto', 'backoff', 'probes', 'ca_state', 'timestamp']
 
-CONFIG = {'epochs': 5, 'network_sizes': [500, 200, 100, 80, 50, 40, 30, 20],
+CONFIG = {'epochs': 5, 'model_network_sizes': [500, 200, 100, 80, 50, 40, 30, 20],
           'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
           'batch_size': 16, 'lr': 1e-4, 'betas': (0.5, 0.999),
           'weights_decay': 1e-4, 'version': 2.0, 'history_size': 7,
@@ -45,7 +45,7 @@ def create_config(input_dir, yaml_input_path, abr):
         CONFIG['scoring_func'] = cc_dct['predict_score']
 
         CONFIG['sample_size'] = len(set(CC_COLS + CONFIG['ccs']) - set(DELETED_COLS))
-        CONFIG['input_size'] = CONFIG['history_size'] * (CONFIG['random_sample'] * \
+        CONFIG['nn_input_size'] = CONFIG['history_size'] * (CONFIG['random_sample'] * \
                         CONFIG['sample_size'] + CONFIG['prediction_size']) + len(CONFIG['ccs'])
     CONFIG.update({'input_dir': input_dir})
 

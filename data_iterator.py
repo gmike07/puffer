@@ -47,7 +47,7 @@ class DataIterator:
         helper_answer = self.answers.drop(['chunk_index', 'file_index'], 1)
         for history in range(self.CONFIG['history_size'] - 1, -1, -1):
             mask = chunk_history['chunk_index'] == (chunk_index - history)
-            chunk_i = chunk_history[mask].drop(['chunk_index'], 1)
+            chunk_i = chunk_history[mask].drop(['chunk_index', 'file_index'], 1)
             random_indexes = np.random.choice(np.arange(len(chunk_i)),
                                               self.CONFIG['random_sample'],
                                               replace=True)
@@ -60,17 +60,17 @@ class DataIterator:
 
     def apply_scoring(self, answer):
         if self.output_type == 'qoe':
-            return answer['qoe']
+            return answer.loc['qoe']
         if self.output_type == 'ssim':
-            return answer[['ssim_quality', 'ssim_change', 'rebuffer']]
+            return answer.loc[['ssim_quality', 'ssim_change', 'rebuffer']]
         if self.output_type == 'bit_rate':
-            return answer[['bit_quality', 'bit_change', 'rebuffer']]
+            return answer.loc[['bit_quality', 'bit_change', 'rebuffer']]
         # all
-        return answer[['ssim_quality', 'ssim_change', 'rebuffer', 'bit_quality', 'bit_change']]
+        return answer.loc[['ssim_quality', 'ssim_change', 'rebuffer', 'bit_quality', 'bit_change']]
 
     def __next__(self):
         batch_size = self.CONFIG['batch_size']
-        answer_chunks = np.empty((batch_size, self.CONFIG['input_size']))
+        answer_chunks = np.empty((batch_size, self.CONFIG['nn_input_size']))
         answer_metrics = np.empty((batch_size, self.output_size))
         i = 0
         while i < batch_size:
@@ -91,6 +91,6 @@ class DataIterator:
             answer_metrics[i] = self.apply_scoring(answer)
             i += 1
         answer_chunks = torch.from_numpy(answer_chunks).to(self.CONFIG['device'])
-        answer_metrics = self.apply_scoring(answer_metrics).reshape((batch_size, -1)) / 100
+        answer_metrics = answer_metrics / 100
         answer_metrics = torch.from_numpy(answer_metrics).to(self.CONFIG['device'])
         return answer_chunks, answer_metrics
