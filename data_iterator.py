@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.lib.arraysetops import unique
 import pandas as pd
 import numpickle as npl
 from config_creator import get_config
@@ -8,7 +9,10 @@ import torch
 MAX_SSIM = 60.0
 
 class DataIterator:
-    def __init__(self, answers, remove_bad=True, output_type='qoe'):
+    def __init__(self, answers=None, remove_bad=True, output_type='qoe', remove_action=False):
+        if answers is None:
+            answer_path = f"{get_config()['input_dir']}dfs/answers.npy"
+            answers = npl.load_numpickle(answer_path)   
         self.answers = answers
         self.chunks = None
         self.current_df = -1
@@ -22,12 +26,18 @@ class DataIterator:
         self.answers['ssim_change'] /= MAX_SSIM
 
         if remove_bad:
-            good_files = self.answers[self.answers['qoe'] < 17]['file_index'].unique()
+            good_files = []
+            unique_files = self.answers['file_index'].unique()
+            for file_index in unique_files:
+                mask = (self.answers['file_index'] == file_index)
+                if self.answers[mask]['qoe'].mean() < 16:
+                    good_files.append(file_index)
             self.answers = self.answers[self.answers.file_index.isin(good_files)]
         
         self.N = len(self.answers)
         self.items = np.sum(self.answers['chunk_index'] >= self.CONFIG['history_size']) \
                      - len(self.answers['file_index'].unique())
+        self.remove_action = remove_action
 
 
     def __len__(self):
@@ -88,9 +98,11 @@ class DataIterator:
                 df_path = f"{self.CONFIG['input_dir']}dfs/chunks_{int(file_index)}.npy"
                 self.chunks = npl.load_numpickle(df_path)
             answer_chunks[i] = self.get_history_chunk(chunk_index)
-            answer_metrics[i] = self.apply_scoring(answer)
+            answer_metrics[i] = self.apply_scoring(next_answer)
             i += 1
         answer_chunks = torch.from_numpy(answer_chunks).to(self.CONFIG['device'])
+        if self.remove_action:
+            answer_chunks = answer_chunks[:, :-len(get_config()['ccs'])]
         answer_metrics = answer_metrics / 100
         answer_metrics = torch.from_numpy(answer_metrics).to(self.CONFIG['device'])
         return answer_chunks, answer_metrics

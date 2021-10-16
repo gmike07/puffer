@@ -31,3 +31,13 @@ nn_roundup: 500 # control the rate of change cc in case abr_time is false
 python_weights_path: '/home/mike/puffer/cc_weights/' # start path to the place where to store the nn weights for python
 cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/' # start path to the place where to store the nn weights for cpp
 predict_score: true # learn score or the params
+
+
+# new for clusters
+num_clusters: 20
+sl_model_name: sl_weights_4_abr_linear_bba_v2.0_ssim.pt
+remove_bad_files: false
+
+saving_cluster_path: '/home/mike/puffer/clusters/'
+# [500, 200, 100, 80, 50, 40, 30, 20] = layers
+context_layers: [7]

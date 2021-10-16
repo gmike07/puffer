@@ -37,7 +37,8 @@ def create_config(input_dir, yaml_input_path, abr):
     with open(yaml_input_path + 'cc.yml', 'r') as f:
         cc_dct = yaml.safe_load(f)
         CONFIG.update({key: cc_dct[key] for key in 
-                    ['history_size', 'ccs', 'scoring_function_type', 'buffer_length_coef', 'quality_change_qoef']})
+                    ['history_size', 'ccs', 'scoring_function_type', 'buffer_length_coef', 'quality_change_qoef', 
+                    'num_clusters', 'sl_model_name', 'remove_bad_files', 'saving_cluster_path', 'context_layers']})
 
         CONFIG['random_sample'] = cc_dct['random_sample_size']
         CONFIG['weights_path'] = cc_dct['python_weights_path']
