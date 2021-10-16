@@ -41,3 +41,9 @@ remove_bad_files: false
 saving_cluster_path: '/home/mike/puffer/clusters/'
 # [500, 200, 100, 80, 50, 40, 30, 20] = layers
 context_layers: [7]
+
+#new for exp3
+exp3_explore_parameter: 0.1
+exp3_model_path: '/home/mike/puffer/exp3/'
+
+server_port: 5675

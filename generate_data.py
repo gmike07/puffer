@@ -1,11 +1,11 @@
-import argparse
-import yaml
 import os
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import numpickle as npl
-from config_creator import CC_COLS, QUALITY_COLS, DELETED_COLS, create_config, get_config
+from config_creator import CC_COLS, QUALITY_COLS, DELETED_COLS, get_config
+from argument_parser import parse_arguments
+
 
 def generate_csv_from_file(file, file_index, f_chunk, f_answer, skip=1):
     chunk_index, counter = 0, 0
@@ -72,23 +72,11 @@ def filter_path(x: str, abr: str):
     return x.endswith('.txt') and x.find(f"abr_{abr}_") != -1
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-ip', "--input_dir", default='../cc_monitoring/')
-    parser.add_argument('-yid', "--yaml_input_dir", default='/home/mike/puffer/helper_scripts/')
-    parser.add_argument("--abr", default='')
-
-    args = parser.parse_args()
-    create_config(args.input_dir, args.yaml_input_dir, args.abr)
+if __name__ == '__main__':
+    parse_arguments()
     CONFIG = get_config()
     abr, ccs = CONFIG['abr'], CONFIG['ccs']
-    files = list(filter(lambda x: filter_path(x, abr), os.listdir(args.input_dir)))
+    files = list(filter(lambda x: filter_path(x, abr), os.listdir(CONFIG['input_dir'])))
     print('generating chunks...')
-    generate_dfs(files, args.input_dir, ccs)
-    answer_path = f"{args.input_dir}dfs/answers.npy"
-    answers = npl.load_numpickle(answer_path)
-    print(answers.describe())
-
-
-if __name__ == '__main__':
-    main()
+    generate_dfs(files, CONFIG['input_dir'], ccs)
+    print(npl.load_numpickle(f"{CONFIG['input_dir']}dfs/answers.npy").describe())

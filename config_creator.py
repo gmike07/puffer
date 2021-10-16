@@ -29,7 +29,8 @@ CONFIG = {'epochs': 5, 'model_network_sizes': [500, 200, 100, 80, 50, 40, 30, 20
           'prediction_size': len(set(QUALITY_COLS) - {'file_index', 'chunk_index'})}
 
 
-def create_config(input_dir, yaml_input_path, abr):
+def create_config(input_dir, yaml_input_path, abr, model_name, num_clients, test):
+    CONFIG.update({'model_name': model_name, 'training': not test, 'num_clients': num_clients})
     with open(yaml_input_path + 'abr.yml', 'r') as f:
         CONFIG['abr'] = yaml.safe_load(f)['abr']
     if abr != '':
@@ -38,7 +39,8 @@ def create_config(input_dir, yaml_input_path, abr):
         cc_dct = yaml.safe_load(f)
         CONFIG.update({key: cc_dct[key] for key in 
                     ['history_size', 'ccs', 'scoring_function_type', 'buffer_length_coef', 'quality_change_qoef', 
-                    'num_clusters', 'sl_model_name', 'remove_bad_files', 'saving_cluster_path', 'context_layers']})
+                    'num_clusters', 'sl_model_name', 'remove_bad_files', 'saving_cluster_path', 
+                    'context_layers', 'exp3_explore_parameter', 'exp3_model_path', 'server_port']})
 
         CONFIG['random_sample'] = cc_dct['random_sample_size']
         CONFIG['weights_path'] = cc_dct['python_weights_path']

@@ -1,6 +1,6 @@
-from config_creator import get_config, create_config
+from argument_parser import parse_arguments
+from config_creator import get_config
 from tqdm import tqdm
-import argparse
 import torch
 from data_iterator import DataIterator
 from models import SL_Model
@@ -32,13 +32,8 @@ def train_sl(model, loader):
         save_cpp_model(model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-ip', "--input_dir", default='../cc_monitoring/')
-    parser.add_argument('-yid', "--yaml_input_dir", default='/home/mike/puffer/helper_scripts/')
-    parser.add_argument("--abr", default='')
-    args = parser.parse_args()
-    create_config(args.input_dir, args.yaml_input_dir, args.abr)
+if __name__ == '__main__':
+    parse_arguments()
     model = SL_Model()    
     iterator = DataIterator(remove_bad=False, output_type='ssim')
     print('training all files...')
@@ -46,7 +41,3 @@ def main():
     iterator = DataIterator(remove_bad=True, output_type='ssim')
     print('training good files...')
     train_sl(model, iterator)
-
-
-if __name__ == '__main__':
-    main()

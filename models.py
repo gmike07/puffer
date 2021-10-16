@@ -3,6 +3,8 @@ from config_creator import CONFIG, get_config
 import torch
 import torch.nn.functional as F
 import numpy as np
+import pickle
+
 
 def create_actions():
     ccs = get_config()['ccs']
@@ -12,6 +14,14 @@ def create_actions():
 
 def merge_state_actions(state, action):
     return torch.from_numpy(np.hstack([state, action]))
+
+
+def load_cluster():
+    CONFIG = get_config()
+    kmeans = None
+    with open(f"{CONFIG['saving_cluster_path']}clusters_{CONFIG['num_clusters']}_{CONFIG['context_layers']}.pkl", 'rb') as f:
+        kmeans = pickle.load(f)
+    return kmeans
 
 
 class NN_Model(torch.nn.Module):
@@ -35,10 +45,10 @@ class NN_Model(torch.nn.Module):
     def forward(self, x):
         return self.model(x)
 
-    def predict(self, sent_state):
+    def predict(self, state):
         pass
 
-    def update(self, sent_state):
+    def update(self, state):
         pass
 
     def clear(self):
@@ -115,3 +125,116 @@ class ContextModel(torch.nn.Module):
 
     def save(self):
         self.base_model.save()
+
+
+class Exp3:
+    def __init__(self, num_clients, should_clear_weights=False, is_training=True):
+        self.max_weight_value = 1e6
+        self.num_clients = num_clients
+        self.last_actions = [None for _ in range(num_clients)]
+        self.num_actions = len(get_config()['ccs'])
+        self.weights = np.ones(self.num_actions)
+        self.gamma = get_config()['exp3_explore_parameter']
+        self.should_clear_weights = should_clear_weights
+        self.probabilites = self.calc_probabilities()
+        self.is_training = is_training
+
+    def clear(self):
+        self.last_actions = [None for _ in range(self.num_clients)]
+        if self.should_clear_weights:
+            self.weights = np.ones(self.num_actions)
+        else:
+            self.save()
+    
+    def normalize_qoe(self, qoe, min_value=-1000, max_value=60):
+        qoe = max(qoe, min_value) # qoe >= min_value
+        qoe = min(qoe, max_value) # qoe in [min_value, max_value]
+        return (qoe - min_value) / (max_value - min_value)
+
+    def save(self, path=''):
+        CONFIG = get_config()
+        if path == '':
+            path = f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}.npy"
+        np.save(path, self.weights)
+
+    def load(self, path=''):
+        CONFIG = get_config()
+        if path == '':
+            path = f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}.npy"
+        self.weights = np.load(path)
+        self.probabilites = self.calc_probabilities()
+
+    def calc_probabilities(self):
+        sum_weights = self.weights.sum()
+        return (1 - self.gamma) * self.weights / sum_weights + self.gamma / self.num_actions
+
+    def predict(self, state):
+        action = np.random.choice(np.arange(self.num_actions), p=self.probabilites)
+        self.last_actions[state['server_id']] = action
+        return action
+
+    def update(self, state):
+        if not self.is_training:
+            return
+        qoe = self.normalize_qoe(state['qoe'])
+        action_chosen = self.last_actions[state['server_id']]
+        if action_chosen is None:
+            return
+        scaled_reward = qoe / self.probabilites[action_chosen]
+        self.weights[action_chosen] *= np.exp(self.gamma / self.num_actions * scaled_reward)
+        if np.max(self.weights) > self.max_weight_value:
+            self.weights /= self.max_weight_value
+        self.probabilites = self.calc_probabilities()
+
+    
+class Exp3Kmeans:
+    def __init__(self, num_clients, should_clear_weights=False, is_training=True):
+        self.kmeans = load_cluster()
+        self.exp3_contexts = [Exp3(num_clients, should_clear_weights, is_training) for _ in range(get_config()['num_clusters'])]
+        self.context_model = ContextModel(SL_Model())
+        self.context_model.load()
+
+    def predict(self, state):
+        context_id = self.kmeans.predict(self.generate_context(state))
+        return self.exp3_contexts[context_id].predict(state)
+
+    def update(self, state):
+        context_id = self.kmeans.predict(self.generate_context(state))
+        self.exp3_contexts[context_id].update(state)
+
+    def clear(self):
+        for exp3 in self.exp3_contexts:
+            exp3.clear()
+
+    def save(self):
+        for i, exp3 in enumerate(self.exp3_contexts):
+            exp3.save(f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}_{i}.npy")
+
+    def load(self):
+        for i, exp3 in enumerate(self.exp3_contexts):
+            exp3.load(f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}_{i}.npy")
+
+    def generate_context(self, state):
+        return self.context_model.generate_context(torch.from_numpy(state['state'].reshape(1, -1))).reshape(-1)
+
+
+class ConstantModel:
+    def __init__(self, val=1):
+        self.val = val
+    
+    def predict(self, state):
+        return self.val
+
+    def update(self, state):
+        pass
+
+    def clear(self):
+        pass
+
+    def save(self):
+        pass
+
+    def load(self):
+        pass
+
+
