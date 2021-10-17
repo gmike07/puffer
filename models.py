@@ -93,7 +93,7 @@ class SL_Model(NN_Model):
     def save(self, path):
         torch.save({
             'model_state_dict': self.model.state_dict()
-        }, f"{CONFIG['weights_path']}{path}")
+        }, f"{get_config()['weights_path']}{path}")
 
 
 class ContextModel(torch.nn.Module):
@@ -207,10 +207,12 @@ class Exp3Kmeans:
             exp3.clear()
 
     def save(self):
+        CONFIG = get_config()
         for i, exp3 in enumerate(self.exp3_contexts):
             exp3.save(f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}_{i}.npy")
 
     def load(self):
+        CONFIG = get_config()
         for i, exp3 in enumerate(self.exp3_contexts):
             exp3.load(f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}_{i}.npy")
 
@@ -238,3 +240,62 @@ class ConstantModel:
         pass
 
 
+class RandomModel:
+    def __init__(self):
+        self.actions = np.arange(len(CONFIG['ccs']))
+    
+    def predict(self, state):
+        return np.random.choice(self.actions)
+
+    def update(self, state):
+        pass
+
+    def clear(self):
+        pass
+
+    def save(self):
+        pass
+
+    def load(self):
+        pass
+
+
+class IdModel:
+    def __init__(self):
+        pass
+    
+    def predict(self, state):
+        return state['server_id']
+
+    def update(self, state):
+        pass
+
+    def clear(self):
+        pass
+
+    def save(self):
+        pass
+
+    def load(self):
+        pass
+
+
+class Exp3Server:
+    def __init__(self, num_clients):
+        self.exp3s = [Exp3(num_clients, True, True) for _ in range(num_clients)]
+    
+    def predict(self, state):
+        return self.exp3s[state['server_id']].predict(state)
+
+    def update(self, state):
+        return self.exp3s[state['server_id']].update(state)
+
+    def clear(self):
+        for exp3 in self.exp3s:
+            exp3.clear()
+
+    def save(self):
+        pass
+
+    def load(self):
+        pass

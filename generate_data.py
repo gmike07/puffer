@@ -3,7 +3,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import numpickle as npl
-from config_creator import CC_COLS, QUALITY_COLS, DELETED_COLS, get_config
+from config_creator import get_config
 from argument_parser import parse_arguments
 
 
@@ -45,10 +45,10 @@ def generate_dfs(files, input_dir, ccs):
     answers_csv_path = f"{input_dir}answers.csv"
     files = list(files)
     f_answer = open(answers_csv_path, 'w')
-    f_answer.write(','.join(QUALITY_COLS) + '\n')
+    f_answer.write(','.join(get_config()['quality_cols']) + '\n')
     if not os.path.exists(f"{input_dir}dfs"):
         os.mkdir(f"{input_dir}dfs")
-    cc_cols = ['file_index', 'chunk_index'] + [cc_col for cc_col in CC_COLS if cc_col not in DELETED_COLS] + ccs
+    cc_cols = ['file_index', 'chunk_index'] + [cc_col for cc_col in get_config()['cc_cols'] if cc_col not in get_config()['deleted_cols']] + ccs
     for i, file in enumerate(tqdm(iterable=files)):
         f = open(f"{input_dir}{file}", 'r')
         f_chunk = open(chunks_csv_path, 'w')

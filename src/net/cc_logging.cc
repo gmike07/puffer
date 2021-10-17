@@ -144,7 +144,7 @@ struct LoggingChunk
 {
   const int MILLISECONDS_TO_SLEEP = 1;
   const int SKIP_NN = 300;
-  bool logging_file_created, scoring_file_created, model_created, rl_created, first_run, abr_time;
+  bool logging_file_created, scoring_file_created, model_created, server_created, first_run, abr_time;
   std::ofstream logging_file, scoring_file;
   std::shared_ptr<torch::jit::script::Module> model;
   uint64_t monitoring_start_time, start_time_nn;
@@ -156,7 +156,7 @@ struct LoggingChunk
     logging_file_created(socket.logging_path != ""), 
     scoring_file_created(socket.scoring_path != ""),
     model_created(socket.model_path != ""),
-    rl_created(socket.rl_model_path != ""),
+    server_created(socket.server_path != ""),
     first_run(true), abr_time(socket.abr_time),
     logging_file(std::ofstream(socket.logging_path, std::ios::out | std::ios::app)),
     scoring_file(std::ofstream(socket.scoring_path, std::ios::out | std::ios::app)),
@@ -492,7 +492,7 @@ void handle_nn_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistor
 }
 
 
-void handle_rl_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
+void handle_server_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
 {
   if(not update_history(socket, logging_chunk, chunk_history))
   {
@@ -523,19 +523,28 @@ void handle_rl_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistor
   curlpp::Cleanup clean;
   curlpp::Easy request;
   std::ostringstream response;
-  request.setOpt(new curlpp::options::Url(socket.rl_model_path));
+  request.setOpt(new curlpp::options::Url(socket.server_path));
   request.setOpt(new curlpp::options::HttpHeader(header));
   request.setOpt(new curlpp::options::PostFields(data.dump()));
   request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
   request.setOpt(new curlpp::options::WriteStream(&response));
+
   try {
     request.perform(); // 200 = ok and not enough data to switch, 409 = ok and sent json with {"cc": cc_to switch to}
     long status = curlpp::infos::ResponseCode::get(request);
-    if ((status == 409))
+    if(status == 400)
     {
-      int cc_index = json::parse(response.str())["cc"].get<int>();
-      change_cc(socket, cc_index);
+      std::cout << "error" << std::endl;
     }
+    if(status != 200)
+    {
+      change_cc(socket, (int)(status - 406));
+    }
+    // if ((status == 409))
+    // {
+    //   int cc_index = json::parse(response.str())["cc"].get<int>();
+    //   change_cc(socket, cc_index);
+    // }
   }
   catch (std::exception& e) {
     std::cout << "exception " << e.what() << std::endl;
@@ -573,15 +582,15 @@ void logging_cc_func(TCPSocket* socket)
       }
       if(logging_chunk.scoring_file_created)
       {
-        handle_scoring(sock, logging_chunk, logging_chunk.model_created);
+        handle_scoring(sock, logging_chunk, logging_chunk.model_created or logging_chunk.server_created);
       }
       if(logging_chunk.model_created)
       {
         handle_nn_model(sock, logging_chunk, chunk_history);
       }
-      if(logging_chunk.rl_created)
+      if(logging_chunk.server_created)
       {
-        handle_rl_model(sock, logging_chunk, chunk_history);
+        handle_server_model(sock, logging_chunk, chunk_history);
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(logging_chunk.MILLISECONDS_TO_SLEEP));
     }

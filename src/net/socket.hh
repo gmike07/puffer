@@ -137,7 +137,7 @@ public:
     std::string logging_path = "";
     std::string scoring_path = "";
     std::string model_path = "";
-    std::string rl_model_path = "";
+    std::string server_path = "";
 
 
     //data for model

@@ -3,7 +3,7 @@ import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
 
-from models import ConstantModel, Exp3Kmeans, Exp3, SL_Model
+from models import ConstantModel, Exp3Kmeans, Exp3, SL_Model, Exp3Server
 from config_creator import get_config
 from argument_parser import parse_arguments
 
@@ -20,12 +20,16 @@ def get_server_model(model):
                 data = self.rfile.read(content_len)
                 parsed_data = json.loads(data)
                 if 'state' in parsed_data:
+                    parsed_data['server_id'] -= 1
                     parsed_data['state'] = np.array(parsed_data['state'])
                     model.update(parsed_data)
                     self.send_response(406 + model.predict(parsed_data))
                     self.end_headers()
                 elif 'clear' in parsed_data:
+                    print('clearing...')
                     model.clear()
+                    self.send_response(200, 'OK')
+                    self.end_headers()
                 else:
                     self.send_response(400)
                     self.end_headers()
@@ -63,8 +67,9 @@ def create_model(model_name='exp3', training=True, num_clients=5):
         return Exp3Kmeans(num_clients, should_clear_weights=False, is_training=training)
     if model_name == 'exp3':
         return Exp3(num_clients, should_clear_weights=False, is_training=training)
-    if model_name == 'resetingExp3':
-        return Exp3(num_clients, should_clear_weights=True, is_training=training)
+
+    if model_name == 'exp3Server':
+        return Exp3Server(num_clients)
     if model_name == 'resetingExp3Kmeans':
         return Exp3Kmeans(num_clients, should_clear_weights=True, is_training=training)
     if model_name == 'constant':

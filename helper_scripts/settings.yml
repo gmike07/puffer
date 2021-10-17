@@ -1,0 +1,131 @@
+servers:
+  server_port: 5675
+  model_name: 'constant'
+
+paths:
+  cc_monitoring_path: "/home/mike/cc_monitoring/cc_" # start path to save the logging file of the cc data
+  cc_scoring_path: "/home/mike/cc_scoring/cc_score_" # start path to save the scoring file of the abr data
+
+
+contexts:
+  sl_model_name: sl_weights_4_abr_linear_bba_v2.0_ssim.pt # the model to generate context from
+  # [500, 200, 100, 80, 50, 40, 30, 20] = layers
+  context_layers: [7] # the layers of the model to generate context from
+
+
+clusters:
+# new for clusters
+  num_clusters: 20
+  saving_cluster_path: '/home/mike/puffer/clusters/'
+  remove_bad_files: false #remove files without internet problems in the training of the cluster
+
+exp3:
+  exp3_explore_parameter: 0.1
+  exp3_model_path: '/home/mike/puffer/exp3/'
+
+
+# not included, device, prediction_size
+nn_model:
+  epochs: 5
+  model_network_sizes: [500, 200, 100, 80, 50, 40, 30, 20]
+  batch_size: 16
+  lr: 1e-4
+  betas: (0.5, 0.999)
+  version: 2.0
+  weights_decay: 1e-4
+  weights_path: '/home/mike/puffer/cc_weights/' # start path to the place where to store the nn weights for python
+  cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/' # start path to the place where to store the nn weights for cpp
+
+
+fingerprint:
+  cc_config:
+    # function: q(Ci) - lambda * abs(q(Ci) - q(Ci-1)) - mu * rebuffer_time_i, supported scorings: ssim, bit_rate
+    # scoring params
+
+    # scoring_type: "bit_rate"
+    # scoring_mu: 4.3
+    # scoring_lambda: 1.0
+    scoring_function_type: "ssim" # the scoring method
+    buffer_length_coef: 100.0
+    quality_change_qoef: 1.0
+
+    #state params
+    history_size: 8 # how much previous chunks does the nn remember
+    random_sample_size: 100 # how much from previous chunks it gets as input
+    abr_time: true # replace cc each abr or once every _ time
+    nn_roundup: 500 # control the rate of change cc in case abr_time is false
+
+    ccs: ["bbr", "vegas", "cubic"] # all ccs
+    random_cc: false # should replace the cc during runtime, ignored in the code
+  cc: bbr # starting cc
+
+  #ABRS
+  abr: linear_bba
+  abr_config:
+    upper_reservoir: 0.9
+
+  # abr: pensieve
+  # abr_config:
+  #   pensieve_path: "/home/ubuntu/puffer/third_party/pensieve/multi_video_sim/rl_test.py"
+  #   nn_path: "/home/puffer/models/pensieve/nn_model_ep_77400.ckpt"
+
+
+  # abr: mpc
+  # abr_config:
+  #   rebuffer_length_coeff: 100
+
+
+  # abr: robust_mpc
+  # abr_config:
+  #   rebuffer_length_coeff: 100
+
+  # abr: puffer_ttp
+  # abr_config:
+  #   model_dir: ./weights/ttp/original
+  #   rebuffer_length_coeff: 100
+  #   collect_data: true
+  #   hidden2_model_dir: ./weights/ttp/hidden2/
+  #   max_lookahead_horizon: 1
+
+
+constants:
+  deleted_cols: ['file_index', 'chunk_index', 'max_pacing_rate', 'reordering',
+                  'advmss', 'pmtu', 'fackets', 'snd_mss', 'probes']
+  to_delete_cols: ['file_index', 'max_pacing_rate', 'reordering',
+                  'advmss', 'pmtu', 'fackets', 'snd_mss', 'probes']
+
+
+  qualities: ['426x240', '640x360', '854x480', '1280x720', '1920x1080']
+  quality_cols: ['file_index', 'chunk_index', 'ssim', 'video_buffer',
+                  'cum_rebuffer', 'media_chunk_size', 'trans_time',
+
+                  'qoe', 'ssim_quality', 'ssim_change', 'rebuffer', 
+                  'bit_quality', 'bit_change']
+
+  cc_cols: ['file_index', 'chunk_index', 'sndbuf_limited', 'rwnd_limited', 'busy_time',
+            'delivery_rate', 'data_segs_out', 'data_segs_in', 'min_rtt', 'notsent_bytes',
+            'segs_in', 'segs_out', 'bytes_received', 'bytes_acked', 'max_pacing_rate',
+            'total_retrans', 'rcv_space', 'rcv_rtt', 'reordering', 'advmss',
+            'snd_cwnd', 'snd_ssthresh', 'rttvar', 'rtt', 'rcv_ssthresh', 'pmtu',
+            'last_ack_recv', 'last_data_recv', 'last_data_sent', 'fackets',
+            'retrans', 'lost', 'sacked', 'unacked', 'rcv_mss', 'snd_mss', 'ato',
+            'rto', 'backoff', 'probes', 'ca_state', 'timestamp']
+
+simulation_constants:
+  trace-dir: './traces/final_traces/' # the folder that holds the final traces
+  yml_output_dir: '/home/mike/puffer/src/' # the folder to contain the final settings.yml for the simulation
+
+  delay: -1.0 # default delay for the simulation, -1.0 means randomized
+  loss: 0.0 # default delay for the simulation, -1.0 means randomized
+
+  mahimahi_epochs: 1 # how many iterations over the trace dir
+
+  num_models: 2 # how many models to average on
+
+  remote_base_port: 9222
+  base_port: 9360
+
+  delays: [100, 30, 40, 60]
+  losses: [0, 0.02, 0.05, 0.01]
+
+

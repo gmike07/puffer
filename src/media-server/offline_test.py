@@ -6,27 +6,23 @@ import signal
 import numpy as np
 import pandas as pd
 import os
-import yaml
-import argparse
-import copy
+from requests.api import get
+import requests
+import json
+
+from argument_parser import parse_arguments
+from config_creator import create_setting_yaml, get_config
 
 
-DELAYS = [100, 30, 40, 60]
-LOSSES = [0, 0.02, 0.05, 0.01]
-CONFIG = {'settings': np.array([(delay, loss) for delay in DELAYS for loss in LOSSES]),
-          'remote_base_port': 9222, 'base_port': 9360}
-good_traces = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 18, 20, 21, 22, 23, 24, 25, 26, 27, 
-                28, 29, 30, 31, 33, 34, 35, 36, 37, 38, 40, 41, 43, 44, 45, 46, 47, 48, 49, 50, 52, 
-                53, 54, 55, 57, 58, 60, 61, 62, 63, 65, 66, 68, 69, 71, 72, 73, 74, 75, 76, 77, 78, 
-                79, 82, 83, 84, 86, 87, 88, 89, 90, 91, 92, 94, 95, 96, 97, 98, 99, 100, 101, 103, 
-                104, 105]
+CONFIG = {}
 
-def get_delay_loss(args, index):
+
+def get_delay_loss(index):
     delay, loss = CONFIG['settings'][index % len(CONFIG['settings'])]
-    if args.loss != -1.0:
-        loss = args.loss
-    if args.delay != -1.0:
-        delay = args.delay
+    if CONFIG['loss'] == -1.0:
+        loss = 0
+    if CONFIG['delay'] == -1.0:
+        delay = 40
     return delay, loss
 
 
@@ -38,6 +34,7 @@ def run_offline_media_servers():
     p2 = subprocess.Popen(run_servers_cmd, shell=True, preexec_fn=os.setsid)
     time.sleep(5)
     return p1, p2
+
 
 def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
     remote_port = CONFIG['remote_base_port'] + trace_index
@@ -55,36 +52,46 @@ def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
     return mahimahi_chrome_cmd
 
 
-def start_maimahi_clients(args, clients, filedir, abr, exit_condition):
+def send_clear_to_server():
+    if CONFIG['generate_data']:
+        return
+    try:
+        requests.post(f"http://localhost:{CONFIG['server_port']}", json.dumps({'clear': 'clear'}))
+    except Exception as e:
+        pass
+    time.sleep(3)
+
+
+def create_failed_files(filedir, setting):
+    if CONFIG['test']:
+        return
+    arr = CONFIG['ccs'] + ['nn'] * CONFIG['num_models']
+    for i in range(len(arr)):
+        filepath = f"{filedir}{i+1}_abr_{CONFIG['abr']}_{arr[i]}_{setting}.txt"
+        if not os.path.exists(filepath):
+            with open(filepath, 'w') as f:
+                pass
+
+def start_maimahi_clients(clients, filedir, abr, exit_condition):
     plist = []
     try:
-        trace_dir = args.trace_dir + 'test/' if args.test else args.trace_dir + 'train/'
+        trace_dir = CONFIG['trace_dir'] + 'test/' if CONFIG['test'] else CONFIG['trace_dir'] + 'train/'
         traces = os.listdir(trace_dir)
         traces = list(sorted(traces))
-
-        # loop over only intresting files
-        # if args.test and args.all:
-        #     dir = args.all_path
-        #     files = os.listdir(dir[:dir.rfind('/')])
-        #     files = [file for file in files if file.endswith('.txt')]
-        #     max_num = max(int(file[file.rfind('_') + 1:-len('.txt')]) for file in files if file.endswith('.txt'))
-        #     df = show_table(dir, abr, max_num, np.mean, True, False)
-        #     traces = [traces[i] for i in df['num_experiment']]
-        #     delays, losses = df['delay'], df['loss']
         
-        for epoch in range(args.epochs):
-            num_clients = 1 if args.all else clients
+        for epoch in range(CONFIG['mahimahi_epochs']):
+            num_clients = 1 if CONFIG['test'] else clients
             for f in range(0, len(traces), num_clients):
 
                 p1, p2 = run_offline_media_servers()
                 plist = [p1, p2]
                 sleep_time = 3
                 setting = (epoch * int(len(traces) / num_clients)) + int(f / num_clients)
-                delay, loss = get_delay_loss(args, setting)
-                # if args.test and args.all:
-                #     delay, loss = delays.iloc[f], losses.iloc[f]
+                delay, loss = get_delay_loss(setting)
+
+
                 for i in range(1, clients + 1):
-                    index = f if args.test else f + i - 1
+                    index = f if CONFIG['test'] else f + i - 1
                     time.sleep(sleep_time)
                     mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index], i, delay, loss)
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
@@ -98,13 +105,9 @@ def start_maimahi_clients(args, clients, filedir, abr, exit_condition):
                 for p in plist[:2]:
                     os.killpg(os.getpgid(p.pid), signal.SIGTERM)
                     time.sleep(3)
-                if args.test:
-                    arr = CONFIG['ccs'] + ['nn'] + ['nn']
-                    for i in range(len(arr)):
-                        filepath = f'{filedir}{i+1}_abr_{abr}_{arr[i]}_{setting}.txt'
-                        if not os.path.exists(filepath):
-                            with open(filepath, 'w') as f:
-                                pass
+                
+                create_failed_files(filedir, setting)
+                send_clear_to_server()
                 subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
                 if exit_condition(setting):
@@ -118,100 +121,8 @@ def start_maimahi_clients(args, clients, filedir, abr, exit_condition):
                                   executable='/bin/bash')
 
 
-def main(args, clients, filedir, abr, exit_condition):
-    subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
-    subprocess.check_call("rm -rf ./*.profile", shell=True,
-                                      executable='/bin/bash')
-    if not os.path.exists('../cc_monitoring'):
-        os.mkdir('../cc_monitoring')
-    start_maimahi_clients(args, clients, filedir, abr, exit_condition)
-
-
-def delete_keys_dct(dct, keys):
-    for key in keys:
-        dct.pop(key, None)
-
-
-def create_settings(args):
-    default_dictionary = yaml.load(open(args.yml_input_dir + "default.yml", 'r'), Loader=yaml.FullLoader)
-    cc_dictionary = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)
-    abr_dictionary = yaml.load(open(args.yml_input_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)
-    abr = abr_dictionary['abr']
-    cc = cc_dictionary['cc']
-    predict_score = cc_dictionary['predict_score']
-    delete_keys_dct(abr_dictionary, ['abr'])
-    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path', 'ccs', 'predict_score'])
-    cc_scoring_path = cc_dictionary['cc_scoring_path']
-    cc_monitoring_path = cc_dictionary['cc_monitoring_path']
-    fingerprint = {'cc': cc, 'abr': abr, 'ccs': CONFIG['ccs']}
-    if len(abr_dictionary) != 0:
-        fingerprint['abr_config'] = abr_dictionary
-    if args.test:
-        delete_keys_dct(cc_dictionary, ['cc_monitoring_path'])
-        cc_dictionary['random_cc'] = False 
-        model_path = cc_dictionary['model_path']
-        delete_keys_dct(cc_dictionary, ['model_path'])
-        fingerprint.update({'cc_config': cc_dictionary})
-        default_dictionary.update({'experiments': [{
-            'num_servers': 1,
-            'fingerprint': copy.deepcopy(fingerprint)
-        } for _ in range(len(CONFIG['ccs']) + 1)]}) 
-        for i in range(len(CONFIG['ccs'])):
-            default_dictionary['experiments'][i]['fingerprint']['cc'] = CONFIG['ccs'][i]
-        default_dictionary['experiments'][-1]['fingerprint']['cc'] = 'bbr'
-        default_dictionary['experiments'][-1]['fingerprint']['cc_config']['model_path'] = model_path
-        default_dictionary['experiments'][-1]['fingerprint']['cc_config']['predict_score'] = predict_score
-        default_dictionary['experiments'].append(copy.deepcopy(default_dictionary['experiments'][-1]))
-    else:
-        delete_keys_dct(cc_dictionary, ['model_path', 'cc_scoring_path'])
-        cc_dictionary['random_cc'] = True
-        fingerprint['cc_config'] = cc_dictionary
-        default_dictionary.update({'experiments': [{
-            'num_servers': args.clients,
-            'fingerprint': fingerprint
-        }]})
-
-    with open(args.yml_output_dir + 'settings.yml', 'w') as outfile:
-        yaml.dump(default_dictionary, outfile)
-    with open(args.yml_output_dir + 'settings_offline.yml', 'w') as outfile:
-        yaml.dump(default_dictionary, outfile)
-    return (cc_scoring_path, abr) if args.test else (cc_monitoring_path, abr)
-
-
-
-def create_settings_not_random(input_yaml_dir, yaml_output_dir, clients=1):
-    default_dictionary = yaml.load(open(input_yaml_dir + "default.yml", 'r'), Loader=yaml.FullLoader)
-    cc_dictionary = yaml.load(open(input_yaml_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)
-    abr_dictionary = yaml.load(open(input_yaml_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)
-    abr = abr_dictionary['abr']
-    cc = cc_dictionary['cc']
-    delete_keys_dct(abr_dictionary, ['abr'])
-    delete_keys_dct(cc_dictionary, ['cc', 'python_weights_path', 'cpp_weights_path', 'ccs', 'predict_score'])
-    cc_monitoring_path = cc_dictionary['cc_monitoring_path']
-    fingerprint = {'cc': cc, 'abr': abr, 'ccs': CONFIG['ccs']}
-    if len(abr_dictionary) != 0:
-        fingerprint['abr_config'] = abr_dictionary
-    
-    delete_keys_dct(cc_dictionary, ['model_path', 'cc_scoring_path'])
-    cc_dictionary['random_cc'] = False
-    fingerprint['cc_config'] = cc_dictionary
-    default_dictionary.update({'experiments': [{
-        'num_servers': clients,
-        'fingerprint': copy.deepcopy(fingerprint)
-    } for _ in range(len(CONFIG['ccs']))]})
-    for i in range(len(CONFIG['ccs'])):
-        default_dictionary['experiments'][i]['fingerprint']['cc'] = CONFIG['ccs'][i]
-
-    with open(yaml_output_dir + 'settings.yml', 'w') as outfile:
-        yaml.dump(default_dictionary, outfile)
-    with open(yaml_output_dir + 'settings_offline.yml', 'w') as outfile:
-        yaml.dump(default_dictionary, outfile)
-    return cc_monitoring_path, abr
-
-
 def create_arr(filedir, abr, i, ccs, func):
     arr = np.empty((len(ccs)))
-    filedir = filedir[:filedir.rfind('/')]
     files = os.listdir(filedir)
     for j in range(len(ccs)):
         file = [f for f in files if f.find(f'abr_{abr}_{ccs[j]}_{i}.txt') != -1][0]
@@ -224,8 +135,8 @@ def create_arr(filedir, abr, i, ccs, func):
 
 def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     dfs = []
-    ccs = CONFIG['ccs'] + ['nn'] + ['nn']
-    ccs_named = CONFIG['ccs'] + ['nn1'] + ['nn2']
+    ccs = CONFIG['ccs'] + ['nn'] * len(CONFIG['num_models'])
+    ccs_named = CONFIG['ccs'] + [f'nn{i}' for i in range(len(CONFIG['num_models']))]
     for i in range(max_iter):
         a = create_arr(filedir, abr, i, ccs, func)
         if a is not None:
@@ -244,58 +155,55 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     df.insert(0, "delay", CONFIG['settings'][(arr - 1) % len(CONFIG['settings']), 0])
     # df.insert(0, "num_experiment", arr)
     df = df[df['nn'] < 17]
-    if to_print:
+    if to_print and is_max:
         print(df)
     return df
-    # print(list(arr))
 
 
-def eval_scores(args):
-    filedir = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['cc_scoring_path']
-    abr = yaml.load(open(args.yml_input_dir + "abr.yml", 'r'), Loader=yaml.FullLoader)['abr']
-    files = os.listdir(filedir[:filedir.rfind('/')])
+def eval_scores():
+    path = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/')]
+    files = os.listdir(path)
     max_num = max(int(file[file.rfind('_') + 1:-len('.txt')]) for file in files if file.endswith('.txt'))
     print('mean')
-    show_table(filedir, abr, max_num, np.mean)
+    show_table(path, CONFIG['abr'], max_num, np.mean)
     print('='*60)
     print('var')
-    show_table(filedir, abr, max_num, np.var, is_max=False)
+    show_table(path, CONFIG['abr'], max_num, np.var, is_max=False)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--clients", default=5, type=int)
-    parser.add_argument("--epochs", default=1, type=int)
-    parser.add_argument("--trace-dir", default='./traces/final_traces/')
-    parser.add_argument("--count_iter", default=-1)
-    parser.add_argument("-t", "--test", default=False, action='store_true')
-    parser.add_argument("-a", "--all", default=False, action='store_true')
-    parser.add_argument("-v", "--eval", default=False, action='store_true')
-    parser.add_argument("-yid", "--yml-input-dir", default='/home/mike/puffer/helper_scripts/')
-    parser.add_argument("--all_path", default="/home/mike/cc_scoring/linear_bba_all_1/cc_score_")
-    parser.add_argument("-yod", "--yml-output-dir", default='/home/mike/puffer/src/')
-    parser.add_argument("--delay", default=-1.0)
-    parser.add_argument("--loss", default=0.0)
-    
-    args = parser.parse_args()
-    
-    CONFIG['ccs'] = yaml.load(open(args.yml_input_dir + "cc.yml", 'r'), Loader=yaml.FullLoader)['ccs']
 
-    if args.eval:
+    args = parse_arguments()
+
+    CONFIG.update(get_config())
+
+    if CONFIG['eval']:
         eval_scores(args)
         exit()
 
-    filedir, abr = create_settings(args)
-    clients = len(CONFIG['ccs']) + 2 if args.test else args.clients
-    exit_condition = lambda setting_number: args.test and (setting_number == (len(CONFIG['settings']) - 1)) and (not args.all)
 
-    main(args, clients, filedir, abr, exit_condition)
+    # create settings file
+    if CONFIG['generate_data']:
+        create_setting_yaml(generating_data='randomized')
+    else:
+        create_setting_yaml(test=CONFIG['test'])
+    
+    send_clear_to_server()
+
+    # special call for the code to work
+    subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
+    subprocess.check_call("rm -rf ./*.profile", shell=True,
+                                      executable='/bin/bash')
+    if not os.path.exists('../cc_monitoring'):
+        os.mkdir('../cc_monitoring')
+
+    scoring_dir = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/') + 1]
+    start_maimahi_clients(args, CONFIG['num_clients'], scoring_dir, CONFIG['abr'], lambda _ : False)
     print('finished generating data')
 
-    if args.test:
+    if CONFIG['test']:
         eval_scores(args)
-    else:
-        create_settings_not_random(args.yml_input_dir, args.yml_output_dir)
-        clients = len(CONFIG['ccs']) # 3 per client
+    elif CONFIG['generate_data']:
+        create_setting_yaml(generating_data='fixed')
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
-        main(args, clients, filedir, abr, exit_condition)
+        start_maimahi_clients(args, CONFIG['num_clients'], scoring_dir, CONFIG['abr'], exit_condition)

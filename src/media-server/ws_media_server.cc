@@ -805,7 +805,7 @@ int run_websocket_server()
           client.get_socket()->quality_change_qoef = get_attribute(cc_config, "quality_change_qoef", 1.0);
           client.get_socket()->scoring_type = get_attribute<string>(cc_config, "scoring_function_type", "ssim");
 
-          client.get_socket()->rl_model_path = get_attribute<string>(cc_config, "rl_path", "");
+          client.get_socket()->server_path = get_attribute<string>(cc_config, "server_path", "");
 
           client.get_socket()->server_id = server_id_int;
           for (const auto & cc : ccs) {
@@ -833,7 +833,7 @@ int run_websocket_server()
           {
             bool model_created = client.get_socket()->model_path != "";
             string cc = "nn";
-            if(not model_created)
+            if(not model_created and client.get_socket()->server_path == "")
             {
               cc = client.get_socket()->get_congestion_control();
             }
