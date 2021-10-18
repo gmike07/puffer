@@ -9,9 +9,13 @@ import os
 from requests.api import get
 import requests
 import json
-
+import sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+grandparentdir = os.path.dirname(parentdir)
+sys.path.append(grandparentdir)
 from argument_parser import parse_arguments
-from config_creator import create_setting_yaml, get_config
+from config_creator import get_config, create_setting_yaml
 
 
 CONFIG = {}
@@ -19,10 +23,10 @@ CONFIG = {}
 
 def get_delay_loss(index):
     delay, loss = CONFIG['settings'][index % len(CONFIG['settings'])]
-    if CONFIG['loss'] == -1.0:
-        loss = 0
-    if CONFIG['delay'] == -1.0:
-        delay = 40
+    if CONFIG['loss'] != -1.0:
+        loss = CONFIG['loss']
+    if CONFIG['delay'] != -1.0:
+        delay = CONFIG['delay']
     return delay, loss
 
 
@@ -72,6 +76,13 @@ def create_failed_files(filedir, setting):
             with open(filepath, 'w') as f:
                 pass
 
+
+def kill_proccesses(plist, sleep_time=3):
+    for p in plist:
+        os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+        time.sleep(sleep_time)
+
+
 def start_maimahi_clients(clients, filedir, abr, exit_condition):
     plist = []
     try:
@@ -99,12 +110,9 @@ def start_maimahi_clients(clients, filedir, abr, exit_condition):
                     plist.append(p)
 
                 time.sleep(60*10 - sleep_time * clients)
-                for p in plist[2:]:
-                    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
-                    time.sleep(sleep_time)
-                for p in plist[:2]:
-                    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
-                    time.sleep(3)
+
+                kill_proccesses(plist[2:], sleep_time)
+                kill_proccesses(plist[:2])
                 
                 create_failed_files(filedir, setting)
                 send_clear_to_server()
@@ -115,10 +123,9 @@ def start_maimahi_clients(clients, filedir, abr, exit_condition):
     except Exception as e:
         print("exception: " + str(e))
     finally:
-        for p in plist:
-            os.killpg(os.getpgid(p.pid), signal.SIGTERM)
-            subprocess.check_call("rm -rf ./*.profile", shell=True,
-                                  executable='/bin/bash')
+        kill_proccesses(plist)
+        subprocess.check_call("rm -rf ./*.profile", shell=True,
+            executable='/bin/bash')
 
 
 def create_arr(filedir, abr, i, ccs, func):
@@ -172,13 +179,12 @@ def eval_scores():
 
 
 if __name__ == '__main__':
-
-    args = parse_arguments()
-
+    parse_arguments()
     CONFIG.update(get_config())
 
+
     if CONFIG['eval']:
-        eval_scores(args)
+        eval_scores()
         exit()
 
 
@@ -198,12 +204,12 @@ if __name__ == '__main__':
         os.mkdir('../cc_monitoring')
 
     scoring_dir = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/') + 1]
-    start_maimahi_clients(args, CONFIG['num_clients'], scoring_dir, CONFIG['abr'], lambda _ : False)
+    start_maimahi_clients(CONFIG['num_clients'], scoring_dir, CONFIG['abr'], lambda _ : False)
     print('finished generating data')
 
     if CONFIG['test']:
-        eval_scores(args)
+        eval_scores()
     elif CONFIG['generate_data']:
         create_setting_yaml(generating_data='fixed')
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
-        start_maimahi_clients(args, CONFIG['num_clients'], scoring_dir, CONFIG['abr'], exit_condition)
+        start_maimahi_clients(CONFIG['num_clients'], scoring_dir, CONFIG['abr'], exit_condition)

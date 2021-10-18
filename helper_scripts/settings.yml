@@ -31,7 +31,7 @@ nn_model:
   batch_size: 16
   lr: 1e-4
   betas: (0.5, 0.999)
-  version: 2.0
+  version: 1.0
   weights_decay: 1e-4
   weights_path: '/home/mike/puffer/cc_weights/' # start path to the place where to store the nn weights for python
   cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/' # start path to the place where to store the nn weights for cpp
@@ -55,8 +55,9 @@ fingerprint:
     abr_time: true # replace cc each abr or once every _ time
     nn_roundup: 500 # control the rate of change cc in case abr_time is false
 
-    ccs: ["bbr", "vegas", "cubic"] # all ccs
     random_cc: false # should replace the cc during runtime, ignored in the code
+
+  ccs: ["bbr", "vegas", "cubic"] # all ccs
   cc: bbr # starting cc
 
   #ABRS
@@ -112,11 +113,11 @@ constants:
             'rto', 'backoff', 'probes', 'ca_state', 'timestamp']
 
 simulation_constants:
-  trace-dir: './traces/final_traces/' # the folder that holds the final traces
+  trace_dir: './traces/final_traces/' # the folder that holds the final traces
   yml_output_dir: '/home/mike/puffer/src/' # the folder to contain the final settings.yml for the simulation
 
-  delay: -1.0 # default delay for the simulation, -1.0 means randomized
-  loss: 0.0 # default delay for the simulation, -1.0 means randomized
+  delay: -1.0 # default delay for the simulation, -1.0 means not to use this value
+  loss: 0.0 # default delay for the simulation, -1.0 means not to use this value
 
   mahimahi_epochs: 1 # how many iterations over the trace dir
 
