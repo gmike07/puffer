@@ -235,12 +235,8 @@ public:
         supported_ccs.push_back(cc);
     }
 
-    inline std::string generate_chunk_statistics() const
+    inline std::vector<double> get_qoe_vector() const
     {
-        if(not curr_chunk.is_video)
-        {
-            return "audio,";
-        }
         double curr_quality_ssim = quality_chunk(curr_chunk, "ssim"), prev_quality_ssim = 0;
         double change_quality_ssim = 0, curr_quality_bit = quality_chunk(curr_chunk, "bit_rate");
         double prev_quality_bit = 0, change_quality_bit = 0;
@@ -255,18 +251,30 @@ public:
         }
         // media / 100 / 100000.0
         // time / 1000
-        return "video," + std::to_string(curr_chunk.ssim) + "," +
-                socket_double_to_string(curr_chunk.video_buffer, 8) + "," + 
-                socket_double_to_string(curr_chunk.cum_rebuffer, 8) + "," +
-                std::to_string(curr_chunk.media_chunk_size / 100000.0 / 100.0) + "," +
-                std::to_string(curr_chunk.trans_time / 1000.0) + "," +
-                std::to_string(curr_quality_ssim - change_quality_ssim * quality_change_qoef - change_quality_ssim * quality_change_qoef) + "," +
-                std::to_string(curr_quality_ssim) + "," +
-                std::to_string(change_quality_ssim * quality_change_qoef) + "," +
-                std::to_string(buffer_length_coef * rebuffer_time) + "," +
-                std::to_string(curr_quality_bit) + "," +
-                std::to_string(quality_change_qoef * change_quality_bit);
+        return {curr_chunk.ssim, curr_chunk.video_buffer, curr_chunk.cum_rebuffer,
+                curr_chunk.media_chunk_size / 100000.0 / 100.0, 
+                curr_chunk.trans_time / 1000.0,
+                curr_quality_ssim - change_quality_ssim * quality_change_qoef - buffer_length_coef * rebuffer_time,
+                curr_quality_ssim / MAX_SSIM,
+                change_quality_ssim * quality_change_qoef / MAX_SSIM,
+                buffer_length_coef * rebuffer_time, curr_quality_bit,
+                quality_change_qoef * change_quality_bit};
     }
+
+    inline std::string generate_chunk_statistics() const
+    {
+        if(not curr_chunk.is_video)
+        {
+            return "audio,";
+        }
+        std::string stats = "video,";
+        for(double stat: get_qoe_vector())
+        {
+            stats += socket_double_to_string(stat, 8) + ",";
+        }
+        return stats.substr(0, stats.size() - 1);
+    }
+
 
     inline std::vector<uint64_t> get_tcp_full_vector() const
     {

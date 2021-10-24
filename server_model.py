@@ -3,7 +3,7 @@ import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
 
-from models import ConstantModel, Exp3Kmeans, Exp3, SL_Model, Exp3Server
+from models import ConstantModel, Exp3Kmeans, Exp3, SL_Model, StackingModelsServer
 from config_creator import get_config
 from argument_parser import parse_arguments
 
@@ -21,7 +21,8 @@ def get_server_model(model):
                 parsed_data = json.loads(data)
                 if 'state' in parsed_data:
                     parsed_data['server_id'] -= 1
-                    parsed_data['state'] = np.array(parsed_data['state'])
+                    parsed_data['state'] = np.array(parsed_data['state']).reshape(1, -1)
+                    # print('state length', parsed_data['state'].shape)
                     model.update(parsed_data)
                     self.send_response(406 + model.predict(parsed_data))
                     self.end_headers()
@@ -63,13 +64,20 @@ def start_server(model, addr, port, is_rl=False):
 
 
 def create_model(model_name='exp3', training=True, num_clients=5):
+    if not training:
+        conf = get_config()
+        config_models = [conf['all_models_config'][test_name] for test_name in conf['test_models']]
+        return StackingModelsServer(config_models)
+
+    
     if model_name == 'exp3Kmeans':
         return Exp3Kmeans(num_clients, should_clear_weights=False, is_training=training)
     if model_name == 'exp3':
         return Exp3(num_clients, should_clear_weights=False, is_training=training)
-
     if model_name == 'exp3Server':
-        return Exp3Server(num_clients)
+        conf = get_config()
+        config_models = [conf['all_models_config']['resettingExp3'] for _ in range(num_clients)]
+        return StackingModelsServer(config_models)
     if model_name == 'resetingExp3Kmeans':
         return Exp3Kmeans(num_clients, should_clear_weights=True, is_training=training)
     if model_name == 'constant':

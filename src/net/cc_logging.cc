@@ -203,9 +203,9 @@ public:
     }
   }
 
-  void push_statistic(const ChunkInfo& info)
+  void push_statistic(TCPSocket& socket)
   {
-    qoe_statistics.push_back(info);
+    qoe_statistics.push_back(socket.get_qoe_vector());
     if(qoe_statistics.size() > (size_t) history_size)
     {
       qoe_statistics.pop_front();
@@ -232,7 +232,7 @@ public:
       {
         vec.insert(std::end(vec), std::begin(curr_state), std::end(curr_state));
       }
-      auto vec_statistics = normalize_statistics(qoe_statistics[i]);
+      auto vec_statistics = qoe_statistics[i];
       vec.insert(std::end(vec), std::begin(vec_statistics), std::end(vec_statistics));
       // auto& last_sample = chunk[chunk.size() - 1];
       // vec.push_back(last_sample[last_sample.size() - 1]); //the transmition of the own chunk
@@ -247,12 +247,20 @@ public:
     return history_chunks.size();
   }
 
+  inline std::string get_info() const
+  {
+    return "history size:" + std::to_string(history_size) + 
+          ",\tsample size" + std::to_string((*history_chunks.begin())[0].size()) +
+          ",\tnum of samples" + std::to_string(sample_size) +
+          ",\tqoe length" + std::to_string((*qoe_statistics.begin()).size());
+  }
+
 private:
   const int history_size;
   const int sample_size;
   std::vector<std::vector<double>> curr_chunk;
   std::deque<std::vector<std::vector<double>>> history_chunks;
-  std::deque<ChunkInfo> qoe_statistics;
+  std::deque<std::vector<double>> qoe_statistics;
 };
 
 
@@ -450,7 +458,7 @@ bool update_history(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory
   }
   //should change cc
   chunk_history.push_chunk();
-  chunk_history.push_statistic(socket.get_current_chunk());
+  chunk_history.push_statistic(socket);
   if(chunk_history.size() != ((size_t) socket.history_size))
   {
     return false;
@@ -498,18 +506,12 @@ void handle_server_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHi
   {
     return;
   }
-
-  std::pair<double*, size_t> inputs = create_state_from_history(socket, chunk_history);
-  //remove the current cc 
-  double* state = inputs.first;
-  size_t inputs_size = inputs.second;
-  size_t number_ccs = socket.get_supported_cc().size();
-  std::vector<double> state_vec(inputs_size - number_ccs, 0);
-  for(size_t i = 0; i < state_vec.size(); i++)
-  {
-    state_vec[i] = state[i];
-  }
-  json json_state(state_vec);
+  std::vector<double> state(0);
+  chunk_history.get_sample_history(state);
+  // std::string s = "state_size: " + std::to_string(state.size()) + "," + chunk_history.get_info() + "\n";
+  // std::cout << s << std::endl;
+  // return;
+  json json_state(state);
   
   json data;
   data["state"] = json_state;

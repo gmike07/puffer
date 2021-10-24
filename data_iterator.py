@@ -22,8 +22,8 @@ class DataIterator:
 
         self.output_type = output_type
         self.output_size = OUTPUT_DIMS[self.output_type]
-        self.answers['ssim_quality'] /= MAX_SSIM
-        self.answers['ssim_change'] /= MAX_SSIM
+        # self.answers['ssim_quality'] /= MAX_SSIM
+        # self.answers['ssim_change'] /= MAX_SSIM
 
         if remove_bad:
             good_files = []

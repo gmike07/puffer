@@ -797,7 +797,7 @@ int run_websocket_server()
           client.get_socket()->random_cc = get_attribute(cc_config, "random_cc", false);
           client.get_socket()->model_path = get_attribute<string>(cc_config, "model_path", "");
           client.get_socket()->history_size = get_attribute(cc_config, "history_size", 40);
-          client.get_socket()->sample_size = get_attribute(cc_config, "sample_size", 5);
+          client.get_socket()->sample_size = get_attribute(cc_config, "random_sample_size", 5);
           client.get_socket()->abr_time = get_attribute(cc_config, "abr_time", false);
           client.get_socket()->predict_score = get_attribute(cc_config, "predict_score", false);
           client.get_socket()->nn_roundup = get_attribute(cc_config, "nn_roundup", 1000);
@@ -836,6 +836,11 @@ int run_websocket_server()
             if(not model_created and client.get_socket()->server_path == "")
             {
               cc = client.get_socket()->get_congestion_control();
+            }
+            std::string model_name = get_attribute<string>(cc_config, "model_name", "");
+            if(model_name != "")
+            {
+              cc = model_name;
             }
             scoring_path = scoring_path + server_id + "_abr_" + abr_name + "_" + cc + "_";
             int index = find_index(scoring_path);

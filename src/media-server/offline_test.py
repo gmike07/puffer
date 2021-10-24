@@ -67,11 +67,11 @@ def send_clear_to_server():
 
 
 def create_failed_files(filedir, setting):
-    if CONFIG['test']:
+    if not CONFIG['test']:
         return
-    arr = CONFIG['ccs'] + ['nn'] * CONFIG['num_models']
+    arr = get_config()['test_models']
     for i in range(len(arr)):
-        filepath = f"{filedir}{i+1}_abr_{CONFIG['abr']}_{arr[i]}_{setting}.txt"
+        filepath = f"{filedir}cc_score_{i+1}_abr_{CONFIG['abr']}_{arr[i]}_{setting}.txt"
         if not os.path.exists(filepath):
             with open(filepath, 'w') as f:
                 pass
@@ -83,7 +83,7 @@ def kill_proccesses(plist, sleep_time=3):
         time.sleep(sleep_time)
 
 
-def start_maimahi_clients(clients, filedir, abr, exit_condition):
+def start_maimahi_clients(clients, filedir, exit_condition):
     plist = []
     try:
         trace_dir = CONFIG['trace_dir'] + 'test/' if CONFIG['test'] else CONFIG['trace_dir'] + 'train/'
@@ -142,8 +142,9 @@ def create_arr(filedir, abr, i, ccs, func):
 
 def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     dfs = []
-    ccs = CONFIG['ccs'] + ['nn'] * len(CONFIG['num_models'])
-    ccs_named = CONFIG['ccs'] + [f'nn{i}' for i in range(len(CONFIG['num_models']))]
+    ccs = get_config()['test_models']
+    dct = {'constant_0': 0, 'constant_1': 1, 'constant_2': 2}
+    ccs_named = list(map(lambda x: get_config()['ccs'][dct[x]] if x in dct else x, ccs))
     for i in range(max_iter):
         a = create_arr(filedir, abr, i, ccs, func)
         if a is not None:
@@ -151,17 +152,17 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
             dct.update({ccs_named[i]: a[i] for i in range(len(ccs_named))})
             dfs.append(pd.DataFrame(dct))
     df = pd.concat(dfs)
-    df['nn'] = (df['nn1'] + df['nn2']) / 2
     arr = df['exp']
-    df = df.drop(['exp', 'nn1', 'nn2'], 1)
-    if is_max:
-        df['max-nn'] = np.max(df, axis=1) - df['nn']
-    else:
-        df['min-nn'] = df['nn'] - np.min(df, axis=1)
-    df.insert(0, "loss", CONFIG['settings'][(arr - 1) % len(CONFIG['settings']), 1])
-    df.insert(0, "delay", CONFIG['settings'][(arr - 1) % len(CONFIG['settings']), 0])
-    # df.insert(0, "num_experiment", arr)
-    df = df[df['nn'] < 17]
+    df = df.drop(['exp'], 1)
+    # if is_max:
+    #     df['max-nn'] = np.max(df, axis=1) - df['nn']
+    # else:
+    #     df['min-nn'] = df['nn'] - np.min(df, axis=1)
+    delays = np.array([tup[0] for tup in CONFIG['settings']])
+    losses = np.array([tup[1] for tup in CONFIG['settings']])
+    df.insert(0, "loss", losses[(arr - 1) % len(losses)])
+    df.insert(0, "delay", delays[(arr - 1) % len(delays)])
+    df = df[df['bbr'] < 17]
     if to_print and is_max:
         print(df)
     return df
@@ -204,7 +205,7 @@ if __name__ == '__main__':
         os.mkdir('../cc_monitoring')
 
     scoring_dir = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/') + 1]
-    start_maimahi_clients(CONFIG['num_clients'], scoring_dir, CONFIG['abr'], lambda _ : False)
+    start_maimahi_clients(CONFIG['num_clients'], scoring_dir, lambda _ : False)
     print('finished generating data')
 
     if CONFIG['test']:
@@ -212,4 +213,4 @@ if __name__ == '__main__':
     elif CONFIG['generate_data']:
         create_setting_yaml(generating_data='fixed')
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
-        start_maimahi_clients(CONFIG['num_clients'], scoring_dir, CONFIG['abr'], exit_condition)
+        start_maimahi_clients(CONFIG['num_clients'], scoring_dir, exit_condition)

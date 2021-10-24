@@ -44,19 +44,31 @@ def create_setting_yaml(generating_data='', test=False):
         write_yaml_settings(experiments_dct)
         return
     
-    fixed_ccs = CONFIG['ccs'] if test else []
+
     if test:
         copy_fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
-    
+
     copy_fingerprint['cc_config']['random_cc'] = False
     experiments_dct = {'experiments': [{'fingerprint': copy.deepcopy(copy_fingerprint), 
                                         'num_servers': 1} for _ in range(CONFIG['num_clients'])]
                     }
-    for i, cc in enumerate(fixed_ccs):
-        experiments_dct['experiments'][i]['fingerprint']['cc'] = cc
-    for i in range(len(fixed_ccs), CONFIG['num_clients']):
-        experiments_dct['experiments'][i]['fingerprint']['cc'] = 'bbr'
-        experiments_dct['experiments'][i]['fingerprint']['cc_config']['server_path'] = f"http://localhost:{CONFIG['server_port']}"
+
+
+    for i in range(CONFIG['num_clients']):
+        fingerprint = experiments_dct['experiments'][i]['fingerprint']
+        if test:
+            model_config = CONFIG['all_models_config'][CONFIG['test_models'][i]]
+            fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
+            fingerprint['cc_config']['model_name'] = model_config['model_name']
+            if model_config['model_name'].startswith('constant'): # fixed cc
+                fingerprint['cc'] = CONFIG['ccs'][model_config['cc_id']]
+            else:
+                fingerprint['cc'] = 'bbr'
+                fingerprint['cc_config']['server_path'] = f"http://localhost:{CONFIG['server_port']}"
+
+        else:
+            fingerprint['cc'] = 'bbr'
+            fingerprint['cc_config']['server_path'] = f"http://localhost:{CONFIG['server_port']}"
     write_yaml_settings(experiments_dct)
 
 
@@ -88,12 +100,6 @@ def create_config(yaml_input_path, abr='', num_clients=5, test=False, eval=False
         index = path.rfind('/')
         scoring_path = path[:index] + '/' + CONFIG['abr'] + '_' + CONFIG['model_name'] + path[index:]
         CONFIG.update({'scoring_path': scoring_path})
-
-        if CONFIG['test']:
-            create_dir(scoring_path)
-
-        if CONFIG['test']:
-            CONFIG['num_clients'] = len(CONFIG['ccs']) + CONFIG['num_models']
         
         CONFIG['settings'] = [(delay, loss) for delay in CONFIG['delays'] for loss in CONFIG['losses']]
 
@@ -101,6 +107,17 @@ def create_config(yaml_input_path, abr='', num_clients=5, test=False, eval=False
         CONFIG['lr'] = float(CONFIG['lr'])
         helper_split = CONFIG['betas'][1:-1].split(',')
         CONFIG['betas'] = (float(helper_split[0]), float(helper_split[1]))
+
+        mapping = {}
+        for model_config in yaml_dct['all_models']:
+            mapping[model_config['model_name']] = model_config
+        CONFIG['all_models_config'] = mapping
+
+
+        if CONFIG['test']:
+            create_dir(scoring_path[:scoring_path.rfind('/')])
+            CONFIG['num_clients'] = len(CONFIG['test_models'])
+        
 
 
 def get_config():

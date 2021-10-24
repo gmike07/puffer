@@ -1,6 +1,37 @@
+all_models:
+  - model_name: "constant_0"
+    cc_id: 0
+
+  - model_name: "constant_1"
+    cc_id: 1
+
+  - model_name: "constant_2"
+    cc_id: 2
+
+  - model_name: "resettingExp3"
+    should_clear_weights: true
+    save_name: '' # '' means default
+
+  - model_name: "exp3Kmeans"
+    should_clear_weights: false
+    save_name: '' # '' means default
+    cluster_name: '' # '' means default
+    sl_output_type: "ssim"
+    sl_model_name: '' # '' means default
+
+
+  - model_name: "sl"
+    output_type: "ssim"
+    save_name: '' # '' means default
+    sl_model_name: '' # '' means default
+
+  - model_name: "random"
+  
+
 servers:
   server_port: 5675
-  model_name: 'constant'
+  model_name: 'exp3Kmeans'
+  test_models: ["constant_0", "constant_1", "constant_2", "resettingExp3", "exp3Kmeans", "sl"]
 
 paths:
   cc_monitoring_path: "/home/mike/cc_monitoring/cc_" # start path to save the logging file of the cc data
@@ -8,7 +39,7 @@ paths:
 
 
 contexts:
-  sl_model_name: sl_weights_4_abr_linear_bba_v2.0_ssim.pt # the model to generate context from
+  sl_model_name: sl_weights_4_abr_linear_bba_v1.0_ssim.pt # the model to generate context from
   # [500, 200, 100, 80, 50, 40, 30, 20] = layers
   context_layers: [7] # the layers of the model to generate context from
 

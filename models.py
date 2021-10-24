@@ -6,6 +6,13 @@ import numpy as np
 import pickle
 
 
+def fill_default(variable, default):
+    if variable:
+        return variable
+    else:
+        return default
+
+
 def create_actions():
     ccs = get_config()['ccs']
     batch_size = get_config()['batch_size']
@@ -61,16 +68,17 @@ class NN_Model(torch.nn.Module):
 OUTPUT_DIMS = {'qoe': 1, 'ssim': 3, 'bit_rate': 3, 'all': 5}
 
 class SL_Model(NN_Model):
-    def __init__(self, output_type='ssim'):
+    def __init__(self, output_type='ssim', model_name=''):
        super(SL_Model, self).__init__(get_config()['nn_input_size'], OUTPUT_DIMS[output_type])
        self.CONFIG = get_config()
        self.buffer_coef, self.change_coef = self.CONFIG['buffer_length_coef'], self.CONFIG['quality_change_qoef']
        self.scoring_type = self.CONFIG['scoring_function_type']
        self.output_size = OUTPUT_DIMS[output_type]
        self.actions = create_actions()
+       self.model_name = fill_default(model_name, self.CONFIG['sl_model_name'])
     
     def calc_score(self, state, action):
-        x = super.forward(merge_state_actions(state, action))
+        x = self.model(merge_state_actions(state['state'], action))
         if self.output_size == 1:
             return x
         if self.output_size == 3 or self.scoring_type == 'ssim':
@@ -87,7 +95,7 @@ class SL_Model(NN_Model):
         return best_action
 
     def load(self):
-        dct = torch.load(self.CONFIG['weights_path'] + self.CONFIG['sl_model_name'])
+        dct = torch.load(self.CONFIG['weights_path'] + self.model_name)
         self.model.load_state_dict(dct['model_state_dict'])
 
     def save(self, path):
@@ -128,7 +136,7 @@ class ContextModel(torch.nn.Module):
 
 
 class Exp3:
-    def __init__(self, num_clients, should_clear_weights=False, is_training=True):
+    def __init__(self, num_clients, should_clear_weights=False, is_training=True, save_name='', should_load=False):
         self.max_weight_value = 1e6
         self.num_clients = num_clients
         self.last_actions = [None for _ in range(num_clients)]
@@ -138,6 +146,11 @@ class Exp3:
         self.should_clear_weights = should_clear_weights
         self.probabilites = self.calc_probabilities()
         self.is_training = is_training
+        get_config()['batch_size'] = 1
+        self.should_load = should_load
+
+        self.save_name = fill_default(save_name, f"exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}")
+        self.save_path = f"{CONFIG['exp3_model_path']}{save_name}.npy"
 
     def clear(self):
         self.last_actions = [None for _ in range(self.num_clients)]
@@ -151,17 +164,13 @@ class Exp3:
         qoe = min(qoe, max_value) # qoe in [min_value, max_value]
         return (qoe - min_value) / (max_value - min_value)
 
-    def save(self, path=''):
-        CONFIG = get_config()
-        if path == '':
-            path = f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}.npy"
-        np.save(path, self.weights)
+    def save(self):
+        np.save(self.save_path, self.weights)
 
-    def load(self, path=''):
-        CONFIG = get_config()
-        if path == '':
-            path = f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}.npy"
-        self.weights = np.load(path)
+    def load(self):
+        if not self.should_load:
+            return
+        self.weights = np.load(self.save_path)
         self.probabilites = self.calc_probabilities()
 
     def calc_probabilities(self):
@@ -188,36 +197,38 @@ class Exp3:
 
     
 class Exp3Kmeans:
-    def __init__(self, num_clients, should_clear_weights=False, is_training=True):
+    def __init__(self, num_clients, should_clear_weights=False, is_training=True, save_name='', cluster_name='', out_type='ssim', sl_model_name=''):
         self.kmeans = load_cluster()
-        self.exp3_contexts = [Exp3(num_clients, should_clear_weights, is_training) for _ in range(get_config()['num_clusters'])]
-        self.context_model = ContextModel(SL_Model())
+        save_name = fill_default(save_name, f"exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}")
+        self.exp3_contexts = [Exp3(num_clients, should_clear_weights, is_training, f"{save_name}_{i}") for i in range(get_config()['num_clusters'])]
+        self.context_model = ContextModel(SL_Model(output_type=out_type, model_name=sl_model_name))
         self.context_model.load()
 
+    def get_context_id(self, state):
+        context = self.generate_context(state)
+        answer = self.kmeans.predict([context])
+        return answer[0]
+
     def predict(self, state):
-        context_id = self.kmeans.predict(self.generate_context(state))
-        return self.exp3_contexts[context_id].predict(state)
+        return self.exp3_contexts[self.get_context_id(state)].predict(state)
 
     def update(self, state):
-        context_id = self.kmeans.predict(self.generate_context(state))
-        self.exp3_contexts[context_id].update(state)
+        self.exp3_contexts[self.get_context_id(state)].update(state)
 
     def clear(self):
         for exp3 in self.exp3_contexts:
             exp3.clear()
 
     def save(self):
-        CONFIG = get_config()
-        for i, exp3 in enumerate(self.exp3_contexts):
-            exp3.save(f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}_{i}.npy")
+        for exp3 in self.exp3_contexts:
+            exp3.save()
 
     def load(self):
-        CONFIG = get_config()
-        for i, exp3 in enumerate(self.exp3_contexts):
-            exp3.load(f"{CONFIG['exp3_model_path']}exp3_{CONFIG['num_clusters']}_{CONFIG['context_layers']}_{i}.npy")
+        for exp3 in self.exp3_contexts:
+            exp3.load()
 
     def generate_context(self, state):
-        return self.context_model.generate_context(torch.from_numpy(state['state'].reshape(1, -1))).reshape(-1)
+        return self.context_model.generate_context(torch.from_numpy(state['state'])).reshape(-1)
 
 
 class ConstantModel:
@@ -260,42 +271,43 @@ class RandomModel:
         pass
 
 
-class IdModel:
-    def __init__(self):
-        pass
+def create_models(num_clients, model_data):
+        if model_data['model_name'].startswith('constant'):
+            return ConstantModel(model_data['cc_id'])
+        if model_data['model_name'] == 'resettingExp3':
+            return Exp3(num_clients, model_data['should_clear_weights'], get_config()['training'], model_data['save_name'])
+        if model_data['model_name'] == 'exp3Kmeans':
+            return Exp3Kmeans(num_clients, model_data['should_clear_weights'], get_config()['training'], model_data['save_name'], 
+                    model_data['cluster_name'],
+                    model_data['sl_output_type'], model_data['sl_model_name'])
+        if model_data['model_name'] == 'sl':
+            return SL_Model(output_type=model_data['output_type'], model_name=model_data['sl_model_name'])
+        if model_data['model_name'] == 'random':
+            return RandomModel()
+        print(model_data)
+        
+
+
+class StackingModelsServer:
+    def __init__(self, models_data):
+        self.models = [create_models(len(models_data), model_data) for model_data in models_data]
     
     def predict(self, state):
-        return state['server_id']
+        return self.models[state['server_id']].predict(state)
 
     def update(self, state):
-        pass
+        return self.models[state['server_id']].update(state)
 
     def clear(self):
-        pass
+        for model in self.models:
+            model.clear()
 
     def save(self):
-        pass
+        if get_config()['test']:
+            return
+        for model in self.models:
+            model.save()
 
     def load(self):
-        pass
-
-
-class Exp3Server:
-    def __init__(self, num_clients):
-        self.exp3s = [Exp3(num_clients, True, True) for _ in range(num_clients)]
-    
-    def predict(self, state):
-        return self.exp3s[state['server_id']].predict(state)
-
-    def update(self, state):
-        return self.exp3s[state['server_id']].update(state)
-
-    def clear(self):
-        for exp3 in self.exp3s:
-            exp3.clear()
-
-    def save(self):
-        pass
-
-    def load(self):
-        pass
+        for i, model in enumerate(self.models):
+            model.load()
