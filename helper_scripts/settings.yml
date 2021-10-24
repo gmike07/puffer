@@ -46,7 +46,7 @@ contexts:
 
 clusters:
 # new for clusters
-  num_clusters: 20
+  num_clusters: 40
   saving_cluster_path: '/home/mike/puffer/clusters/'
   remove_bad_files: false #remove files without internet problems in the training of the cluster
 
