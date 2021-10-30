@@ -65,6 +65,14 @@ def send_clear_to_server():
         pass
     time.sleep(3)
 
+def send_switch_to_server(model_name, should_load):
+    try:
+        requests.post(f"http://localhost:{CONFIG['server_port']}", json.dumps({'switch_model': 'switch_model', 
+                                                                                'model_name': model_name, 'load': should_load}))
+    except Exception as e:
+        pass
+    time.sleep(3)
+
 
 def create_failed_files(filedir, setting):
     if not CONFIG['test']:
@@ -204,6 +212,14 @@ if __name__ == '__main__':
     if not os.path.exists('../cc_monitoring'):
         os.mkdir('../cc_monitoring')
 
+
+    if CONFIG['generate_data']:
+        send_switch_to_server('random', False)
+    elif not CONFIG['test']:
+        send_switch_to_server(CONFIG['model_name'], False)
+    else:
+        send_switch_to_server('stackingModel', True)
+
     scoring_dir = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/') + 1]
     start_maimahi_clients(CONFIG['num_clients'], scoring_dir, lambda _ : False)
     print('finished generating data')
@@ -212,5 +228,7 @@ if __name__ == '__main__':
         eval_scores()
     elif CONFIG['generate_data']:
         create_setting_yaml(generating_data='fixed')
+        send_switch_to_server('idModel', False)
+
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
         start_maimahi_clients(CONFIG['num_clients'], scoring_dir, exit_condition)

@@ -500,17 +500,8 @@ void handle_nn_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistor
 }
 
 
-void handle_server_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
+void switch_cc_server(TCPSocket& socket, std::vector<double>& state)
 {
-  if(not update_history(socket, logging_chunk, chunk_history))
-  {
-    return;
-  }
-  std::vector<double> state(0);
-  chunk_history.get_sample_history(state);
-  // std::string s = "state_size: " + std::to_string(state.size()) + "," + chunk_history.get_info() + "\n";
-  // std::cout << s << std::endl;
-  // return;
   json json_state(state);
   
   json data;
@@ -542,16 +533,21 @@ void handle_server_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHi
     {
       change_cc(socket, (int)(status - 406));
     }
-    // if ((status == 409))
-    // {
-    //   int cc_index = json::parse(response.str())["cc"].get<int>();
-    //   change_cc(socket, cc_index);
-    // }
   }
   catch (std::exception& e) {
     std::cout << "exception " << e.what() << std::endl;
-    // throw e;
   }
+}
+
+void handle_server_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory& chunk_history)
+{
+  if(not update_history(socket, logging_chunk, chunk_history))
+  {
+    return;
+  }
+  std::vector<double> state(0);
+  chunk_history.get_sample_history(state);
+  switch_cc_server(socket, state);
 }
 
 

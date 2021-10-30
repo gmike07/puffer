@@ -251,7 +251,7 @@ public:
         }
         // media / 100 / 100000.0
         // time / 1000
-        return {curr_chunk.ssim, curr_chunk.video_buffer, curr_chunk.cum_rebuffer,
+        return {curr_chunk.ssim, curr_chunk.video_buffer / 20, curr_chunk.cum_rebuffer / 10.0,
                 curr_chunk.media_chunk_size / 100000.0 / 100.0, 
                 curr_chunk.trans_time / 1000.0,
                 curr_quality_ssim - change_quality_ssim * quality_change_qoef - buffer_length_coef * rebuffer_time,

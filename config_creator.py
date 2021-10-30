@@ -39,8 +39,8 @@ def create_setting_yaml(generating_data='', test=False):
         experiments_dct = {'experiments': [{'fingerprint': copy.deepcopy(copy_fingerprint), 
                                             'num_servers': 1} for _ in range(CONFIG['num_clients'])]
                         }
-        for i, cc in enumerate(CONFIG['ccs']):
-            experiments_dct['experiments'][i]['fingerprint']['cc'] = cc
+        for i in range(CONFIG['num_clients']):
+            experiments_dct['experiments'][i]['fingerprint']['cc'] = CONFIG['ccs'][i % len(CONFIG['ccs'])]
         write_yaml_settings(experiments_dct)
         return
     
@@ -72,7 +72,7 @@ def create_setting_yaml(generating_data='', test=False):
     write_yaml_settings(experiments_dct)
 
 
-def create_config(yaml_input_path, abr='', num_clients=5, test=False, eval=False, generate_data=False):
+def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, generate_data=False, contextless=False, model_name=''):
     with open(yaml_input_path + 'settings.yml', 'r') as f:
         yaml_dct = yaml.safe_load(f)
         for dct_name in ['servers', 'contexts', 'clusters', 'exp3', 'nn_model', 'fingerprint', 'paths', 'constants', 'simulation_constants']:
@@ -87,7 +87,22 @@ def create_config(yaml_input_path, abr='', num_clients=5, test=False, eval=False
         CONFIG.update({'training': not test, 'test': test, 'num_clients': num_clients, 
                         'yaml_path': yaml_input_path, 'eval': eval, 'generate_data': generate_data,
                         'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-                        'fingerprint': yaml_dct['fingerprint']})
+                        'fingerprint': yaml_dct['fingerprint'], 'cluster_contextless': contextless})
+        
+        if num_clients == -1:
+            CONFIG['num_clients'] = yaml_dct['simulation_constants']['clients']
+
+        if generate_data:
+            CONFIG['mahimahi_epochs'] = yaml_dct['simulation_constants']['epochs_generating_data']
+        elif test:
+            CONFIG['mahimahi_epochs'] = yaml_dct['simulation_constants']['epochs_testing']
+        else:
+            CONFIG['mahimahi_epochs'] = yaml_dct['simulation_constants']['epochs_training']
+
+        if model_name:
+            CONFIG['model_name'] = model_name
+        
+
         if abr != '':
             CONFIG.update({'abr': abr})
         if generate_data:

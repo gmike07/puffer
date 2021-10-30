@@ -34,7 +34,7 @@ def train_sl(model, loader):
 
 if __name__ == '__main__':
     parse_arguments()
-    model = SL_Model()    
+    model = SL_Model(get_config()['all_models_config']['sl'])    
     iterator = DataIterator(remove_bad=False, output_type='ssim')
     print('training all files...')
     train_sl(model, iterator)

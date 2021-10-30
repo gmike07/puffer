@@ -1,14 +1,20 @@
 import json
 import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from threading import Thread
+from threading import Thread, Event
 
-from models import ConstantModel, Exp3Kmeans, Exp3, SL_Model, StackingModelsServer
+from models import create_model
 from config_creator import get_config
 from argument_parser import parse_arguments
 
 
-def get_server_model(model):
+def is_rl(name):
+    return name in ['rl', 'srl']
+
+
+def get_server_model(models_lst):   
+    other_thread = [None]
+    event_thread = [None]
     class HandlerClass(BaseHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
@@ -23,12 +29,31 @@ def get_server_model(model):
                     parsed_data['server_id'] -= 1
                     parsed_data['state'] = np.array(parsed_data['state']).reshape(1, -1)
                     # print('state length', parsed_data['state'].shape)
-                    model.update(parsed_data)
-                    self.send_response(406 + model.predict(parsed_data))
+                    models_lst[0].update(parsed_data)
+                    self.send_response(406 + models_lst[0].predict(parsed_data))
                     self.end_headers()
                 elif 'clear' in parsed_data:
                     print('clearing...')
-                    model.clear()
+                    models_lst[0].clear()
+                    self.send_response(200, 'OK')
+                    self.end_headers()
+                elif 'switch_model' in parsed_data:
+                    print(f"switching to model {parsed_data['model_name']} and load: {parsed_data['load']}")
+                    if models_lst[0] is not None:
+                        event_thread[0].set()
+                        models_lst[0].save()
+                    
+                    models_lst[0] = None
+                    other_thread[0] = None
+                    event_thread[0] = None
+
+                    models_lst[0] = create_model(get_config()['num_clients'], parsed_data['model_name'])
+                    if parsed_data['load'] is True:
+                        models_lst[0].load()
+                    elif is_rl(parsed_data['model_name']):
+                        event_thread[0] = Event()
+                        other_thread[0] = Thread(target=lambda: train_rl(models_lst[0], event_thread[0]))
+                        other_thread[0].start()
                     self.send_response(200, 'OK')
                     self.end_headers()
                 else:
@@ -45,52 +70,14 @@ def run_server(server_handler, addr, port, server_class=HTTPServer):
     server_address = (addr, port)
     handler = server_handler()
     httpd = server_class(server_address, handler)
-    print(f"Starting httpd server on {addr}:{port} with model {get_config()['model_name']}")
+    print(f"Starting httpd server on {addr}:{port} with model None")
     httpd.serve_forever()
 
 
-
-def start_server(model, addr, port, is_rl=False):
-    if not is_rl:
-        run_server(lambda: get_server_model(model), addr, port)
-        return
-    
-    server_thread = Thread(target=lambda: run_server(lambda: get_server_model(model), addr, port))
-    model_thread = Thread(target=lambda: model.train_rl())
-    model_thread.start()
-    server_thread.start()
-    model_thread.join()
-    server_thread.join()
-
-
-def create_model(model_name='exp3', training=True, num_clients=5):
-    if not training:
-        conf = get_config()
-        config_models = [conf['all_models_config'][test_name] for test_name in conf['test_models']]
-        return StackingModelsServer(config_models)
-
-    
-    if model_name == 'exp3Kmeans':
-        return Exp3Kmeans(num_clients, should_clear_weights=False, is_training=training)
-    if model_name == 'exp3':
-        return Exp3(num_clients, should_clear_weights=False, is_training=training)
-    if model_name == 'exp3Server':
-        conf = get_config()
-        config_models = [conf['all_models_config']['resettingExp3'] for _ in range(num_clients)]
-        return StackingModelsServer(config_models)
-    if model_name == 'resetingExp3Kmeans':
-        return Exp3Kmeans(num_clients, should_clear_weights=True, is_training=training)
-    if model_name == 'constant':
-        return ConstantModel()
-    if model_name == 'sl':
-        return SL_Model()
+def train_rl(model, event):
+    pass
 
 
 if __name__ == '__main__':
     parse_arguments()
-
-    model = create_model(get_config()['model_name'], get_config()['training'], get_config()['num_clients'])
-    if not get_config()['training']:
-        model.load()
-    is_rl = get_config()['model_name'] in ['rl', 'srl']
-    start_server(model, 'localhost', get_config()['server_port'], is_rl)
+    run_server(lambda: get_server_model([None]), 'localhost', get_config()['server_port'])

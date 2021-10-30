@@ -147,127 +147,18 @@ experiments:
     cc_config:
       abr_time: true
       buffer_length_coef: 100.0
-      cc_scoring_path: /home/mike/cc_scoring/linear_bba_exp3Kmeans/cc_score_
+      cc_monitoring_path: /home/mike/cc_monitoring/cc_
       history_size: 8
-      model_name: constant_0
       nn_roundup: 500
       quality_change_qoef: 1.0
-      random_cc: false
+      random_cc: true
       random_sample_size: 100
       scoring_function_type: ssim
     ccs:
     - bbr
     - vegas
     - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: vegas
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      cc_scoring_path: /home/mike/cc_scoring/linear_bba_exp3Kmeans/cc_score_
-      history_size: 8
-      model_name: constant_1
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: cubic
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      cc_scoring_path: /home/mike/cc_scoring/linear_bba_exp3Kmeans/cc_score_
-      history_size: 8
-      model_name: constant_2
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: bbr
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      cc_scoring_path: /home/mike/cc_scoring/linear_bba_exp3Kmeans/cc_score_
-      history_size: 8
-      model_name: resettingExp3
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-      server_path: http://localhost:5675
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: bbr
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      cc_scoring_path: /home/mike/cc_scoring/linear_bba_exp3Kmeans/cc_score_
-      history_size: 8
-      model_name: exp3Kmeans
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-      server_path: http://localhost:5675
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: bbr
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      cc_scoring_path: /home/mike/cc_scoring/linear_bba_exp3Kmeans/cc_score_
-      history_size: 8
-      model_name: sl
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-      server_path: http://localhost:5675
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
+  num_servers: 7
 influxdb_connection:
   dbname: puffer1
   host: 127.0.0.1
