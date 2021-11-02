@@ -4,7 +4,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread, Event
 
 from models import create_model
-from config_creator import get_config
+from config_creator import CONFIG, get_config
+from train_models_script import train_rl
 from argument_parser import parse_arguments
 
 
@@ -51,9 +52,9 @@ def get_server_model(models_lst):
                     models_lst[0] = create_model(get_config()['num_clients'], parsed_data['model_name'])
                     if parsed_data['load'] is True:
                         models_lst[0].load()
-                    elif is_rl(parsed_data['model_name']):
+                    elif is_rl(parsed_data['model_name']) and get_config()['training']:
                         event_thread[0] = Event()
-                        other_thread[0] = Thread(target=lambda: train_rl(models_lst[0], event_thread[0]))
+                        other_thread[0] = Thread(target=lambda: train_rl(models_lst[0], event_thread[0], parsed_data['model_name']))
                         other_thread[0].start()
                     self.send_response(200, 'OK')
                     self.end_headers()
@@ -73,10 +74,6 @@ def run_server(server_handler, addr, port, server_class=HTTPServer):
     httpd = server_class(server_address, handler)
     print(f"Starting httpd server on {addr}:{port} with model None")
     httpd.serve_forever()
-
-
-def train_rl(model, event):
-    pass
 
 
 if __name__ == '__main__':

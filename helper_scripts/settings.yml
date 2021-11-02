@@ -101,15 +101,23 @@ ae_model:
   ae_sizes: [500, 200, 100, 80, 50, 40, 30, 20]
   ae_weights_path: "/home/mike/puffer/cc_weights/"
 
+rl_training_settings:
+  rl_rounds_to_save: 1
+  rl_sleep_sec: 1
+  rl_batch_size: 3
+  rl_min_measuremets: 10
+  rl_logs_file: './weights/policy/reinforce_server_logs.txt'
 
 rl_model:
   rl_model_name: rl_weights_abr_linear_bba_v1.0_ssim.pt
   rl_weights_path: '/home/mike/puffer/cc_cpp_weights/'
+  rl_gamma: 0.999
 
 srl_model:
   srl_model_name: srl_weights_abr_linear_bba_v1.0_ssim.pt
   srl_weights_path: '/home/mike/puffer/cc_cpp_weights/'
   context_type: 'sl' # options are ['contextless', 'sl', 'ae']
+  srl_gamma: 0.999
 
 
 fingerprint:

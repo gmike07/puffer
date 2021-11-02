@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import pickle
+from scripts.reinforce_server import DEVICE
 from sklearn.cluster import KMeans
 import copy
 from itertools import chain
@@ -438,7 +439,10 @@ class RL_Model(NN_Model):
         self.CONFIG = get_config()
         self.model_name = fill_default(model_config['rl_model_name'], self.CONFIG['rl_model_name'])
         self.actions = np.arange(len(self.CONFIG['ccs']))
+        self.num_clients = num_clients
         self.measurements = [Queue() for _ in range(num_clients)]
+        self.gamma = fill_default(model_config['rl_gamma'], CONFIG['rl_gamma'])
+
 
     def forward(self, x):
         return F.softmax(self.model(x), dim=1)
@@ -457,6 +461,41 @@ class RL_Model(NN_Model):
     
     def update(self, state):
         self.measurements[state['server_id']].put(state)
+
+    def clear(self):
+        self.measurements = [Queue() for _ in range(self.num_clients)]
+
+
+    def get_log_highest_probability(self, state):
+        state = torch.from_numpy(state['state']).double().unsqueeze(0).to(device=get_config()['device'])
+        probs = self.forward(state)
+        highest_prob_action = np.random.choice(self.actions, p=np.squeeze(probs.detach().numpy()))
+        return torch.log(probs.squeeze(0)[highest_prob_action])
+
+    def update_policy(self, rewards, log_probs):
+        discounted_rewards = []
+
+        for t in range(len(rewards)):
+            Gt = 0
+            pw = 0
+            for r in rewards[t:]:
+                Gt = Gt + self.GAMMA**pw * r
+                pw = pw + 1
+            discounted_rewards.append(Gt)
+
+        discounted_rewards = torch.tensor(discounted_rewards)
+
+        policy_gradient = []
+        for log_prob, Gt in zip(log_probs, discounted_rewards):
+            policy_gradient.append(-log_prob * Gt)
+
+        self.optimizer.zero_grad()
+        policy_gradient = torch.stack(policy_gradient).sum()
+        policy_gradient.backward()
+        self.optimizer.step()
+
+    def clear_client_history(self, client_id):
+        self.measurements[client_id] = Queue()
 
 
 class SRL_Model(torch.nn.Module):
@@ -496,10 +535,14 @@ class SRL_Model(torch.nn.Module):
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=CONFIG['lr'],
                                           weight_decay=CONFIG['weights_decay'])
+        self.gamma = fill_default(model_config['srl_gamma'], CONFIG['srl_gamma'])
 
     def forward(self, x):
         return F.softmax(self.model(self.get_context(x)), dim=1)
 
+    def clear(self):
+        self.measurements = [Queue() for _ in range(self.num_clients)]
+    
     def predict(self, sent_state):
         return np.random.choice(self.actions, p=self(torch.from_numpy(sent_state['state']).detach().cpu().numpy().reshape(-1)))
 
@@ -515,6 +558,36 @@ class SRL_Model(torch.nn.Module):
     def update(self, state):
         self.measurements[state['server_id']].put(state)
 
+    def get_log_highest_probability(self, state):
+        state = torch.from_numpy(state['state']).double().unsqueeze(0).to(device=get_config()['device'])
+        probs = self.forward(state)
+        highest_prob_action = np.random.choice(self.actions, p=np.squeeze(probs.detach().numpy()))
+        return torch.log(probs.squeeze(0)[highest_prob_action])
+
+    def update_policy(self, rewards, log_probs):
+        discounted_rewards = []
+
+        for t in range(len(rewards)):
+            Gt = 0
+            pw = 0
+            for r in rewards[t:]:
+                Gt = Gt + self.GAMMA**pw * r
+                pw = pw + 1
+            discounted_rewards.append(Gt)
+
+        discounted_rewards = torch.tensor(discounted_rewards)
+
+        policy_gradient = []
+        for log_prob, Gt in zip(log_probs, discounted_rewards):
+            policy_gradient.append(-log_prob * Gt)
+
+        self.optimizer.zero_grad()
+        policy_gradient = torch.stack(policy_gradient).sum()
+        policy_gradient.backward()
+        self.optimizer.step()
+
+    def clear_client_history(self, client_id):
+        self.measurements[client_id] = Queue()
 
 class StackingModelsServer:
     def __init__(self, models_data):

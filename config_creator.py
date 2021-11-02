@@ -75,7 +75,8 @@ def create_setting_yaml(generating_data='', test=False):
 def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, generate_data=False, contextless=False, model_name=''):
     with open(yaml_input_path + 'settings.yml', 'r') as f:
         yaml_dct = yaml.safe_load(f)
-        for dct_name in ['servers', 'contexts', 'clusters', 'exp3', 'nn_model', 'fingerprint', 'paths', 'constants', 'simulation_constants', 'ae_model']:
+        for dct_name in ['servers', 'contexts', 'clusters', 'exp3', 'nn_model', 'fingerprint', 'paths', 'constants', 'simulation_constants', 
+                            'ae_model', 'rl_model', 'srl_model', 'rl_training_settings']:
             CONFIG.update(yaml_dct[dct_name])
         CONFIG.update(yaml_dct['fingerprint']['cc_config'])
         CONFIG['random_sample'] = CONFIG['random_sample_size']
