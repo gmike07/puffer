@@ -53,6 +53,17 @@ all_models:
   - model_name: "ae"
     ae_sizes: []
     ae_model_name: ""
+
+  - model_name: "rl"
+    rl_model_name: rl_weights_abr_linear_bba_v1.0_ssim.pt
+    rl_weights_path: '/home/mike/puffer/cc_cpp_weights/'
+    rl_gamma: 0.999
+
+  - model_name: 'srl'
+    srl_model_name: srl_weights_abr_linear_bba_v1.0_ssim.pt
+    srl_weights_path: '/home/mike/puffer/cc_cpp_weights/'
+    context_type: 'sl' # options are ['contextless', 'sl', 'ae']
+    srl_gamma: 0.999
   
 
 servers:

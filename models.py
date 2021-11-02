@@ -430,6 +430,12 @@ def create_model(num_clients, model_name):
         if model_name == 'stackingModel':
             return StackingModelsServer(conf['models'])
         
+        if model_name == 'rl':
+            return RL_Model(num_clients, conf)
+        
+        if model_name == 'srl':
+            return SRL_Model(num_clients, conf)
+        
         print(model_name)
 
 

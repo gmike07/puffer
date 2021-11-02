@@ -103,6 +103,6 @@ class DataIterator:
         answer_chunks = torch.from_numpy(answer_chunks).to(self.CONFIG['device'])
         if self.remove_action:
             answer_chunks = answer_chunks[:, :-len(get_config()['ccs'])]
-        answer_metrics = answer_metrics / 10
+        answer_metrics = answer_metrics / 3
         answer_metrics = torch.from_numpy(answer_metrics).to(self.CONFIG['device'])
         return answer_chunks, answer_metrics
