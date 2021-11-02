@@ -36,6 +36,10 @@ all_models:
   - model_name: "exp3Kmeans"
     save_name: '' # '' means default
 
+  - model_name: "exp3KmeansAutoEncoder"
+    save_name: '' # '' means default
+    cluster_type: 'ae'
+
 
   - model_name: "contextlessExp3Kmeans"
     save_name: '' # '' means default
@@ -45,6 +49,10 @@ all_models:
 
   - model_name: "stackingModel"
     models: ["constant_0", "constant_1", "constant_2", "resettingExp3", "exp3Kmeans", "sl", "contextlessExp3Kmeans"]
+
+  - model_name: "ae"
+    ae_sizes: []
+    ae_model_name: ""
   
 
 servers:
@@ -69,14 +77,13 @@ clusters:
   saving_cluster_path: '/home/mike/puffer/clusters/'
   remove_bad_files: false #remove files without internet problems in the training of the cluster
   sl_output_type: 'ssim'
-
+  cluster_type: 'sl'
 
 exp3:
   exp3_explore_parameter: 0.1
   exp3_model_path: '/home/mike/puffer/exp3/'
 
 
-# not included, device, prediction_size
 nn_model:
   epochs: 5
   model_network_sizes: [500, 200, 100, 80, 50, 40, 30, 20]
@@ -87,6 +94,22 @@ nn_model:
   weights_decay: 1e-4
   weights_path: '/home/mike/puffer/cc_weights/' # start path to the place where to store the nn weights for python
   cpp_weights_path: '/home/mike/puffer/cc_cpp_weights/' # start path to the place where to store the nn weights for cpp
+
+
+ae_model:
+  ae_model_name: ae_weights_4_abr_linear_bba_v1.0_ssim.pt
+  ae_sizes: [500, 200, 100, 80, 50, 40, 30, 20]
+  ae_weights_path: "/home/mike/puffer/cc_weights/"
+
+
+rl_model:
+  rl_model_name: rl_weights_abr_linear_bba_v1.0_ssim.pt
+  rl_weights_path: '/home/mike/puffer/cc_cpp_weights/'
+
+srl_model:
+  srl_model_name: srl_weights_abr_linear_bba_v1.0_ssim.pt
+  srl_weights_path: '/home/mike/puffer/cc_cpp_weights/'
+  context_type: 'sl' # options are ['contextless', 'sl', 'ae']
 
 
 fingerprint:

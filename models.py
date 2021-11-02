@@ -1,4 +1,3 @@
-from numpy.core.numeric import base_repr
 from config_creator import CONFIG, get_config
 import torch
 import torch.nn.functional as F
@@ -6,7 +5,8 @@ import numpy as np
 import pickle
 from sklearn.cluster import KMeans
 import copy
-
+from itertools import chain
+from queue import Queue
 
 def fill_default(variable, default):
     if variable:
@@ -39,14 +39,19 @@ def load_cluster():
 
 
 class NN_Model(torch.nn.Module):
-    def __init__(self, input_size, output_size, activation_function=torch.nn.ReLU):
+    def __init__(self, input_size, output_size, sizes=None, activation_function=torch.nn.ReLU):
         super(NN_Model, self).__init__()
         CONFIG = get_config()
-        sizes = [input_size] + CONFIG['model_network_sizes'] + [output_size]
+        if sizes is None:
+            self.sizes = CONFIG['model_network_sizes']
+        else:
+            self.sizes = sizes
+        self.sizes = [input_size] + self.sizes + [output_size]
         layers = []
-        for i in range(len(sizes) - 1):
-            layers.append(torch.nn.Linear(sizes[i], sizes[i + 1]))
+        for i in range(len(self.sizes) - 1):
+            layers.append(torch.nn.Linear(self.sizes[i], self.sizes[i + 1]))
             layers.append(activation_function())
+        layers = layers[:-1]
         self.model = torch.nn.Sequential(*layers).double().to(CONFIG['device'])
         self.loss_quality = torch.nn.CrossEntropyLoss().to(device=CONFIG['device'])
         self.loss_metrics = torch.nn.MSELoss().to(device=CONFIG['device'])
@@ -109,6 +114,55 @@ class SL_Model(NN_Model):
         torch.save({
             'model_state_dict': self.model.state_dict()
         }, f"{get_config()['weights_path']}{path}")
+
+
+class AutoEncoder(torch.nn.Module):
+    def __init__(self, model_config):
+        super(AutoEncoder, self).__init__()
+        CONFIG = get_config()
+        sizes = fill_default(model_config['ae_sizes'], CONFIG['ae_sizes'])
+        input_size = CONFIG['nn_input_size'] - len(CONFIG['ccs'])
+        self.encoder_sizes = [input_size] + sizes
+        decoder_sizes = self.encoder_sizes[::-1]
+        activation_function = torch.nn.ReLU
+        layers = []
+        for i in range(len(self.encoder_sizes) - 1):
+            layers.append(torch.nn.Linear(self.encoder_sizes[i], self.encoder_sizes[i + 1]))
+            layers.append(activation_function())
+        layers = layers[:-1]
+        self.encoder_model = torch.nn.Sequential(*layers).double().to(CONFIG['device'])
+
+        layers = []
+        for i in range(len(decoder_sizes) - 1):
+            layers.append(torch.nn.Linear(decoder_sizes[i], decoder_sizes[i + 1]))
+            layers.append(activation_function())
+        layers = layers[:-1]
+        self.decoder_model = torch.nn.Sequential(*layers).double().to(CONFIG['device'])
+
+        self.loss_metrics = torch.nn.MSELoss().to(device=CONFIG['device'])
+        # self.loss_metrics = torch.nn.L1Loss().to(device=CONFIG['device'])
+
+        self.optimizer = torch.optim.Adam(chain(self.encoder_model.parameters(), self.decoder_model.parameters()),
+                                            lr=CONFIG['lr'],
+                                            weight_decay=CONFIG['weights_decay'])
+        self.decoder = CONFIG['nn_input_size'] - len(CONFIG['ccs'])
+        self.CONFIG = get_config()
+        self.model_name = fill_default(model_config['ae_model_name'], self.CONFIG['ae_model_name'])
+
+    def forward(self, x):
+        return self.decoder_model(self.encoder_model(x))
+
+    def load(self):
+        dct = torch.load(self.CONFIG['ae_weights_path'] + self.model_name)
+        self.model.load_state_dict(dct['model_state_dict'])
+
+    def save(self, path):
+        torch.save({
+            'model_state_dict': self.model.state_dict()
+        }, f"{get_config()['ae_weights_path']}{path}")
+
+    def get_context(self, x):
+        return self.encoder_model(x)
 
 
 class ContextModel(torch.nn.Module):
@@ -221,13 +275,21 @@ class ClusterModel:
             self.get_context = lambda x: x.reshape(-1) if type(x) == np.ndarray else x.cpu().detach().numpy().reshape(-1)
             self.cluster_name = fill_default(model_config['cluster_name'], f"clusters_{self.num_clusters}_{context_layers}")
         else:
-            sl_config = get_updated_config_model('sl', model_config)
-            self.context_model = ContextModel(SL_Model(sl_config), sl_config)
+            if fill_default(model_config['cluster_type'], CONFIG['cluster_type']) == 'ae':
+                ae_config = get_updated_config_model('ae', model_config)
+                self.context_model = AutoEncoder(ae_config)
+                self.get_context = lambda x: self.context_model.get_context(x).detach().cpu().numpy().reshape(-1)
+
+                model_name = self.context_model.model_name
+            else:
+                sl_config = get_updated_config_model('sl', model_config)
+                self.context_model = ContextModel(SL_Model(sl_config), sl_config)
+                self.get_context = lambda x: self.context_model.generate_context(x).reshape(-1)
+                model_name = self.context_model.base_model.model_name
+            
+            self.cluster_name = fill_default(model_config['cluster_name'], f"clusters_{model_name}_{self.num_clusters}_{context_layers}")
             self.context_model.load()
             self.context_model.eval()
-            self.get_context = lambda x: self.context_model.generate_context(x).reshape(-1)
-            sl_model_name = self.context_model.base_model.model_name
-            self.cluster_name = fill_default(model_config['cluster_name'], f"clusters_{sl_model_name}_{self.num_clusters}_{context_layers}")
         self.cluster_path = CONFIG['saving_cluster_path']
         self.kmeans = KMeans(n_clusters=self.num_clusters)
 
@@ -352,7 +414,7 @@ def create_model(num_clients, model_name):
         if model_name in ['resettingExp3', 'exp3']:
             return Exp3(num_clients, conf)
         
-        if model_name in ['contextlessExp3Kmeans', 'exp3Kmeans']:
+        if model_name in ['contextlessExp3Kmeans', 'exp3Kmeans', 'exp3KmeansAutoEncoder']:
             return Exp3Kmeans(num_clients, conf)
         
         if model_name == 'sl':
@@ -366,8 +428,92 @@ def create_model(num_clients, model_name):
 
         if model_name == 'stackingModel':
             return StackingModelsServer(conf['models'])
-        print(model_name)
         
+        print(model_name)
+
+
+class RL_Model(NN_Model):
+    def __init__(self, num_clients, model_config):
+        super(RL_Model, self).__init__(get_config()['nn_input_size'] - len(get_config()['ccs']), len(get_config()['ccs']))
+        self.CONFIG = get_config()
+        self.model_name = fill_default(model_config['rl_model_name'], self.CONFIG['rl_model_name'])
+        self.actions = np.arange(len(self.CONFIG['ccs']))
+        self.measurements = [Queue() for _ in range(num_clients)]
+
+    def forward(self, x):
+        return F.softmax(self.model(x), dim=1)
+
+    def predict(self, sent_state):
+        return np.random.choice(self.actions, p=self(torch.from_numpy(sent_state['state']).detach().cpu().numpy().reshape(-1)))
+
+    def load(self):
+        dct = torch.load(self.CONFIG['rl_weights_path'] + self.model_name)
+        self.model.load_state_dict(dct['model_state_dict'])
+
+    def save(self, path):
+        torch.save({
+            'model_state_dict': self.model.state_dict()
+        }, f"{get_config()['rl_weights_path']}{path}")
+    
+    def update(self, state):
+        self.measurements[state['server_id']].put(state)
+
+
+class SRL_Model(torch.nn.Module):
+    def __init__(self, num_clients, model_config):
+        super(SRL_Model, self).__init__()
+        CONFIG = get_config()
+        if CONFIG['context_type'] == 'contextless':
+            self.get_context = lambda x: x
+            input_size = CONFIG['nn_input_size'] - len(CONFIG['ccs'])
+        elif CONFIG['context_type'] == 'sl':
+            sl_config = get_updated_config_model('sl', model_config)
+            self.context_model = ContextModel(SL_Model(sl_config), sl_config)
+            self.get_context = lambda x: self.context_model(x)
+            input_size = sum(self.context_model.base_model.sizes[i + 1] for i in self.context_model.context_layers) * len(CONFIG['ccs'])
+        elif CONFIG['context_type'] == 'ae':
+            ae_config = get_updated_config_model('ae', model_config)
+            self.context_model = AutoEncoder(ae_config)
+            self.get_context = lambda x: self.context_model.get_context(x)
+            input_size = self.context_model.encoder_sizes[-1]
+        sizes = [input_size, len(CONFIG['ccs'])]
+        activation_function = torch.nn.ReLU
+        layers = []
+        for i in range(len(sizes) - 1):
+            layers.append(torch.nn.Linear(sizes[i], sizes[i + 1]))
+            layers.append(activation_function())
+        layers = layers[:-1]
+        self.model = torch.nn.Sequential(*layers).double().to(CONFIG['device'])
+
+        self.CONFIG = get_config()
+        self.model_name = fill_default(model_config['srl_model_name'], self.CONFIG['srl_model_name'])
+        self.actions = np.arange(len(self.CONFIG['ccs']))
+        self.measurements = [Queue() for _ in range(num_clients)]
+
+        self.loss_metrics = torch.nn.MSELoss().to(device=CONFIG['device'])
+        # self.loss_metrics = torch.nn.L1Loss().to(device=CONFIG['device'])
+
+        self.optimizer = torch.optim.Adam(self.model.parameters(),
+                                          lr=CONFIG['lr'],
+                                          weight_decay=CONFIG['weights_decay'])
+
+    def forward(self, x):
+        return F.softmax(self.model(self.get_context(x)), dim=1)
+
+    def predict(self, sent_state):
+        return np.random.choice(self.actions, p=self(torch.from_numpy(sent_state['state']).detach().cpu().numpy().reshape(-1)))
+
+    def load(self):
+        dct = torch.load(self.CONFIG['srl_weights_path'] + self.model_name)
+        self.model.load_state_dict(dct['model_state_dict'])
+
+    def save(self, path):
+        torch.save({
+            'model_state_dict': self.model.state_dict()
+        }, f"{get_config()['srl_weights_path']}{path}")
+    
+    def update(self, state):
+        self.measurements[state['server_id']].put(state)
 
 
 class StackingModelsServer:

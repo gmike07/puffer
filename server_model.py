@@ -40,7 +40,8 @@ def get_server_model(models_lst):
                 elif 'switch_model' in parsed_data:
                     print(f"switching to model {parsed_data['model_name']} and load: {parsed_data['load']}")
                     if models_lst[0] is not None:
-                        event_thread[0].set()
+                        if event_thread[0] is not None:
+                            event_thread[0].set()
                         models_lst[0].save()
                     
                     models_lst[0] = None
