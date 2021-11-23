@@ -8,9 +8,9 @@ import time
 import numpy as np
 
 
-def save_cpp_model(model, model_path, CONFIG):
-    example = torch.rand(1, CONFIG['nn_input_size']).double()
-    traced_script_module = torch.jit.trace(model.model, example, check_trace=False)
+def save_cpp_model(model, model_path, CONFIG, input_size):
+    example = torch.rand(1, input_size).double()
+    traced_script_module = torch.jit.trace(model, example, check_trace=False)
     traced_script_module.save(model_path)
 
 
@@ -31,7 +31,7 @@ def train_sl(model, loader):
         torch.save({
             'model_state_dict': model.model.state_dict()
         }, f"{CONFIG['weights_path']}{filename}")
-        save_cpp_model(model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG)
+        save_cpp_model(model.model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG, CONFIG['nn_input_size'])
 
 
 def train_ae(model, loader):
@@ -49,32 +49,31 @@ def train_ae(model, loader):
         pbar.close()
         filename = f"ae_weights_{str(epoch)}_abr_{CONFIG['abr']}_v{str(CONFIG['version'])}_{CONFIG['scoring_function_type']}.pt"
         torch.save({
-            'model_state_dict': model.model.state_dict()
+            'model_state_dict': model.encoder_model.state_dict()
         }, f"{CONFIG['ae_weights_path']}{filename}")
-        save_cpp_model(model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG)
+        save_cpp_model(model.encoder_model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG, CONFIG['nn_input_size'] - len(CONFIG['ccs']))
 
 
 def train_rl(model, event, rl_type='rl'):
     CONFIG = get_config()
-    total_measurements = [[] for _ in range(len(model.meameasurements))]
+    total_measurements = [[] for _ in range(len(model.measurements))]
     rounds_to_save = CONFIG['rl_rounds_to_save'] 
     gradients = 0
     while not event.is_set():
         time.sleep(CONFIG['rl_sleep_sec'])
         if event.is_set():
             break
-        for i, client_measures in enumerate(model.meameasurements):
-            while not client_measures.empty() and len(client_measures) < CONFIG['rl_min_measuremets']:
+        for i, client_measures in enumerate(model.measurements):
+            while not client_measures.empty() and client_measures.qsize() < CONFIG['rl_min_measuremets']:
                 total_measurements[i].append(client_measures.get())
         
-            print(len(total_measurements))
             rounds_to_save -= 1
 
             if len(total_measurements[i]) < CONFIG['rl_min_measuremets']:
                 continue
 
             # select batch and update weights
-            measures = np.array(total_measurements)
+            measures = np.array(total_measurements[i])
             indices = np.random.choice(np.arange(measures.size), CONFIG['rl_batch_size'])
             measures_batch = measures[indices]
             measures = np.delete(measures, indices)
@@ -86,7 +85,7 @@ def train_rl(model, event, rl_type='rl'):
 
             log_probs = []
             for state in states:
-                _, log_prob = model.get_log_highest_probability(state)
+                log_prob = model.get_log_highest_probability(state)
                 log_probs.append(log_prob)
 
             model.update_policy(rewards, log_probs)
@@ -94,12 +93,13 @@ def train_rl(model, event, rl_type='rl'):
 
             # save weights
             if rounds_to_save <= 0:
+                print(f'saving {rl_type}...')
                 filename = f"{rl_type}_weights_abr_{CONFIG['abr']}_v{str(CONFIG['version'])}_{CONFIG['scoring_function_type']}.pt"
                 
                 torch.save({
                     'model_state_dict': model.model.state_dict()
                 }, f"{CONFIG[f'{rl_type}_weights_path']}{filename}")
-                save_cpp_model(model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG)
+                # save_cpp_model(model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG, model.input_size)
 
                 total_measurements[i] = []
                 model.clear_client_history(i)

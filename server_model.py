@@ -35,7 +35,8 @@ def get_server_model(models_lst):
                     self.end_headers()
                 elif 'clear' in parsed_data:
                     print('clearing...')
-                    models_lst[0].clear()
+                    if models_lst[0] is not None:
+                        models_lst[0].clear()
                     self.send_response(200, 'OK')
                     self.end_headers()
                 elif 'switch_model' in parsed_data:
@@ -76,6 +77,8 @@ def run_server(server_handler, addr, port, server_class=HTTPServer):
     httpd.serve_forever()
 
 
+#create_model(get_config()['num_clients'], 'rl')
 if __name__ == '__main__':
     parse_arguments()
+    get_config()['batch_size'] = 1
     run_server(lambda: get_server_model([None]), 'localhost', get_config()['server_port'])

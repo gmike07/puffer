@@ -212,7 +212,7 @@ experiments:
       buffer_length_coef: 100.0
       cc_scoring_path: /home/mike/cc_scoring/linear_bba_contextlessExp3Kmeans/cc_score_
       history_size: 8
-      model_name: resettingExp3
+      model_name: srl
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false
@@ -278,7 +278,7 @@ experiments:
       buffer_length_coef: 100.0
       cc_scoring_path: /home/mike/cc_scoring/linear_bba_contextlessExp3Kmeans/cc_score_
       history_size: 8
-      model_name: contextlessExp3Kmeans
+      model_name: rl
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false

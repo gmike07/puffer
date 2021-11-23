@@ -3,7 +3,6 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import pickle
-from scripts.reinforce_server import DEVICE
 from sklearn.cluster import KMeans
 import copy
 from itertools import chain
@@ -155,7 +154,7 @@ class AutoEncoder(torch.nn.Module):
 
     def load(self):
         dct = torch.load(self.CONFIG['ae_weights_path'] + self.model_name)
-        self.model.load_state_dict(dct['model_state_dict'])
+        self.encoder_model.load_state_dict(dct['model_state_dict'])
 
     def save(self, path):
         torch.save({
@@ -279,7 +278,7 @@ class ClusterModel:
             if fill_default(model_config['cluster_type'], CONFIG['cluster_type']) == 'ae':
                 ae_config = get_updated_config_model('ae', model_config)
                 self.context_model = AutoEncoder(ae_config)
-                self.get_context = lambda x: self.context_model.get_context(x).detach().cpu().numpy().reshape(-1)
+                self.get_context = lambda x: self.context_model.get_context(torch.from_numpy(x)).detach().cpu().numpy().reshape(-1)
 
                 model_name = self.context_model.model_name
             else:
@@ -328,12 +327,17 @@ class Exp3Kmeans:
         self.exp3_contexts = [Exp3(num_clients, exp3_config) for _ in range(self.cluster_model.num_clusters)]
         for i in range(self.cluster_model.num_clusters):
             self.exp3_contexts[i].save_path = f"{get_config()['exp3_model_path']}{save_name}_{i}.npy"
+        self.cluster_counter = np.zeros(self.cluster_model.num_clusters)
+        self.cluster_counter_path = f'{self.cluster_model.cluster_path}{self.cluster_model.cluster_name}_counter.npy'
 
     def predict(self, state):
         return self.exp3_contexts[self.cluster_model.get_cluster_id(state['state'])].predict(state)
 
     def update(self, state):
-        self.exp3_contexts[self.cluster_model.get_cluster_id(state['state'])].update(state)
+        id = self.cluster_model.get_cluster_id(state['state'])
+        if get_config()['training']:
+            self.cluster_counter[id] += 1
+        self.exp3_contexts[id].update(state)
 
     def clear(self):
         for exp3 in self.exp3_contexts:
@@ -342,10 +346,12 @@ class Exp3Kmeans:
     def save(self):
         for exp3 in self.exp3_contexts:
             exp3.save()
+        self.cluster_counter = np.load(self.cluster_counter_path)
 
     def load(self):
         for exp3 in self.exp3_contexts:
             exp3.load()
+        np.save(self.cluster_counter_path, self.cluster_counter)
 
 
 class ConstantModel:
@@ -431,39 +437,47 @@ def create_model(num_clients, model_name):
             return StackingModelsServer(conf['models'])
         
         if model_name == 'rl':
-            return RL_Model(num_clients, conf)
+            return RL_Trainer_Model(RL_Model(num_clients, conf))
         
-        if model_name == 'srl':
-            return SRL_Model(num_clients, conf)
+        if model_name in ['srl', 'srlAE']:
+            return RL_Trainer_Model(SRL_Model(num_clients, conf))
         
         print(model_name)
 
 
-class RL_Model(NN_Model):
-    def __init__(self, num_clients, model_config):
-        super(RL_Model, self).__init__(get_config()['nn_input_size'] - len(get_config()['ccs']), len(get_config()['ccs']))
-        self.CONFIG = get_config()
-        self.model_name = fill_default(model_config['rl_model_name'], self.CONFIG['rl_model_name'])
-        self.actions = np.arange(len(self.CONFIG['ccs']))
-        self.num_clients = num_clients
-        self.measurements = [Queue() for _ in range(num_clients)]
-        self.gamma = fill_default(model_config['rl_gamma'], CONFIG['rl_gamma'])
+class RL_Trainer_Model(torch.nn.Module):
+    def __init__(self, model):
+        super(RL_Trainer_Model, self).__init__()
 
 
+        self.model = model
+        self.CONFIG = self.model.CONFIG
+        self.model_name = self.model.model_name
+        self.actions = self.model.actions
+        self.num_clients = self.model.num_clients
+        self.measurements = self.model.measurements
+        self.gamma = self.model.gamma
+        self.model_path = self.model.model_path
+        self.optimizer = self.model.optimizer
+        self.input_size = self.model.input_size
+    
     def forward(self, x):
-        return F.softmax(self.model(x), dim=1)
-
-    def predict(self, sent_state):
-        return np.random.choice(self.actions, p=self(torch.from_numpy(sent_state['state']).detach().cpu().numpy().reshape(-1)))
+        return self.model.forward(x)
 
     def load(self):
-        dct = torch.load(self.CONFIG['rl_weights_path'] + self.model_name)
+        dct = torch.load(self.model_path + self.model_name)
         self.model.load_state_dict(dct['model_state_dict'])
 
-    def save(self, path):
+    def predict(self, sent_state):
+        probabilities = self.forward(torch.from_numpy(sent_state['state']))
+        return np.random.choice(self.actions, p=probabilities.detach().cpu().numpy().reshape(-1))
+
+    def save(self, path=''):
+        if path == '':
+            path = self.model_name
         torch.save({
             'model_state_dict': self.model.state_dict()
-        }, f"{get_config()['rl_weights_path']}{path}")
+        }, f"{self.model_path}{path}")
     
     def update(self, state):
         self.measurements[state['server_id']].put(state)
@@ -471,11 +485,12 @@ class RL_Model(NN_Model):
     def clear(self):
         self.measurements = [Queue() for _ in range(self.num_clients)]
 
+    def clear_client_history(self, client_id):
+        self.measurements[client_id] = Queue()
 
     def get_log_highest_probability(self, state):
-        state = torch.from_numpy(state['state']).double().unsqueeze(0).to(device=get_config()['device'])
-        probs = self.forward(state)
-        highest_prob_action = np.random.choice(self.actions, p=np.squeeze(probs.detach().numpy()))
+        probs = self.forward(torch.from_numpy(state))
+        highest_prob_action = np.random.choice(self.actions, p=probs.detach().cpu().numpy().reshape(-1))
         return torch.log(probs.squeeze(0)[highest_prob_action])
 
     def update_policy(self, rewards, log_probs):
@@ -485,7 +500,7 @@ class RL_Model(NN_Model):
             Gt = 0
             pw = 0
             for r in rewards[t:]:
-                Gt = Gt + self.GAMMA**pw * r
+                Gt = Gt + self.gamma**pw * r
                 pw = pw + 1
             discounted_rewards.append(Gt)
 
@@ -499,10 +514,24 @@ class RL_Model(NN_Model):
         policy_gradient = torch.stack(policy_gradient).sum()
         policy_gradient.backward()
         self.optimizer.step()
+    
 
-    def clear_client_history(self, client_id):
-        self.measurements[client_id] = Queue()
 
+class RL_Model(NN_Model):
+    def __init__(self, num_clients, model_config):
+        super(RL_Model, self).__init__(get_config()['nn_input_size'] - len(get_config()['ccs']), len(get_config()['ccs']))
+        self.CONFIG = get_config()
+        self.model_name = fill_default(model_config['rl_model_name'], self.CONFIG['rl_model_name'])
+        self.actions = np.arange(len(self.CONFIG['ccs']))
+        self.num_clients = num_clients
+        self.measurements = [Queue() for _ in range(num_clients)]
+        self.gamma = fill_default(model_config['rl_gamma'], CONFIG['rl_gamma'])
+        self.model_path = get_config()['rl_weights_path']
+        self.input_size = get_config()['nn_input_size'] - len(get_config()['ccs'])
+
+    def forward(self, x):
+        return F.softmax(self.model(x), dim=1)
+        
 
 class SRL_Model(torch.nn.Module):
     def __init__(self, num_clients, model_config):
@@ -514,12 +543,12 @@ class SRL_Model(torch.nn.Module):
         elif CONFIG['context_type'] == 'sl':
             sl_config = get_updated_config_model('sl', model_config)
             self.context_model = ContextModel(SL_Model(sl_config), sl_config)
-            self.get_context = lambda x: self.context_model(x)
+            self.get_context = lambda x: self.context_model.generate_context(x)
             input_size = sum(self.context_model.base_model.sizes[i + 1] for i in self.context_model.context_layers) * len(CONFIG['ccs'])
         elif CONFIG['context_type'] == 'ae':
             ae_config = get_updated_config_model('ae', model_config)
             self.context_model = AutoEncoder(ae_config)
-            self.get_context = lambda x: self.context_model.get_context(x)
+            self.get_context = lambda x: self.context_model.get_context(x).detach().cpu().numpy()
             input_size = self.context_model.encoder_sizes[-1]
         sizes = [input_size, len(CONFIG['ccs'])]
         activation_function = torch.nn.ReLU
@@ -542,58 +571,14 @@ class SRL_Model(torch.nn.Module):
                                           lr=CONFIG['lr'],
                                           weight_decay=CONFIG['weights_decay'])
         self.gamma = fill_default(model_config['srl_gamma'], CONFIG['srl_gamma'])
+        self.model_path = get_config()['srl_weights_path']
+        self.num_clients = num_clients
+        self.input_size = input_size
+
 
     def forward(self, x):
-        return F.softmax(self.model(self.get_context(x)), dim=1)
-
-    def clear(self):
-        self.measurements = [Queue() for _ in range(self.num_clients)]
+        return F.softmax(self.model(torch.from_numpy(self.get_context(x))), dim=1)
     
-    def predict(self, sent_state):
-        return np.random.choice(self.actions, p=self(torch.from_numpy(sent_state['state']).detach().cpu().numpy().reshape(-1)))
-
-    def load(self):
-        dct = torch.load(self.CONFIG['srl_weights_path'] + self.model_name)
-        self.model.load_state_dict(dct['model_state_dict'])
-
-    def save(self, path):
-        torch.save({
-            'model_state_dict': self.model.state_dict()
-        }, f"{get_config()['srl_weights_path']}{path}")
-    
-    def update(self, state):
-        self.measurements[state['server_id']].put(state)
-
-    def get_log_highest_probability(self, state):
-        state = torch.from_numpy(state['state']).double().unsqueeze(0).to(device=get_config()['device'])
-        probs = self.forward(state)
-        highest_prob_action = np.random.choice(self.actions, p=np.squeeze(probs.detach().numpy()))
-        return torch.log(probs.squeeze(0)[highest_prob_action])
-
-    def update_policy(self, rewards, log_probs):
-        discounted_rewards = []
-
-        for t in range(len(rewards)):
-            Gt = 0
-            pw = 0
-            for r in rewards[t:]:
-                Gt = Gt + self.GAMMA**pw * r
-                pw = pw + 1
-            discounted_rewards.append(Gt)
-
-        discounted_rewards = torch.tensor(discounted_rewards)
-
-        policy_gradient = []
-        for log_prob, Gt in zip(log_probs, discounted_rewards):
-            policy_gradient.append(-log_prob * Gt)
-
-        self.optimizer.zero_grad()
-        policy_gradient = torch.stack(policy_gradient).sum()
-        policy_gradient.backward()
-        self.optimizer.step()
-
-    def clear_client_history(self, client_id):
-        self.measurements[client_id] = Queue()
 
 class StackingModelsServer:
     def __init__(self, models_data):
@@ -619,4 +604,5 @@ class StackingModelsServer:
 
     def load(self):
         for model in self.models:
+            print('loading ', type(model))
             model.load()

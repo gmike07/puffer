@@ -112,7 +112,7 @@ def start_maimahi_clients(clients, filedir, exit_condition):
                 for i in range(1, clients + 1):
                     index = f if CONFIG['test'] else f + i - 1
                     time.sleep(sleep_time)
-                    mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index], i, delay, loss)
+                    mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index % len(traces)], i, delay, loss)
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
                                          preexec_fn=os.setsid)
                     plist.append(p)

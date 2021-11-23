@@ -11,7 +11,9 @@ def create_cluster(loader):
     CONFIG = get_config()
     model_config = {'cluster_contextless': CONFIG['cluster_contextless'], 
                     'num_clusters': 0, 'context_layers': [], 'cluster_name': '',
-                    'sl_model_name': '', 'output_type': CONFIG['sl_output_type']}
+                    'sl_model_name': '', 'output_type': CONFIG['sl_output_type'], 
+                    'ae_model_name': '', 'ae_sizes': [], 
+                    'cluster_type': 'ae' if CONFIG['model_name'] == 'ae' else 'sl'}
     kmeansModel = ClusterModel(model_config)
     data = []
     print('collecting data...')

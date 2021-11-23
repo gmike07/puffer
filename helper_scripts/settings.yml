@@ -32,6 +32,7 @@ all_models:
     num_clusters: 0
     cluster_name: '' # '' means default
     cluster_contextless: false # uses the sl model
+    cluster_type: 'sl'
 
   - model_name: "exp3Kmeans"
     save_name: '' # '' means default
@@ -48,7 +49,8 @@ all_models:
     cluster_contextless: true # don't use the sl model for context
 
   - model_name: "stackingModel"
-    models: ["constant_0", "constant_1", "constant_2", "resettingExp3", "exp3Kmeans", "sl", "contextlessExp3Kmeans"]
+    # models: ["constant_0", "constant_1", "constant_2", "resettingExp3", "exp3Kmeans", "sl", "contextlessExp3Kmeans"]
+    models: ["constant_0", "constant_1", "constant_2", "srl", "exp3Kmeans", "sl", "rl"]
 
   - model_name: "ae"
     ae_sizes: []
@@ -64,12 +66,21 @@ all_models:
     srl_weights_path: '/home/mike/puffer/cc_cpp_weights/'
     context_type: 'sl' # options are ['contextless', 'sl', 'ae']
     srl_gamma: 0.999
+    context_layers: []
+
+  - model_name: 'srlAE'
+    srl_model_name: srl_ae_weights_abr_linear_bba_v1.0_ssim.pt
+    srl_weights_path: '/home/mike/puffer/cc_cpp_weights/'
+    context_type: 'ae' # options are ['contextless', 'sl', 'ae']
+    srl_gamma: 0.999
+    context_layers: []
   
 
 servers:
   server_port: 5675
   model_name: 'contextlessExp3Kmeans'
-  test_models: ["constant_0", "constant_1", "constant_2", "resettingExp3", "exp3Kmeans", "sl", "contextlessExp3Kmeans"]
+  # test_models: ["constant_0", "constant_1", "constant_2", "resettingExp3", "exp3Kmeans", "sl", "contextlessExp3Kmeans"]
+  test_models: ["constant_0", "constant_1", "constant_2", "srl", "exp3Kmeans", "sl", "rl"]
 
 paths:
   cc_monitoring_path: "/home/mike/cc_monitoring/cc_" # start path to save the logging file of the cc data
@@ -84,7 +95,7 @@ contexts:
 
 clusters:
 # new for clusters
-  num_clusters: 40
+  num_clusters: 20
   saving_cluster_path: '/home/mike/puffer/clusters/'
   remove_bad_files: false #remove files without internet problems in the training of the cluster
   sl_output_type: 'ssim'
@@ -116,7 +127,7 @@ rl_training_settings:
   rl_rounds_to_save: 1
   rl_sleep_sec: 1
   rl_batch_size: 3
-  rl_min_measuremets: 10
+  rl_min_measuremets: 7
   rl_logs_file: './weights/policy/reinforce_server_logs.txt'
 
 rl_model:
@@ -218,7 +229,7 @@ simulation_constants:
   yml_output_dir: '/home/mike/puffer/src/' # the folder to contain the final settings.yml for the simulation
 
   delay: -1.0 # default delay for the simulation, -1.0 means not to use this value
-  loss: 0.0 # default delay for the simulation, -1.0 means not to use this value
+  loss: -1.0 # default delay for the simulation, -1.0 means not to use this value
 
   mahimahi_epochs: 1 # how many iterations over the trace dir
 
