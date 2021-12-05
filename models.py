@@ -278,7 +278,8 @@ class ClusterModel:
             if fill_default(model_config['cluster_type'], CONFIG['cluster_type']) == 'ae':
                 ae_config = get_updated_config_model('ae', model_config)
                 self.context_model = AutoEncoder(ae_config)
-                self.get_context = lambda x: self.context_model.get_context(torch.from_numpy(x)).detach().cpu().numpy().reshape(-1)
+                self.get_context = lambda x: self.context_model.get_context(torch.from_numpy(x)).detach().cpu().numpy().reshape(-1) if isinstance(x, np.ndarray) else \
+                                                self.context_model.get_context(x).detach().cpu().numpy().reshape(-1)
 
                 model_name = self.context_model.model_name
             else:
@@ -355,7 +356,7 @@ class Exp3Kmeans:
 
 
 class ConstantModel:
-    def __init__(self, val=1):
+    def __init__(self, val):
         self.val = val
     
     def predict(self, state):

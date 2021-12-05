@@ -2,7 +2,7 @@ import numpy as np
 import datetime
 import os
 import argparse
-
+from tqdm import tqdm
 OUTPUT_PATH = './cooked/'
 NUM_LINES = np.inf
 TIME_ORIGIN = datetime.datetime.utcfromtimestamp(0)
@@ -13,7 +13,7 @@ bw_measurements = {}
 
 def main(traces_file):
     line_counter = 0
-    with open(traces_file, 'rb') as f:
+    with open(traces_file, 'r') as f:
         for line in f:
             parse = line.split(',')
             uid = parse[0]
@@ -34,7 +34,7 @@ def main(traces_file):
             if line_counter >= NUM_LINES:
                 break
 
-    for k in bw_measurements:
+    for k in tqdm(bw_measurements):
         out_file = 'trace_' + '_'.join(k)
         out_file = out_file.replace(':', '-')
         out_file = out_file.replace('/', '-')
@@ -43,7 +43,7 @@ def main(traces_file):
             os.mkdir(OUTPUT_PATH)
 
         out_file = OUTPUT_PATH + out_file
-        with open(out_file, 'wb') as f:
+        with open(out_file, 'w') as f:
             for i in bw_measurements[k]:
                 f.write(str(i) + '\n')
 

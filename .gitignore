@@ -13,6 +13,9 @@
 *.wav
 *.webm
 *.chk
+*.csv
+*.sql
+*.profile
 
 /puffer-*
 

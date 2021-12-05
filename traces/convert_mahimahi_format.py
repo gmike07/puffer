@@ -1,6 +1,9 @@
+
 import os
+import shutil
 import numpy as np
 import argparse
+import random
 
 
 FILE_SIZE = 2000
@@ -11,7 +14,7 @@ MAX_TRACE_TIME = (10*60*1000)
 
 
 def convert_file(trace_file, output_file):
-    with open(trace_file, 'rb') as f, open(output_file, 'wb') as mf:
+    with open(trace_file, 'r') as f, open(output_file, 'w') as mf:
         millisec_time = 0
         mf.write(str(millisec_time) + '\n')
         for line in f:
@@ -26,7 +29,7 @@ def convert_file(trace_file, output_file):
                 to_send = (millisec_count * pkt_per_millisec) - pkt_count
                 to_send = np.floor(to_send)
 
-                for i in xrange(int(to_send)):
+                for i in range(int(to_send)):
                     if millisec_time > MAX_TRACE_TIME:
                         return
 
@@ -54,22 +57,28 @@ def main():
         "-c",
         "--count",
         type=int,
-        default=10,
+        default=7500,
         help='num of traces'
     )
 
     args = parser.parse_args()
 
-    if not os.path.exists(args.output):
-        os.mkdir(args.output)
-
+    if os.path.exists(args.output):
+        shutil.rmtree(args.output)
+    os.mkdir(args.output)
+    
     files = os.listdir(args.cooked)
-    for i, trace_file in enumerate(files):
+    random.shuffle(files)
+
+    i = 0
+    for trace_file in files:
         if i > args.count:
             return
 
         if os.stat(args.cooked + trace_file).st_size >= FILE_SIZE:
-            convert_file(args.cooked + trace_file, args.output + trace_file)
+            convert_file(args.cooked + trace_file, args.output + str(i))
+            i += 1
+            print(str(i) + '/' + str(min(args.count, len(files))))
 
 
 if __name__ == '__main__':

@@ -459,6 +459,7 @@ bool update_history(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistory
   //should change cc
   chunk_history.push_chunk();
   chunk_history.push_statistic(socket);
+  logging_chunk.start_time_nn = get_timestamp_ms();
   if(chunk_history.size() != ((size_t) socket.history_size))
   {
     return false;
@@ -500,7 +501,7 @@ void handle_nn_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHistor
 }
 
 
-void switch_cc_server(TCPSocket& socket, std::vector<double>& state)
+void switch_cc_server(TCPSocket& socket, std::vector<double> state)
 {
   json json_state(state);
   
@@ -547,7 +548,7 @@ void handle_server_model(TCPSocket& socket, LoggingChunk& logging_chunk, ChunkHi
   }
   std::vector<double> state(0);
   chunk_history.get_sample_history(state);
-  switch_cc_server(socket, state);
+  std::thread([&socket, state](){switch_cc_server(socket, state);}).detach();
 }
 
 

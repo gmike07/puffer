@@ -27,11 +27,11 @@ def train_sl(model, loader):
             pbar.set_description_str('epoch #{}'.format(epoch))
             pbar.set_postfix(loss=loss.mean().item())
         pbar.close()
-        filename = f"sl_weights_{str(epoch)}_abr_{CONFIG['abr']}_v{str(CONFIG['version'])}_{CONFIG['scoring_function_type']}.pt"
+        filename = f"sl_weights_{str(CONFIG['epochs']-1)}_abr_{CONFIG['abr']}_v{str(CONFIG['version'])}_{CONFIG['scoring_function_type']}.pt"
         torch.save({
             'model_state_dict': model.model.state_dict()
         }, f"{CONFIG['weights_path']}{filename}")
-        save_cpp_model(model.model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG, CONFIG['nn_input_size'])
+        # save_cpp_model(model.model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG, CONFIG['nn_input_size'])
 
 
 def train_ae(model, loader):
@@ -47,11 +47,11 @@ def train_ae(model, loader):
             pbar.set_description_str('epoch #{}'.format(epoch))
             pbar.set_postfix(loss=loss.mean().item())
         pbar.close()
-        filename = f"ae_weights_{str(epoch)}_abr_{CONFIG['abr']}_v{str(CONFIG['version'])}_{CONFIG['scoring_function_type']}.pt"
+        filename = f"ae_weights_{str(CONFIG['epochs']-1)}_abr_{CONFIG['abr']}_v{str(CONFIG['version'])}_{CONFIG['scoring_function_type']}.pt"
         torch.save({
             'model_state_dict': model.encoder_model.state_dict()
         }, f"{CONFIG['ae_weights_path']}{filename}")
-        save_cpp_model(model.encoder_model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG, CONFIG['nn_input_size'] - len(CONFIG['ccs']))
+        # save_cpp_model(model.encoder_model, f"{CONFIG['weights_cpp_path']}{filename}", CONFIG, CONFIG['nn_input_size'] - len(CONFIG['ccs']))
 
 
 def train_rl(model, event, rl_type='rl'):

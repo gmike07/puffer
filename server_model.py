@@ -31,7 +31,9 @@ def get_server_model(models_lst):
                     parsed_data['state'] = np.array(parsed_data['state']).reshape(1, -1)
                     # print('state length', parsed_data['state'].shape)
                     models_lst[0].update(parsed_data)
-                    self.send_response(406 + models_lst[0].predict(parsed_data))
+                    prediction = models_lst[0].predict(parsed_data)
+                    print('predicting server', parsed_data['server_id'], 'prediction is', prediction)
+                    self.send_response(406 + prediction)
                     self.end_headers()
                 elif 'clear' in parsed_data:
                     print('clearing...')

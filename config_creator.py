@@ -21,6 +21,11 @@ def write_yaml_settings(experiments_dct):
         with open(CONFIG['yml_output_dir'] + 'settings_offline.yml', 'w') as outfile:
             yaml.dump(default_dictionary, outfile)
 
+def add_server_index_to_config(config):
+    for i in range(len(config['experiments'])):
+        config['experiments'][i]['fingerprint']['cc_config']['server_id'] = i
+    return config
+
 
 
 def create_setting_yaml(generating_data='', test=False):
@@ -31,7 +36,7 @@ def create_setting_yaml(generating_data='', test=False):
         experiments_dct = {'experiments': [{'fingerprint': copy_fingerprint, 
                                             'num_servers': CONFIG['num_clients']}]
                         }
-        write_yaml_settings(experiments_dct)
+        write_yaml_settings(add_server_index_to_config(experiments_dct))
         return
     if generating_data == 'fixed':
         copy_fingerprint['cc_config']['cc_monitoring_path'] = CONFIG['cc_monitoring_path']
@@ -41,7 +46,7 @@ def create_setting_yaml(generating_data='', test=False):
                         }
         for i in range(CONFIG['num_clients']):
             experiments_dct['experiments'][i]['fingerprint']['cc'] = CONFIG['ccs'][i % len(CONFIG['ccs'])]
-        write_yaml_settings(experiments_dct)
+        write_yaml_settings(add_server_index_to_config(experiments_dct))
         return
     
 
@@ -60,16 +65,9 @@ def create_setting_yaml(generating_data='', test=False):
             model_config = CONFIG['all_models_config'][CONFIG['test_models'][i]]
             fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
             fingerprint['cc_config']['model_name'] = model_config['model_name']
-            if model_config['model_name'].startswith('constant'): # fixed cc
-                fingerprint['cc'] = CONFIG['ccs'][model_config['cc_id']]
-            else:
-                fingerprint['cc'] = 'bbr'
-                fingerprint['cc_config']['server_path'] = f"http://localhost:{CONFIG['server_port']}"
-
-        else:
-            fingerprint['cc'] = 'bbr'
-            fingerprint['cc_config']['server_path'] = f"http://localhost:{CONFIG['server_port']}"
-    write_yaml_settings(experiments_dct)
+        fingerprint['cc'] = 'bbr'
+        fingerprint['cc_config']['server_path'] = f"http://localhost:{CONFIG['server_port']}"
+    write_yaml_settings(add_server_index_to_config(experiments_dct))
 
 
 def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, generate_data=False, contextless=False, model_name=''):

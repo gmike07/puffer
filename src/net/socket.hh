@@ -154,6 +154,8 @@ public:
     ChunkInfo prev_chunk = {false, 0, 0, 0, 0, 0, ""};
     ChunkInfo curr_chunk = {false, 0, 0, 0, 0, 0, ""};
 
+    std::vector<std::string> scoring_types = {"ssim", "bit_rate"};
+
     TCPSocket() : Socket( AF_INET, SOCK_STREAM ) {
         is_pcc = false;
         // UDT::startup();
@@ -354,6 +356,11 @@ public:
     inline std::vector<std::string>& get_supported_cc()
     {
         return supported_ccs;
+    }
+
+    inline bool is_valid_score_type() const
+    {
+        return std::find(scoring_types.begin(), scoring_types.end(), scoring_type) != scoring_types.end();
     }
 };
 
