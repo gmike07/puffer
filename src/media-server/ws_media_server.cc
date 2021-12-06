@@ -794,8 +794,6 @@ int run_websocket_server()
           handle_client_init(server, client, msg);
 
           client.set_server_socket(server.get_socket(connection_id));
-          client.get_socket()->random_cc = get_attribute(cc_config, "random_cc", false);
-          client.get_socket()->model_path = get_attribute<string>(cc_config, "model_path", "");
           client.get_socket()->history_size = get_attribute(cc_config, "history_size", 40);
           client.get_socket()->sample_size = get_attribute(cc_config, "random_sample_size", 5);
           client.get_socket()->abr_time = get_attribute(cc_config, "abr_time", false);
@@ -817,23 +815,12 @@ int run_websocket_server()
             cc_string += cc + "\n";
           }
           std::cout << cc_string << std::endl;
-
-          string monitoring_path = get_attribute<string>(cc_config, "cc_monitoring_path", "");
           string scoring_path = get_attribute<string>(cc_config, "cc_scoring_path", "");
-
-          if(monitoring_path != "")
-          {
-            monitoring_path = monitoring_path + server_id + "_abr_" + abr_name + "_";
-            int index = find_index(monitoring_path);
-            monitoring_path = monitoring_path + to_string(index) + ".txt";
-          }
-          client.get_socket()->logging_path = monitoring_path;
           //std::cout << "logging path: " << monitoring_path << std::endl;
           if(scoring_path != "")
           {
-            bool model_created = client.get_socket()->model_path != "";
             string cc = "nn";
-            if(not model_created and client.get_socket()->server_path == "")
+            if(client.get_socket()->server_path == "")
             {
               cc = client.get_socket()->get_congestion_control();
             }

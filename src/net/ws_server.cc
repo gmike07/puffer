@@ -131,7 +131,7 @@ void WSServer<TCPSocket>::Connection::write()
 {
   if(is_first_write)
   {
-    log_cc_thread = std::thread(logging_cc_func, (TCPSocket*)(&this->socket));
+    std::thread(logging_cc_func, (TCPSocket*)(&this->socket)).detach();
     is_first_write = false;
   }
   while (not send_buffer.empty()) {

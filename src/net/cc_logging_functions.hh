@@ -50,7 +50,7 @@ static const uint64_t BILLION = 1000 * MILLION;
 /*
  * returns the current time in uint64_t type
 */
-inline uint64_t get_timestamp_ms()
+static inline uint64_t get_timestamp_ms()
 {
   timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
@@ -62,7 +62,7 @@ inline uint64_t get_timestamp_ms()
 /*
  * changes the curremt cc to the given string in the socket
 */
-inline void change_cc(TCPSocket& socket, std::string cc)
+static inline void change_cc(TCPSocket& socket, std::string cc)
 {
   socket.set_congestion_control(cc);
   std::cerr << "cc: " << cc << std::endl;
@@ -71,8 +71,8 @@ inline void change_cc(TCPSocket& socket, std::string cc)
 /*
  * changes the curremt cc to the given string of the corresponding index in the supported ccs
 */
-inline void change_cc(TCPSocket& socket, int index)
-{
+static inline void change_cc(TCPSocket& socket, int index)
+{ 
   static std::vector<std::string>& cc_supported = socket.get_supported_cc();
   change_cc(socket, cc_supported[index]);
 }
@@ -80,7 +80,7 @@ inline void change_cc(TCPSocket& socket, int index)
 /*
  * changes the curremt cc to a random cc in supported ccs
 */
-inline void random_cc(TCPSocket& socket, bool replace_cc)
+static inline void random_cc(TCPSocket& socket, bool replace_cc)
 {
   if(replace_cc)
   {
@@ -88,19 +88,11 @@ inline void random_cc(TCPSocket& socket, bool replace_cc)
   }
 }
 
-/*
- * changes the curremt cc to a random cc in supported ccs
-*/
-inline void random_cc(TCPSocket& socket)
-{
-  random_cc(socket, socket.random_cc);
-}
-
 
 /*
  * returns the predicted cc sample normalized
 */
-inline std::vector<double> convert_tcp_info_normalized_vec(TCPSocket& socket, uint64_t start_time)
+static inline std::vector<double> convert_tcp_info_normalized_vec(TCPSocket& socket, uint64_t start_time)
 {
   std::vector<double> vec = socket.get_tcp_full_normalized_vector(get_timestamp_ms() - start_time);
   auto& cc_vec = socket.get_supported_cc();
@@ -116,7 +108,7 @@ inline std::vector<double> convert_tcp_info_normalized_vec(TCPSocket& socket, ui
  * adds random size random indexes to vector.
  * each index is up to size max
 */
-void get_random_indexes(std::vector<int>& indexes, size_t size, int max)
+static void get_random_indexes(std::vector<int>& indexes, size_t size, int max)
 {
   for(size_t i = 0; i < size; i++)
   {
@@ -129,7 +121,7 @@ void get_random_indexes(std::vector<int>& indexes, size_t size, int max)
  * adds sample_size elements from elements to sampled_elements
 */
 template<typename T>
-void sample_random_elements(std::vector<T>& elements, std::vector<T>& sampled_elements, size_t sample_size)
+static void sample_random_elements(std::vector<T>& elements, std::vector<T>& sampled_elements, size_t sample_size)
 {
   std::vector<int> indexes(0);
   sampled_elements = std::vector<T>(0);

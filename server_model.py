@@ -3,14 +3,26 @@ import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread, Event
 
-from models import create_model
+from models.model_creator import create_model
+from models.ae_trainer import AETrainer, train_ae
+from models.rl_trainer import RLTrainer, train_rl
+from models.sl_trainer import SLTrainer, train_sl
 from config_creator import CONFIG, get_config
-from train_models_script import train_rl
 from argument_parser import parse_arguments
 
 
-def is_rl(name):
-    return name in ['rl', 'srl']
+def get_lambda_trainer(model):
+    if isinstance(model, SLTrainer):
+        event = Event()
+        return Thread(lambda: train_sl(model, event)), event
+    if isinstance(model, RLTrainer):
+        event = Event()
+        return Thread(lambda: train_rl(model, event)), event
+    if isinstance(model, AETrainer):
+        event = Event()
+        return Thread(lambda: train_ae(model, event)), event
+    return None, None
+    
 
 
 def get_server_model(models_lst):   
@@ -41,6 +53,12 @@ def get_server_model(models_lst):
                         models_lst[0].clear()
                     self.send_response(200, 'OK')
                     self.end_headers()
+                elif 'done' in parsed_data:
+                    print('clearing...')
+                    if models_lst[0] is not None:
+                        models_lst[0].done()
+                    self.send_response(200, 'OK')
+                    self.end_headers()
                 elif 'switch_model' in parsed_data:
                     print(f"switching to model {parsed_data['model_name']} and load: {parsed_data['load']}")
                     if models_lst[0] is not None:
@@ -53,11 +71,10 @@ def get_server_model(models_lst):
                     event_thread[0] = None
 
                     models_lst[0] = create_model(get_config()['num_clients'], parsed_data['model_name'])
+                    other_thread[0], event_thread[0] = get_lambda_trainer(models_lst[0])
                     if parsed_data['load'] is True:
                         models_lst[0].load()
-                    elif is_rl(parsed_data['model_name']) and get_config()['training']:
-                        event_thread[0] = Event()
-                        other_thread[0] = Thread(target=lambda: train_rl(models_lst[0], event_thread[0], parsed_data['model_name']))
+                    elif not get_config()['test'] and other_thread[0] is not None:
                         other_thread[0].start()
                     self.send_response(200, 'OK')
                     self.end_headers()

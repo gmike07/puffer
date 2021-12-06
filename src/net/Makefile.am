@@ -23,7 +23,7 @@ libnet_a_SOURCES = address.cc address.hh body_parser.hh \
                    http_request_parser.hh http_response.cc http_response.hh \
                    http_response_parser.cc http_response_parser.hh \
                    mime_type.cc mime_type.hh \
-                   secure_socket.cc secure_socket.hh socket.cc socket.hh \
+                   secure_socket.cc secure_socket.hh socket.cc socket.hh cc_logging_socket.cc \
                    serialization.cc serialization.hh \
                    strict_conversions.hh strict_conversions.cc \
                    nb_secure_socket.hh nb_secure_socket.cc \
@@ -31,4 +31,6 @@ libnet_a_SOURCES = address.cc address.hh body_parser.hh \
                    ws_message.hh ws_message.cc \
                    ws_message_parser.hh ws_message_parser.cc \
                    ws_server.hh ws_server.cc \
-                   cc_logging.hh cc_logging.cc
+                   cc_logging.hh cc_logging.cc \
+                   cc_logging_objects.cc cc_logging_objects.hh \
+                   cc_logging_functions.hh

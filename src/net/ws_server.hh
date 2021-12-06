@@ -34,7 +34,6 @@ private:
   struct Connection
   {
     bool is_first_write = true;
-    std::thread log_cc_thread;
     enum class State {
       NotConnected = 0,
       Connecting,

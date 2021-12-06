@@ -259,37 +259,14 @@ tcp_info TCPSocket::get_tcp_full_info() const
   return x;
 }
 
-
-string TCPSocket::get_congestion_control_tcp() const
+std::string TCPSocket::get_congestion_control_tcp() const
 {
     char optval[ TCP_CC_NAME_MAX ];
     getsockopt( IPPROTO_TCP, TCP_CONGESTION, optval );
     return optval;
 }
 
-string TCPSocket::get_congestion_control() const
+std::string TCPSocket::get_congestion_control() const
 {
     return current_cc;
-}
-
-void TCPSocket::add_chunk(ChunkInfo info)
-{
-    if(not info.is_video) 
-    {
-        return;
-    }
-    if(not curr_chunk.is_video)
-    {
-        curr_chunk = info;
-    }
-    else
-    {
-        prev_chunk = curr_chunk;
-        curr_chunk = info;
-    }
-    
-    is_new_chunk_logging = true;
-    is_new_chunk_scoring = true;
-    is_new_chunk_model = true;
-    is_new_chunk_rl = true;
 }

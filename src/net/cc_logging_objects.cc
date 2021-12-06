@@ -2,7 +2,6 @@
 #include "cc_logging_objects.hh"
 
 using json = nlohmann::json;
-const int MILLISECONDS_TO_SLEEP = 1;
 
 void ScoreHandler::operator()()
 {
@@ -16,45 +15,14 @@ void ScoreHandler::operator()()
       return;
     }
     double score = socket.score_chunks();
-    if(not socket.random_cc)
+    std::string s = socket.get_congestion_control() + " " + std::to_string(score);
+    if(not pref.empty())
     {
-      std::string s = socket.get_congestion_control() + " " + std::to_string(score);
-      if(not pref.empty())
-      {
-        s = pref + " " + s;
-      }
-      std::cout << s << std::endl;
+      s = pref + " " + s;
     }
+    std::cout << s << std::endl;
     scoring_file << score << std::endl;
     socket.is_new_chunk_scoring = false;
-}
-
-
-void MonitoringHandler::operator()()
-{
-  std::string data = "";
-  std::string cc = socket.get_congestion_control();
-  if(socket.is_new_chunk_logging)
-  {
-    start_time = get_timestamp_ms();
-    data = socket.generate_chunk_statistics() + "\n";
-    random_cc(socket); //works only if random_cc is true
-    socket.is_new_chunk_logging = false;
-  }
-  auto vec = socket.get_tcp_full_normalized_vector(get_timestamp_ms() - start_time);
-  int ccs_size = socket.get_supported_cc().size();
-  std::vector<std::string>& ccs = socket.get_supported_cc();
-  for(int i = 0; i < ccs_size; i++)
-  {
-    vec.push_back((cc == ccs[i]) ? 1 : 0);
-  }
-
-  for(const auto& val: vec)
-  {
-    data += std::to_string(val);
-    data += ",";
-  }
-  logging_file << data.substr(0, data.size() - 1) << std::endl;
 }
 
 
@@ -133,65 +101,17 @@ void StateServerHandler::operator()()
 }
 
 
-void StatelessServerHandler::operator()()
-{
-  counter = (counter + 1) % nn_roundup;
-  bool change_cc_1 = (abr_time and socket.is_new_chunk_model);
-  socket.is_new_chunk_model = false;
-  bool change_cc_2 = ((not abr_time) and (counter % nn_roundup == 0));
-  if((not change_cc_1) and (not change_cc_2))
-  {
-    return;
-  }
-  //should change cc
-  std::vector<double> state(0);
-  std::thread([this, state](){sender.send_state_and_replace_cc(state);}).detach();
-}
-
-
-void create_handlers(TCPSocket& socket, std::vector<DefaultHandler>& handlers)
-{
-  if(socket.logging_path != "")
-  {
-    handlers.push_back(MonitoringHandler(socket));
-  }
-  if(socket.scoring_path != "")
-  {
-    handlers.push_back(ScoreHandler(socket, (socket.server_path != "") ? "nn": ""));
-  }
-  if(socket.server_path != "")
-  {
-    handlers.push_back(StateServerHandler(socket));
-  }
-}
-
-/*
- * handles the thread to store statistics of the socket and change the cc
-*/
-void logging_cc_func(TCPSocket* socket)
-{
-  if(socket == nullptr)
-  {
-    std::cout << "oh shit, socket doesn't exists" << std::endl;
-    return;
-  }
-  while(!socket->created_socket) {}
-  TCPSocket& sock = *socket;
-  std::vector<DefaultHandler> handlers(0);
-  create_handlers(*socket, handlers);
-  random_cc(sock); //works only if random_cc is true
-  std::this_thread::sleep_for(std::chrono::milliseconds(MILLISECONDS_TO_SLEEP));
-  try{
-    while(true)
-    {
-      for(auto& handler: handlers)
-      {
-        handler();
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(MILLISECONDS_TO_SLEEP));
-    }
-  }catch (const std::exception& e)
-  {
-      std::cerr << e.what() << "hmmm" << std::endl;
-  }
-}
+// void StatelessServerHandler::operator()()
+// {
+//   counter = (counter + 1) % nn_roundup;
+//   bool change_cc_1 = (abr_time and socket.is_new_chunk_model);
+//   socket.is_new_chunk_model = false;
+//   bool change_cc_2 = ((not abr_time) and (counter % nn_roundup == 0));
+//   if((not change_cc_1) and (not change_cc_2))
+//   {
+//     return;
+//   }
+//   //should change cc
+//   std::vector<double> state(0);
+//   std::thread([this, state](){sender.send_state_and_replace_cc(state);}).detach();
+// }

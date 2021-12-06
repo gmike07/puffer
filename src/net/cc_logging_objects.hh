@@ -2,7 +2,7 @@
 #ifndef CC_LOGGING_OBJECTS_HH
 #define CC_LOGGING_OBJECTS_HH
 #include "cc_logging_functions.hh"
-
+#include "socket.hh"
 
 typedef std::vector<double> qoe_sample;
 typedef std::vector<std::vector<double>> chunk_sample;
@@ -13,7 +13,7 @@ class DefaultHandler
 public:
   DefaultHandler(TCPSocket& sock): socket(sock) {}
   virtual void operator()()=0;
-  ~DefaultHandler();
+  virtual ~DefaultHandler()=default;
 protected:
   TCPSocket& socket;
 };
@@ -23,26 +23,11 @@ class ScoreHandler: public virtual DefaultHandler
 public:
   ScoreHandler(TCPSocket& sock, std::string prefix=""): DefaultHandler(sock), 
             scoring_file(std::ofstream(sock.scoring_path, std::ios::out | std::ios::app)), pref(prefix){};
-  void operator()();
-  ~ScoreHandler(){};
+  virtual void operator()();
+  virtual ~ScoreHandler()=default;
 private:
   std::ofstream scoring_file;
   std::string pref;
-};
-
-class MonitoringHandler: public virtual DefaultHandler
-{
-public:
-  MonitoringHandler(TCPSocket& sock): 
-    DefaultHandler(sock), logging_file(std::ofstream(sock.logging_path, std::ios::out | std::ios::app)), start_time(get_timestamp_ms())
-    {
-      logging_file << "new run," << std::endl;
-    };
-  void operator()();
-  ~MonitoringHandler(){};
-private:
-  std::ofstream logging_file;
-  uint64_t start_time;
 };
 
 
@@ -50,7 +35,6 @@ class ServerSender
 {
 public:
   ServerSender(TCPSocket& sock, int start_good_code=406): socket(sock), base_good_code(start_good_code) {};
-  ~ServerSender(){};
   int send(std::vector<double> state);
   void send_state_and_replace_cc(std::vector<double> state);
 private:
@@ -63,24 +47,17 @@ class ChunkHistory
 {
 public:
   ChunkHistory(TCPSocket& socket): 
-    history_size(socket.history_size), sample_size(socket.sample_size),  curr_chunk(0),  history_chunks(0){}
+    history_size(socket.history_size), sample_size(socket.sample_size),  curr_chunk(0),  history_chunks(0), qoe_statistics(0){}
   
-  ~ChunkHistory(){}
   /*
   * returns the history current size
   */
-  inline size_t size()
-  {
-    return history_chunks.size();
-  }
+  inline size_t size() {return history_chunks.size();}
 
   /*
   * adds a cc sample to the current chunk
   */
-  inline void update_chunk(std::vector<double> sample_cc)
-  {
-    curr_chunk.push_back(sample_cc);
-  }
+  inline void update_chunk(std::vector<double> sample_cc) {curr_chunk.push_back(sample_cc);}
 
   /*
   * adds the current chunk to the history and updates the size of the history if needed
@@ -148,8 +125,8 @@ public:
                                 DefaultHandler(sock), sender(sock), history(sock),
                                 start_time(get_timestamp_ms()), counter(0), 
                                 nn_roundup(sock.nn_roundup), abr_time(sock.abr_time){};
-  void operator()();
-  ~StateServerHandler(){};
+  virtual void operator()();
+  virtual ~StateServerHandler()=default;
 private:
   ServerSender sender;
   ChunkHistory history;
@@ -159,18 +136,17 @@ private:
   bool abr_time;
 };
 
-class StatelessServerHandler: public virtual DefaultHandler
-{
-public:
-  StatelessServerHandler(TCPSocket& sock): DefaultHandler(sock), sender(sock), counter(0), 
-                                nn_roundup(sock.nn_roundup), abr_time(sock.abr_time){};
-  void operator()();
-  ~StatelessServerHandler(){};
-private:
-  ServerSender sender;
-  uint64_t counter;
-  uint64_t nn_roundup;
-  bool abr_time;
-};
+// class StatelessServerHandler: public virtual DefaultHandler
+// {
+// public:
+//   StatelessServerHandler(TCPSocket& sock): DefaultHandler(sock), sender(sock), counter(0), 
+//                                 nn_roundup(sock.nn_roundup), abr_time(sock.abr_time){};
+//   virtual void operator()(){}
+// private:
+//   ServerSender sender;
+//   uint64_t counter;
+//   uint64_t nn_roundup;
+//   bool abr_time;
+// };
 
 #endif /* CC_LOGGING_OBJECTS_HH */
