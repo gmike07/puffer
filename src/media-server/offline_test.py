@@ -56,22 +56,24 @@ def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
     return mahimahi_chrome_cmd
 
 
-def send_clear_to_server():
-    if CONFIG['generate_data']:
-        return
+def send_dct_to_server(dct):
     try:
-        requests.post(f"http://localhost:{CONFIG['server_port']}", json.dumps({'clear': 'clear'}))
+        requests.post(f"http://localhost:{CONFIG['server_port']}", json.dumps(dct))
     except Exception as e:
         pass
     time.sleep(3)
 
-def send_switch_to_server(model_name, should_load):
-    try:
-        requests.post(f"http://localhost:{CONFIG['server_port']}", json.dumps({'switch_model': 'switch_model', 
-                                                                                'model_name': model_name, 'load': should_load}))
-    except Exception as e:
-        pass
-    time.sleep(3)
+
+def send_clear_to_server():
+    send_dct_to_server({'clear': 'clear'})
+
+
+def send_done_to_server():
+    send_dct_to_server({'done': 'done'})
+
+
+def send_switch_to_server(model_name, should_load, helper_model=''):
+    send_dct_to_server({'switch_model': 'switch_model', 'model_name': model_name, 'load': should_load, 'helper_model': helper_model})
 
 
 def create_failed_files(filedir, setting):
@@ -162,10 +164,6 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     df = pd.concat(dfs)
     arr = df['exp']
     df = df.drop(['exp'], 1)
-    # if is_max:
-    #     df['max-nn'] = np.max(df, axis=1) - df['nn']
-    # else:
-    #     df['min-nn'] = df['nn'] - np.min(df, axis=1)
     delays = np.array([tup[0] for tup in CONFIG['settings']])
     losses = np.array([tup[1] for tup in CONFIG['settings']])
     df.insert(0, "loss", losses[(arr - 1) % len(losses)])
@@ -182,53 +180,50 @@ def eval_scores():
     max_num = max(int(file[file.rfind('_') + 1:-len('.txt')]) for file in files if file.endswith('.txt'))
     print('mean')
     show_table(path, CONFIG['abr'], max_num, np.mean)
-    print('='*60)
-    print('var')
-    show_table(path, CONFIG['abr'], max_num, np.var, is_max=False)
+
+
+def prepare_env():
+    if CONFIG['eval']:
+        eval_scores()
+        exit()
+    subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
+    subprocess.check_call("rm -rf ./*.profile", shell=True,
+                                      executable='/bin/bash')
+
+
+def run_simulation(model_name, should_load, f=lambda _: False, helper_model=''):
+    create_setting_yaml(test=CONFIG['test'])
+    send_clear_to_server()
+    send_switch_to_server(model_name, should_load, helper_model)
+    scoring_dir = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/') + 1]
+    start_maimahi_clients(CONFIG['num_clients'], scoring_dir, f)
+    send_done_to_server()
+    print('finished part simulation!')
+
+
+def train_simulation(model_name):
+    if model_name not in ['SLTrainer', 'AETrainer', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer']:
+        run_simulation(model_name, False)
+        return
+    epochs = CONFIG['mahimahi_epochs']
+    CONFIG['mahimahi_epochs'] = 1
+    for epoch in range(epochs):
+        run_simulation(model_name, bool(epoch != 0), helper_model='random')
+        exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
+        run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
+    CONFIG['mahimahi_epochs'] = epochs
+
+def test_simulation():
+    run_simulation('stackingModel', True)
+    eval_scores()
 
 
 if __name__ == '__main__':
     parse_arguments()
     CONFIG.update(get_config())
 
-
-    if CONFIG['eval']:
-        eval_scores()
-        exit()
-
-
-    # create settings file
-    if CONFIG['generate_data']:
-        create_setting_yaml(generating_data='randomized')
-    else:
-        create_setting_yaml(test=CONFIG['test'])
-    
-    send_clear_to_server()
-
-    # special call for the code to work
-    subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
-    subprocess.check_call("rm -rf ./*.profile", shell=True,
-                                      executable='/bin/bash')
-    if not os.path.exists('../cc_monitoring'):
-        os.mkdir('../cc_monitoring')
-
-
-    if CONFIG['generate_data']:
-        send_switch_to_server('random', False)
-    elif not CONFIG['test']:
-        send_switch_to_server(CONFIG['model_name'], False)
-    else:
-        send_switch_to_server('stackingModel', True)
-
-    scoring_dir = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/') + 1]
-    start_maimahi_clients(CONFIG['num_clients'], scoring_dir, lambda _ : False)
-    print('finished generating data')
-
+    prepare_env()
     if CONFIG['test']:
-        eval_scores()
-    elif CONFIG['generate_data']:
-        create_setting_yaml(generating_data='fixed')
-        send_switch_to_server('idModel', False)
-
-        exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
-        start_maimahi_clients(CONFIG['num_clients'], scoring_dir, exit_condition)
+        test_simulation()
+    else:
+        train_simulation(CONFIG['model_name'])

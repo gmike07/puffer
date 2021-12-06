@@ -18,10 +18,12 @@ class ClusterModel:
             self.cluster_name = fill_default_key(model_config, 'cluster_name', f"clusters_{model_name}_{self.num_clusters}_{context_layers}")
         self.cluster_path = fill_default_key(model_config, 'saving_cluster_path')
         self.kmeans = KMeans(n_clusters=self.num_clusters)
+        print('created cluster model')
 
     def load(self):
         with open(f"{self.cluster_path}{self.cluster_name}.pkl", 'rb') as f:
             self.kmeans = pickle.load(f)
+        print('loaded cluster model')
     
     def save(self):
         with open(f"{self.cluster_path}{self.cluster_name}.pkl", 'wb') as f:

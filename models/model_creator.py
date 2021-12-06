@@ -1,4 +1,4 @@
-from ..config_creator import get_config, fill_default
+from models.helper_functions import get_config, fill_default
 from models.basic_models import ConstantModel, RandomModel, IdModel
 from models.exp3 import Exp3
 from models.sl_trainer import SLTrainer
@@ -19,6 +19,7 @@ class StackingModelsServer:
         models_data = fill_default(models_data, get_config()['test_models'])
         print(models_data)
         self.models = [create_model(len(models_data), model_data) for model_data in models_data]
+        print('created stacking model')
     
     def predict(self, state):
         return self.models[state['server_id']].predict(state)
@@ -59,10 +60,10 @@ def create_model(num_clients, model_name, helper_model=''):
         if model_name in ['resettingExp3', 'exp3']:
             return Exp3(num_clients, conf)
 
-        if model_name == 'slTrainer':
+        if model_name == 'SLTrainer':
             return SLTrainer(num_clients, conf, create_model(num_clients, helper_model))
 
-        if model_name == 'aeTrainer':
+        if model_name == 'AETrainer':
             return AETrainer(conf, create_model(num_clients, helper_model))
 
         if model_name == 'rl':

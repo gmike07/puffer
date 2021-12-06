@@ -1,7 +1,6 @@
 from queue import Queue
-from models.helper_functions import fill_default_key_conf, get_updated_config_model
-from models.ae_model import AE_Model
-from ..config_creator import get_config
+from models.helper_functions import fill_default_key_conf, get_updated_config_model, get_config
+from models.ae_model import AutoEncoder
 import torch
 import time
 
@@ -10,13 +9,14 @@ class AETrainer:
         self.clean_data = Queue()
         self.prediction_model = helper_model
         if not get_config()['test']:
-            self.model = AE_Model(get_updated_config_model('ae', config))
+            self.model = AutoEncoder(get_updated_config_model('ae', config))
         else:
             self.model = None
-        self.sleep_time = fill_default_key_conf(config, 'ae_sleep_sec')
-        self.rounds_to_sleep = fill_default_key_conf(config, 'ae_rounds_to_save')
-        self.logs_file = fill_default_key_conf(config, 'ae_logs_file')
+        self.sleep_time = fill_default_key_conf(config, 'sleep_sec')
+        self.rounds_to_sleep = fill_default_key_conf(config, 'rounds_to_save')
+        self.logs_file = fill_default_key_conf(config, 'logs_file')
         self.training = not get_config()['test']
+        print('created AETrainer')
 
     def predict(self, state):
         return self.prediction_model.predict(state)
@@ -36,9 +36,14 @@ class AETrainer:
 
     def load(self):
         self.prediction_model.load()
+        print('loaded AETrainer')
     
     def done(self):
         pass
+
+    def update_helper_model(self, helper_model):
+        self.prediction_model = helper_model
+        self.load()
 
 
 def train_ae(model, event):

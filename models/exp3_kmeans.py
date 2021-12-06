@@ -1,8 +1,8 @@
 from models.cluster_model import ClusterModel
 from models.helper_functions import get_updated_config_model, fill_default_key, fill_default_key_conf
 from models.exp3 import Exp3
+from models.helper_functions import get_config
 import numpy as np
-from ..config_creator import get_config
 
 class Exp3Kmeans:
     def __init__(self, num_clients, model_config):
@@ -17,6 +17,7 @@ class Exp3Kmeans:
             self.exp3_contexts[i].save_path = f"{path}{save_name}_{i}.npy"
         self.cluster_counter = np.zeros(self.cluster_model.num_clusters)
         self.cluster_counter_path = f'{self.cluster_model.cluster_path}{self.cluster_model.cluster_name}_counter.npy'
+        print('created exp3Kmeans')
 
     def predict(self, state):
         return self.exp3_contexts[self.cluster_model.get_cluster_id(state['state'])].predict(state)
@@ -40,6 +41,7 @@ class Exp3Kmeans:
         for exp3 in self.exp3_contexts:
             exp3.load()
         np.save(self.cluster_counter_path, self.cluster_counter)
+        print('loaded exp3Kmeans')
 
     def done(self):
         pass

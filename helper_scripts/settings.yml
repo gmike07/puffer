@@ -22,11 +22,11 @@ all_models:
 
   - model_name: "sl" # other properties: scoring_function_type, sl_model_name + NN traits
 
-  - model_name: "slTrainer" # other properties: sleep_sec, rounds_to_save, logs_file + SL traits
+  - model_name: "SLTrainer" # other properties: sleep_sec, rounds_to_save, logs_file + SL traits
 
   - model_name: "ae" # other properties: ae_model_name + NN traits
 
-  - model_name: "aeTrainer" # other properties: sleep_sec, rounds_to_save, logs_file + AE traits
+  - model_name: "AETrainer" # other properties: sleep_sec, rounds_to_save, logs_file + AE traits
 
   - model_name: "rl" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file + NN traits
 

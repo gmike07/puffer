@@ -75,7 +75,7 @@ def update_constants_config():
 
 def create_all_models_config(models_config_dct):
     mapping = {}
-    for model_config in models_config_dct['all_models']:
+    for model_config in models_config_dct:
         mapping[model_config['model_name']] = model_config
     CONFIG['all_models_config'] = mapping
 

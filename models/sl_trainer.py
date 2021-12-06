@@ -1,7 +1,6 @@
 from queue import Queue
-from models.helper_functions import fill_default_key_conf, get_updated_config_model
+from models.helper_functions import fill_default_key_conf, get_updated_config_model, get_config
 from models.sl_model import SLModel
-from ..config_creator import get_config
 import torch
 from models.ae_trainer import train_ae
 import numpy as np
@@ -19,10 +18,11 @@ class SLTrainer:
             self.model = SLModel(get_updated_config_model('sl', config))
         else:
             self.model = None
-        self.sleep_time = fill_default_key_conf(config, 'sl_sleep_sec')
-        self.rounds_to_sleep = fill_default_key_conf(config, 'sl_rounds_to_save')
-        self.logs_file = fill_default_key_conf(config, 'sl_logs_file')
+        self.sleep_time = fill_default_key_conf(config, 'sleep_sec')
+        self.rounds_to_sleep = fill_default_key_conf(config, 'rounds_to_save')
+        self.logs_file = fill_default_key_conf(config, 'logs_file')
         self.training = not get_config()['test']
+        print('created SLTrainer')
 
     def predict(self, state):
         return self.prediction_model.predict(state)
@@ -49,9 +49,14 @@ class SLTrainer:
 
     def load(self):
         self.prediction_model.load()
+        print('loaded SLTrainer')
     
     def done(self):
         pass
+
+    def update_helper_model(self, helper_model):
+        self.prediction_model = helper_model
+        self.load()
 
 
 def train_sl(model, event):

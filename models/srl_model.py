@@ -1,17 +1,16 @@
 from numpy.core.defchararray import mod
-from models.helper_functions import fill_default_key_conf, fill_default_key, get_updated_config_model
+from models.helper_functions import fill_default_key_conf, fill_default_key, get_updated_config_model, get_config
 from models.nn_models import NN_Model
 from models.context_model import ContextModel
-from ..config_creator import get_config
 import torch.nn.functional as F
 from queue import Queue
 import numpy as np
 import torch
 
 
-class SRLModel(NN_Model):
+class SRLModel(torch.nn.Module):
     def __init__(self, num_clients, model_config):
-        super(SRLModel, self).__init__(get_config()['nn_input_size'] - len(get_config()['ccs']), len(get_config()['ccs']))
+        super(SRLModel, self).__init__()
         self.CONFIG = get_config()
         self.actions = np.arange(len(self.CONFIG['ccs']))
         self.num_clients = num_clients
@@ -19,11 +18,13 @@ class SRLModel(NN_Model):
         self.gamma = fill_default_key_conf(model_config, 'srl_gamma')
         self.model_path = fill_default_key_conf(model_config, 'weights_path')
         self.input_size = get_config()['nn_input_size'] - len(get_config()['ccs'])
-        self.context_model = ContextModel(get_updated_config_model('contextModel', model_config))
+        self.context_model = ContextModel(model_config)
         self.context_model.load()
         self.context_model.eval()
         self.model_name = fill_default_key(model_config, 'srl_model_name', f"srl_{self.context_model.context_type}_weights_abr_{get_config()['abr']}.pt")
         self.config = model_config
+        self.model = NN_Model(model_config, self.context_model.output_size, len(get_config()['ccs']))
+        print('created srl model')
 
     def forward(self, x):
         return F.softmax(self.model(torch.from_numpy(self.context_model.generate_context(x))), dim=1)

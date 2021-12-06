@@ -1,4 +1,4 @@
-from ..config_creator import get_config
+from config_creator import get_config as helper_get_config
 import copy
 import torch
 import numpy as np
@@ -34,3 +34,6 @@ def create_actions():
 
 def merge_state_actions(state, action):
     return torch.from_numpy(np.hstack([state, action]))
+
+def get_config():
+    return helper_get_config()

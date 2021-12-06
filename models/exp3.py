@@ -1,6 +1,5 @@
 import numpy as np
-from ..config_creator import get_config
-from models.helper_functions import fill_default_key, fill_default_key_conf
+from models.helper_functions import fill_default_key, fill_default_key_conf, get_config
 
 
 class Exp3:
@@ -11,12 +10,13 @@ class Exp3:
         self.last_actions = [None for _ in range(num_clients)]
         self.num_actions = len(get_config()['ccs'])
         self.weights = np.ones(self.num_actions)
-        self.gamma = fill_default_key_conf(model_config, 'exp3_explore_parameter', True)
+        self.gamma = fill_default_key(model_config, 'exp3_explore_parameter', 0.1)
         self.probabilites = self.calc_probabilities()
         self.should_load = fill_default_key(model_config, 'should_load_exp3', True)
         self.should_clear_weights = fill_default_key(model_config, 'should_clear_weights', False)
         self.save_name = fill_default_key(model_config, 'exp3_save_name', "exp3")
         self.save_path = f"{fill_default_key_conf(model_config, 'exp3_model_path')}{self.save_name}.npy"
+        print('created exp3')
 
     def clear(self):
         self.last_actions = [None for _ in range(self.num_clients)]
@@ -38,6 +38,7 @@ class Exp3:
             return
         self.weights = np.load(self.save_path)
         self.probabilites = self.calc_probabilities()
+        print('loaded exp3')
 
     def calc_probabilities(self):
         sum_weights = self.weights.sum()

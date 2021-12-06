@@ -1,6 +1,5 @@
 import torch
-from models.helper_functions import fill_default_key_conf
-from ..config_creator import get_config
+from models.helper_functions import fill_default_key_conf, get_config
 
 
 class NN_Model(torch.nn.Module):
@@ -24,6 +23,7 @@ class NN_Model(torch.nn.Module):
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=fill_default_key_conf(config, 'lr'),
                                           weight_decay=fill_default_key_conf(config, 'weights_decay'))
+        print('created NN model')
     
     def forward(self, x):
         return self.model(x)

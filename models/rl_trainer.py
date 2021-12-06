@@ -3,8 +3,7 @@ import numpy as np
 from queue import Queue
 import time
 
-from ..config_creator import get_config
-from models.helper_functions import fill_default_key_conf
+from models.helper_functions import fill_default_key_conf, get_config
 
 
 class RLTrainer(torch.nn.Module):
@@ -21,6 +20,7 @@ class RLTrainer(torch.nn.Module):
         self.optimizer = self.model.optimizer
         self.input_size = self.model.input_size
         self.config = model.config
+        print('created RLTrainer')
     
     def forward(self, x):
         return self.model.forward(x)
@@ -28,6 +28,8 @@ class RLTrainer(torch.nn.Module):
     def load(self):
         dct = torch.load(self.model_path + self.model_name)
         self.model.load_state_dict(dct['model_state_dict'])
+        print('loaded RLTrainer')
+
 
     def predict(self, sent_state):
         probabilities = self.forward(torch.from_numpy(sent_state['state']))

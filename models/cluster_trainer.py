@@ -7,9 +7,11 @@ class ClusterTrainer:
         self.context_model = ContextModel(model_config)
         self.prediction_model = helper_model
         self.contexts = np.array([])
+        print('created clusterTrainer')
 
     def load(self):
         self.prediction_model.load()
+        print('loaded clusterTrainer')
     
     def save(self):
         pass
@@ -23,6 +25,11 @@ class ClusterTrainer:
     def done(self):
         self.context_model.fit(self.contexts)
         self.context_model.save()
+        print('done clusterTrainer')
 
     def clear(self):
         pass
+
+    def update_helper_model(self, helper_model):
+        self.prediction_model = helper_model
+        self.load()
