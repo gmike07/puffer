@@ -17,8 +17,9 @@ def get_lambda_trainer(model, model_name, event):
     if model_name == 'SLTrainer':
         return lambda: train_sl(model, event)
     if model_name == 'AETrainer':
-        return lambda: train_ae(model_name, event)
-    return lambda: train_rl(model, event)
+        return lambda: train_ae(model, event)
+    if model_name in ['rl', 'srl']:
+        return lambda: train_rl(model, event)
     
 
 def is_threaded_model(model_name):
@@ -62,14 +63,16 @@ def get_server_model(models_lst):
 
         def handle_switch(self, parsed_data):
             print(f"switching to model {parsed_data['model_name']} and load: {parsed_data['load']}")
+            if model_name[0] == parsed_data['model_name']:
+                if requires_helper_model(model_name[0]):
+                    models_lst[0].update_helper_model(create_model(get_config()['num_clients'], parsed_data['helper_model']))
+                self.send_response(200, 'OK')
+                self.end_headers()
+                return
             if models_lst[0] is not None:
                 if event_thread[0] is not None:
                     event_thread[0].set()
                 models_lst[0].save()
-            if model_name[0] == parsed_data['model_name']:
-                if requires_helper_model(model_name[0]):
-                    models_lst[0].update_helper_model(create_model(get_config()['num_clients'], parsed_data['helper_model']))
-                return
             
             models_lst[0] = None
             other_thread[0] = None

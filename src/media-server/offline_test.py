@@ -197,21 +197,23 @@ def run_simulation(model_name, should_load, f=lambda _: False, helper_model=''):
     send_switch_to_server(model_name, should_load, helper_model)
     scoring_dir = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/') + 1]
     start_maimahi_clients(CONFIG['num_clients'], scoring_dir, f)
-    send_done_to_server()
     print('finished part simulation!')
 
 
 def train_simulation(model_name):
+    test_f = lambda _: True
     if model_name not in ['SLTrainer', 'AETrainer', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer']:
-        run_simulation(model_name, False)
+        run_simulation(model_name, False, f=test_f)
+        send_done_to_server()
         return
     epochs = CONFIG['mahimahi_epochs']
     CONFIG['mahimahi_epochs'] = 1
     for epoch in range(epochs):
-        run_simulation(model_name, bool(epoch != 0), helper_model='random')
+        run_simulation(model_name, bool(epoch != 0), f=test_f, helper_model='random')
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
-        run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
+        run_simulation(model_name, True, f=test_f, helper_model='idModel')
     CONFIG['mahimahi_epochs'] = epochs
+    send_done_to_server()
 
 def test_simulation():
     run_simulation('stackingModel', True)

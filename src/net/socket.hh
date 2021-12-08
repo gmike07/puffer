@@ -15,8 +15,12 @@
 #include <type_traits>
 #include <sstream>
 #include <algorithm>
+#include <memory>
 #include "address.hh"
 #include "file_descriptor.hh"
+
+
+class WebSocketClient;
 
 /* class for network sockets (UDP, TCP, etc.) */
 class Socket : public FileDescriptor
@@ -101,11 +105,11 @@ struct ChunkInfo
 class TCPSocket : public Socket
 {
 private:
+    static constexpr double UNIT_BUF_LENGTH = 0.5;
     static constexpr double MAX_SSIM = 60;
     static constexpr double MIN_SSIM = 0;
     static constexpr double million = 1000000;
     static constexpr double pkt_bytes = 1500;
-    bool is_pcc = false;
     std::vector<std::string> supported_ccs{};
     std::string current_cc = "";
 
@@ -114,9 +118,6 @@ private:
 protected:
     /* constructor used by accept() and SecureSocket() */
     TCPSocket( FileDescriptor && fd ) : Socket( std::move( fd ), AF_INET, SOCK_STREAM ){
-        is_pcc = false;
-        //UDT::startup();
-        //pcc_fd = UDT::socket(AF_INET, SOCK_STREAM, AI_PASSIVE);
         current_cc = get_congestion_control_tcp();
     }
 
@@ -148,12 +149,11 @@ public:
     ChunkInfo prev_chunk = {false, 0, 0, 0, 0, 0, ""};
     ChunkInfo curr_chunk = {false, 0, 0, 0, 0, 0, ""};
 
-    std::vector<std::string> scoring_types = {"ssim", "bit_rate"};
+    std::shared_ptr<WebSocketClient> client = nullptr;
+
+    std::vector<std::string> scoring_types = {"ssim"}; //"bit_rate"
 
     TCPSocket() : Socket( AF_INET, SOCK_STREAM ) {
-        is_pcc = false;
-        // UDT::startup();
-        //pcc_fd = UDT::socket(AF_INET, SOCK_STREAM, AI_PASSIVE);
         current_cc = get_congestion_control_tcp();
     }
 
@@ -212,6 +212,8 @@ public:
     std::vector<std::string>& get_supported_cc();
 
     bool is_valid_score_type() const;
+
+    double get_qoe(double curr_ssim, double prev_ssim, uint64_t curr_trans_time, std::size_t curr_buffer);
 };
 
 #endif /* SOCKET_HH */

@@ -58,7 +58,7 @@ int ServerSender::send(std::vector<double> state)
     }
     if(status != 200)
     {
-      return base_good_code - status;
+      return status - base_good_code;
     }
   }
   catch (std::exception& e) {

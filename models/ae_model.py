@@ -50,7 +50,7 @@ class AutoEncoder(torch.nn.Module):
         if path == '':
             path = self.model_name
         torch.save({
-            'model_state_dict': self.model.state_dict()
+            'model_state_dict': self.encoder_model.state_dict()
         }, f"{fill_default_key_conf(self.model_config, 'weights_path')}{path}")
 
     def get_context(self, x):

@@ -16,6 +16,7 @@ class ContextModel(torch.nn.Module):
         self.output_size = get_config()['nn_input_size'] - len(get_config()['ccs'])
         if self.context_type == 'sl':
             self.base_model = SLModel(get_updated_config_model('sl', model_config))
+            self.base_model.load()
             self.base_model.eval()
             self.context_layers = fill_default_key_conf(model_config, 'context_layers')
             self.context_layers = set(self.context_layers)
@@ -25,6 +26,7 @@ class ContextModel(torch.nn.Module):
             self.output_size = sum(self.base_model.sizes[i + 1] for i in self.context_layers) * len(get_config()['ccs'])
         elif self.context_type == 'ae':
             self.base_model = AutoEncoder(get_updated_config_model('ae', model_config))
+            self.base_model.load()
             self.base_model.eval()
             self.forward_lambda = self.forward_ae
             self.generate_context_lambda = self.generate_context_ae
@@ -38,7 +40,7 @@ class ContextModel(torch.nn.Module):
 
     def to_torch(self, x):
         if isinstance(x, np.ndarray):
-            return torch.fron_numpy(x)
+            return torch.from_numpy(x)
         return x
 
     def forward_ae(self, x):

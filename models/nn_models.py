@@ -40,5 +40,8 @@ class NN_Model(torch.nn.Module):
     def load(self):
         pass
 
-    def done(self):
+    def save(self):
         pass
+
+    def done(self):
+        self.save()

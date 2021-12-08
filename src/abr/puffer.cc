@@ -1,236 +1,252 @@
-#include "puffer.hh"
+// #include "puffer.hh"
 
-#include <fstream>
-#include <memory>
-#include <thread>
+// #include <fstream>
+// #include <memory>
+// #include <thread>
 
-#include "ws_client.hh"
-#include "json.hpp"
+// #include "ws_client.hh"
+// #include "json.hpp"
+// #include "timestamp.hh"
 
-using namespace std;
-using json = nlohmann::json;
+// using namespace std;
+// using json = nlohmann::json;
 
-Puffer::Puffer(const WebSocketClient & client,
-               const string & abr_name, const YAML::Node & abr_config)
-  : ABRAlgo(client, abr_name)
-{
-  if (abr_config["max_lookahead_horizon"]) {
-    max_lookahead_horizon_ = min(
-      max_lookahead_horizon_,
-      abr_config["max_lookahead_horizon"].as<size_t>());
-  }
+// Puffer::Puffer(const WebSocketClient & client,
+//                const string & abr_name, const YAML::Node & abr_config)
+//   : ABRAlgo(client, abr_name)
+// {
+//   if (abr_config["max_lookahead_horizon"]) {
+//     max_lookahead_horizon_ = min(
+//       max_lookahead_horizon_,
+//       abr_config["max_lookahead_horizon"].as<size_t>());
+//   }
 
-  if (abr_config["rebuffer_length_coeff"]) {
-    rebuffer_length_coeff_ = abr_config["rebuffer_length_coeff"].as<double>();
-  }
+//   if (abr_config["rebuffer_length_coeff"]) {
+//     rebuffer_length_coeff_ = abr_config["rebuffer_length_coeff"].as<double>();
+//   }
 
-  if (abr_config["ssim_diff_coeff"]) {
-    ssim_diff_coeff_ = abr_config["ssim_diff_coeff"].as<double>();
-  }
+//   if (abr_config["ssim_diff_coeff"]) {
+//     ssim_diff_coeff_ = abr_config["ssim_diff_coeff"].as<double>();
+//   }
 
-  dis_buf_length_ = min(dis_buf_length_,
-                        discretize_buffer(WebSocketClient::MAX_BUFFER_S));
+//   dis_buf_length_ = min(dis_buf_length_,
+//                         discretize_buffer(WebSocketClient::MAX_BUFFER_S));
   
-  if (abr_config["collect_data"]) {
-    collect_data_ = abr_config["collect_data"].as<bool>();
-  }
-  last_format_ = 0;
-}
+//   if (abr_config["collect_ttp"]) {
+//     collect_ttp_ = abr_config["collect_ttp"].as<bool>();
+//   }
 
-void Puffer::video_chunk_acked(Chunk && c)
-{
-  past_chunks_.push_back(c);
-  if (past_chunks_.size() > max_num_past_chunks_) {
-    past_chunks_.pop_front();
-  }
-}
+//   last_format_ = 0;
+// }
 
-VideoFormat Puffer::select_video_format()
-{
-  reinit();
-  size_t ret_format = update_value(0, curr_buffer_, 0);
+// void Puffer::video_chunk_acked(Chunk && c)
+// {
+//   past_chunks_.push_back(c);
+//   if (past_chunks_.size() > max_num_past_chunks_) {
+//     past_chunks_.pop_front();
+//   }
+// }
 
-  if (collect_data_) {
-    std::thread([&]() {
-      json data;
-      data["datapoint"] = inputs_.front();
-      data["buffer_size"] = curr_buffer_;
-      data["last_format"] = last_format_;
-      sender_.post(data, "raw-input");
-      inputs_.pop_front();
+// VideoFormat Puffer::select_video_format()
+// {
+//   reinit();
 
-      if (collect_hidden2_) {
-        json data2;
-        data2["datapoint"] = hidden2_.front();
-        data2["buffer_size"] = curr_buffer_;
-        data2["last_format"] = last_format_;
-        sender_.post(data2, "ttp-hidden2");
-        hidden2_.pop_front();
-      }
+//   // auto before_ts = timestamp_ms();
 
-      last_format_ = ret_format;
-    }).detach();
-  }
+//   // std::cout << "size: " << inputs_.size() << std::endl;
+//   // std::cout << "size hidden: " << hidden2_.size() << std::endl;
+//   // std::cout << "ack round: " << curr_ack_round_ << std::endl;
 
-  return client_.channel()->vformats()[ret_format];
-}
+//   size_t ret_format = update_value(0, curr_buffer_, 0);
 
-void Puffer::reinit()
-{
-  curr_round_++;
+//   if (not is_init_) {
+//     std::thread([&]() {
+//       curr_ack_round_++;
 
-  const auto & channel = client_.channel();
-  const auto & vformats = channel->vformats();
-  const unsigned int vduration = channel->vduration();
-  const uint64_t next_ts = client_.next_vts().value();
+//       if (collect_ttp_) {
+//         json data;
+//         data["datapoint"] = inputs_[curr_ack_round_ - 1];
+//         data["buffer_size"] = curr_buffer_;
+//         data["last_format"] = last_format_;
 
-  dis_chunk_length_ = discretize_buffer((double) vduration / channel->timescale());
-  num_formats_ = vformats.size();
+//         sender_.post(data, "raw-input");
+//       }
 
-  /* initialization failed if there is no ready chunk ahead */
-  if (channel->vready_frontier().value() < next_ts || num_formats_ == 0) {
-    throw runtime_error("no ready chunk ahead");
-  }
+//       if (collect_hidden_) {
+//         json data;
+//         data["datapoint"] = hidden2_[curr_ack_round_ - 1];
+//         data["buffer_size"] = curr_buffer_;
+//         data["last_format"] = last_format_;
 
-  lookahead_horizon_ = min(
-    max_lookahead_horizon_,
-    (channel->vready_frontier().value() - next_ts) / vduration + 1);
+//         sender_.post(data, "ttp-hidden2");
+//       }
+//     }).detach();
+//   }
 
-  curr_buffer_ = min(dis_buf_length_,
-                     discretize_buffer(client_.video_playback_buf()));
+//   last_format_ = ret_format;
+  
+//   // auto after = timestamp_ms() - before_ts;
+//   // std::cout <<  "diff time:" << after << std::endl;
 
-  /* init curr_ssims */
-  if (past_chunks_.size() > 0) {
-    is_init_ = false;
-    curr_ssims_[0][0] = ssim_db(past_chunks_.back().ssim);
-  } else {
-    is_init_ = true;
-  }
+//   return client_.channel()->vformats()[ret_format];
+// }
 
-  for (size_t i = 1; i <= lookahead_horizon_; i++) {
-    const auto & data_map = channel->vdata(next_ts + vduration * (i - 1));
+// void Puffer::reinit()
+// {
+//   curr_round_++;
 
-    for (size_t j = 0; j < num_formats_; j++) {
+//   const auto & channel = client_.channel();
+//   const auto & vformats = channel->vformats();
+//   const unsigned int vduration = channel->vduration();
+//   const uint64_t next_ts = client_.next_vts().value();
 
-      try {
-        curr_ssims_[i][j] = ssim_db(
-            channel->vssim(vformats[j], next_ts + vduration * (i - 1)));
-      } catch (const exception & e) {
-        cerr << "Error occurs when getting the ssim of "
-             << next_ts + vduration * (i - 1) << " " << vformats[j] << endl;
-        curr_ssims_[i][j] = MIN_SSIM;
-      }
+//   dis_chunk_length_ = discretize_buffer((double) vduration / channel->timescale());
+//   num_formats_ = vformats.size();
 
-      try {
-        curr_sizes_[i][j] = get<1>(data_map.at(vformats[j]));
-      } catch (const exception & e) {
-        cerr << "Error occurs when getting the sizes of "
-             << next_ts + vduration * (i - 1) << " " << vformats[j] << endl;
-        curr_sizes_[i][j] = -1;
-      }
-    }
-  }
+//   /* initialization failed if there is no ready chunk ahead */
+//   if (channel->vready_frontier().value() < next_ts || num_formats_ == 0) {
+//     throw runtime_error("no ready chunk ahead");
+//   }
 
-  /* init sending time */
-  reinit_sending_time();
-}
+//   lookahead_horizon_ = min(
+//     max_lookahead_horizon_,
+//     (channel->vready_frontier().value() - next_ts) / vduration + 1);
 
-void Puffer::deal_all_ban(size_t i)
-{
-  double min_v = 0;
-  size_t min_id = num_formats_;
+//   curr_buffer_ = min(dis_buf_length_,
+//                      discretize_buffer(client_.video_playback_buf()));
 
-  for (size_t j = 0; j < num_formats_; j++) {
-    double tmp = curr_sizes_[i][j];
-    if (tmp > 0 and (min_id == num_formats_ or min_v > tmp)) {
-      min_v = curr_sizes_[i][j];
-      min_id = j;
-    }
-  }
+//   /* init curr_ssims */
+//   if (past_chunks_.size() > 0) {
+//     is_init_ = false;
+//     curr_ssims_[0][0] = ssim_db(past_chunks_.back().ssim);
+//   } else {
+//     is_init_ = true;
+//   }
 
-  if (min_id == num_formats_) {
-    min_id = 0;
-  }
+//   for (size_t i = 1; i <= lookahead_horizon_; i++) {
+//     const auto & data_map = channel->vdata(next_ts + vduration * (i - 1));
 
-  is_ban_[i][min_id] = false;
-  for (size_t k = 0; k < dis_sending_time_; k++) {
-     sending_time_prob_[i][min_id][k] = 0;
-  }
+//     for (size_t j = 0; j < num_formats_; j++) {
 
-  sending_time_prob_[i][min_id][dis_sending_time_] = 1;
-}
+//       try {
+//         curr_ssims_[i][j] = ssim_db(
+//             channel->vssim(vformats[j], next_ts + vduration * (i - 1)));
+//       } catch (const exception & e) {
+//         cerr << "Error occurs when getting the ssim of "
+//              << next_ts + vduration * (i - 1) << " " << vformats[j] << endl;
+//         curr_ssims_[i][j] = MIN_SSIM;
+//       }
 
-size_t Puffer::update_value(size_t i, size_t curr_buffer, size_t curr_format)
-{
-  flag_[i][curr_buffer][curr_format] = curr_round_;
+//       try {
+//         curr_sizes_[i][j] = get<1>(data_map.at(vformats[j]));
+//       } catch (const exception & e) {
+//         cerr << "Error occurs when getting the sizes of "
+//              << next_ts + vduration * (i - 1) << " " << vformats[j] << endl;
+//         curr_sizes_[i][j] = -1;
+//       }
+//     }
+//   }
 
-  if (i == lookahead_horizon_) {
-    v_[i][curr_buffer][curr_format] = curr_ssims_[i][curr_format];
-    return 0;
-  }
+//   /* init sending time */
+//   reinit_sending_time();
+// }
 
-  size_t best_next_format = num_formats_;
-  double max_qvalue = 0;
-  for (size_t next_format = 0; next_format < num_formats_; next_format++) {
-    if (is_ban_[i + 1][next_format] == true) {
-      continue;
-    }
+// void Puffer::deal_all_ban(size_t i)
+// {
+//   double min_v = 0;
+//   size_t min_id = num_formats_;
 
-    double qvalue = get_qvalue(i, curr_buffer, curr_format, next_format);
-    if (best_next_format == num_formats_ or qvalue > max_qvalue) {
-      max_qvalue = qvalue;
-      best_next_format = next_format;
-    }
-  }
-  v_[i][curr_buffer][curr_format] = max_qvalue;
+//   for (size_t j = 0; j < num_formats_; j++) {
+//     double tmp = curr_sizes_[i][j];
+//     if (tmp > 0 and (min_id == num_formats_ or min_v > tmp)) {
+//       min_v = curr_sizes_[i][j];
+//       min_id = j;
+//     }
+//   }
 
-  return best_next_format;
-}
+//   if (min_id == num_formats_) {
+//     min_id = 0;
+//   }
 
-double Puffer::get_qvalue(size_t i, size_t curr_buffer, size_t curr_format,
-                          size_t next_format)
-{
-  assert(is_ban_[i + 1][next_format] == false);
+//   is_ban_[i][min_id] = false;
+//   for (size_t k = 0; k < dis_sending_time_; k++) {
+//      sending_time_prob_[i][min_id][k] = 0;
+//   }
 
-  double ans = curr_ssims_[i][curr_format];
+//   sending_time_prob_[i][min_id][dis_sending_time_] = 1;
+// }
 
-  if (not (is_init_ and i == 0)) {
-     ans -= ssim_diff_coeff_
-            * fabs(curr_ssims_[i][curr_format] - curr_ssims_[i + 1][next_format]);
-  }
+// size_t Puffer::update_value(size_t i, size_t curr_buffer, size_t curr_format)
+// {
+//   flag_[i][curr_buffer][curr_format] = curr_round_;
 
-  for (size_t st = 0; st <= dis_sending_time_; st++) {
-    if (sending_time_prob_[i + 1][next_format][st] < st_prob_eps_) {
-      continue;
-    }
+//   if (i == lookahead_horizon_) {
+//     v_[i][curr_buffer][curr_format] = curr_ssims_[i][curr_format];
+//     return 0;
+//   }
 
-    int rebuffer = st - curr_buffer;
-    size_t next_buffer = min(max(-rebuffer, 0) + dis_chunk_length_,
-                             dis_buf_length_);
-    rebuffer = max(rebuffer, 0);
-    double real_rebuffer = rebuffer * unit_buf_length_;
+//   size_t best_next_format = num_formats_;
+//   double max_qvalue = 0;
+//   for (size_t next_format = 0; next_format < num_formats_; next_format++) {
+//     if (is_ban_[i + 1][next_format] == true) {
+//       continue;
+//     }
 
-    if (curr_buffer - st == 0) {
-      real_rebuffer = rebuffer * unit_buf_length_ * 0.25;
-    }
+//     double qvalue = get_qvalue(i, curr_buffer, curr_format, next_format);
+//     if (best_next_format == num_formats_ or qvalue > max_qvalue) {
+//       max_qvalue = qvalue;
+//       best_next_format = next_format;
+//     }
+//   }
+//   v_[i][curr_buffer][curr_format] = max_qvalue;
 
-    ans += sending_time_prob_[i+1][next_format][st]
-           * (get_value(i + 1, next_buffer, next_format)
-              - rebuffer_length_coeff_ * real_rebuffer);
-  }
+//   return best_next_format;
+// }
 
-  return ans;
-}
+// double Puffer::get_qvalue(size_t i, size_t curr_buffer, size_t curr_format,
+//                           size_t next_format)
+// {
+//   assert(is_ban_[i + 1][next_format] == false);
 
-double Puffer::get_value(size_t i, size_t curr_buffer, size_t curr_format)
-{
-  if (flag_[i][curr_buffer][curr_format] != curr_round_) {
-    update_value(i, curr_buffer, curr_format);
-  }
-  return v_[i][curr_buffer][curr_format];
-}
+//   double ans = curr_ssims_[i][curr_format];
 
-size_t Puffer::discretize_buffer(double buf)
-{
-  return (buf + unit_buf_length_ * 0.5) / unit_buf_length_;
-}
+//   if (not (is_init_ and i == 0)) {
+//      ans -= ssim_diff_coeff_
+//             * fabs(curr_ssims_[i][curr_format] - curr_ssims_[i + 1][next_format]);
+//   }
+
+//   for (size_t st = 0; st <= dis_sending_time_; st++) {
+//     if (sending_time_prob_[i + 1][next_format][st] < st_prob_eps_) {
+//       continue;
+//     }
+
+//     int rebuffer = st - curr_buffer;
+//     size_t next_buffer = min(max(-rebuffer, 0) + dis_chunk_length_,
+//                              dis_buf_length_);
+//     rebuffer = max(rebuffer, 0);
+//     double real_rebuffer = rebuffer * unit_buf_length_;
+
+//     if (curr_buffer - st == 0) {
+//       real_rebuffer = rebuffer * unit_buf_length_ * 0.25;
+//     }
+
+//     ans += sending_time_prob_[i+1][next_format][st]
+//            * (get_value(i + 1, next_buffer, next_format)
+//               - rebuffer_length_coeff_ * real_rebuffer);
+//   }
+
+//   return ans;
+// }
+
+// double Puffer::get_value(size_t i, size_t curr_buffer, size_t curr_format)
+// {
+//   if (flag_[i][curr_buffer][curr_format] != curr_round_) {
+//     update_value(i, curr_buffer, curr_format);
+//   }
+//   return v_[i][curr_buffer][curr_format];
+// }
+
+// size_t Puffer::discretize_buffer(double buf)
+// {
+//   return (buf + unit_buf_length_ * 0.5) / unit_buf_length_;
+// }

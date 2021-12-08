@@ -33,6 +33,7 @@ class RLTrainer(torch.nn.Module):
 
     def predict(self, sent_state):
         probabilities = self.forward(torch.from_numpy(sent_state['state']))
+        print(probabilities)
         return np.random.choice(self.actions, p=probabilities.detach().cpu().numpy().reshape(-1))
 
     def save(self, path=''):
@@ -51,7 +52,7 @@ class RLTrainer(torch.nn.Module):
         self.measurements = [Queue() for _ in range(self.num_clients)]
     
     def done(self):
-        pass
+        self.save()
 
     def clear_client_history(self, client_id):
         self.measurements[client_id] = Queue()

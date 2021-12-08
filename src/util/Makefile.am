@@ -36,11 +36,13 @@ libutil_a_SOURCES = \
 	reinforce.hh reinforce.cc \
 	sender.hh sender.cc \
 	exp3.cc ex3.hh \
-	context.cc context.hh
+	context.cc context.hh \
+	exp3_kmeans.cc exp3_kmeans.hh \
+	exp3_boggart.cc exp3_boggart.hh 
 
-# libutil_a_LDFLAGS = -L../../third_party/libtorch/lib \
-# 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib' \
-# 	../../third_party/libtorch/lib/libtorch.so \
-# 	../../third_party/libtorch/lib/libcaffe2.so \
-# 	../../third_party/libtorch/lib/libc10.so  -g
+libutil_a_LDFLAGS = -L../../third_party/libtorch/lib \
+	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib' \
+	../../third_party/libtorch/lib/libtorch.so \
+	../../third_party/libtorch/lib/libcaffe2.so \
+	../../third_party/libtorch/lib/libc10.so  -g
 

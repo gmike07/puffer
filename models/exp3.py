@@ -63,4 +63,4 @@ class Exp3:
         self.probabilites = self.calc_probabilities()
 
     def done(self):
-        pass
+        self.save()

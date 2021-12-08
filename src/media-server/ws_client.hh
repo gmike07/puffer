@@ -126,7 +126,8 @@ public:
   void set_server_socket(TCPSocket* sock) { socket = sock; }
   TCPSocket* get_socket() { return socket; }
 
-
+  TCPInfo tcp_info1() const { return tcp_info_.value(); }
+  
   static constexpr double MAX_BUFFER_S = 15.0;  /* seconds */
 
 private:

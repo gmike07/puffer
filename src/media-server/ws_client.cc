@@ -203,18 +203,18 @@ void WebSocketClient::init_abr_algo()
     abr_algo_ = make_unique<MPCSearch>(*this, abr_name_, abr_config_);
   } else if (abr_name_ == "pensieve") {
     abr_algo_ = make_unique<Pensieve>(*this, abr_name_, abr_config_);
-  } else if (abr_name_ == "puffer_raw") {
-    abr_algo_ = make_unique<PufferRaw>(*this, abr_name_, abr_config_);
-  } else if (abr_name_ == "puffer_ttp") {
-    abr_algo_ = make_unique<PufferTTP>(*this, abr_name_, abr_config_);
-  } else if (abr_name_ == "puffer_ttp_no_tcp_info") {
-    abr_algo_ = make_unique<PufferTTP>(*this, abr_name_, abr_config_);
-  } else if (abr_name_ == "puffer_ttp_mle") {
-    abr_algo_ = make_unique<PufferTTP>(*this, abr_name_, abr_config_);
-  } else if (abr_name_ == "puffer_reinforce") {
-    abr_algo_ = make_unique<PufferReinforce>(*this, abr_name_, abr_config_);
-  } else if (abr_name_ == "puffer_exp3") {
-    abr_algo_ = make_unique<PufferExp3>(*this, abr_name_, abr_config_);
+  // } else if (abr_name_ == "puffer_raw") {
+  //   abr_algo_ = make_unique<PufferRaw>(*this, abr_name_, abr_config_);
+  // } else if (abr_name_ == "puffer_ttp") {
+  //   abr_algo_ = make_unique<PufferTTP>(*this, abr_name_, abr_config_);
+  // } else if (abr_name_ == "puffer_ttp_no_tcp_info") {
+  //   abr_algo_ = make_unique<PufferTTP>(*this, abr_name_, abr_config_);
+  // } else if (abr_name_ == "puffer_ttp_mle") {
+  //   abr_algo_ = make_unique<PufferTTP>(*this, abr_name_, abr_config_);
+  // } else if (abr_name_ == "puffer_reinforce") {
+  //   abr_algo_ = make_unique<PufferReinforce>(*this, abr_name_, abr_config_);
+  // } else if (abr_name_ == "puffer_exp3") {
+  //   abr_algo_ = make_unique<PufferExp3>(*this, abr_name_, abr_config_);
   } else {
     throw runtime_error("undefined ABR algorithm");
   }

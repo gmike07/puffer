@@ -43,7 +43,7 @@ class StackingModelsServer:
             model.load()
     
     def done(self):
-        pass
+        self.save()
 
 
 def create_model(num_clients, model_name, helper_model=''):

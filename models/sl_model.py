@@ -3,7 +3,7 @@ import torch
 from models.helper_functions import fill_default_key_conf, fill_default_key, create_actions, merge_state_actions, get_config
 
 
-OUTPUT_DIMS = {'qoe': 1, 'ssim': 3, 'bit_rate': 3, 'all': 5}
+OUTPUT_DIMS = {'qoe': 1, 'ssim': 3, 'bit_rate': 3}
 
 
 class SLModel(NN_Model):
@@ -24,8 +24,7 @@ class SLModel(NN_Model):
         if self.output_size == 1:
             return x
         if self.output_size == 3:
-            return x[:, 0] - self.change_coef * x[:, 1] - self.buffer_coef * x[:, 2]
-        return x[:, 3] - self.change_coef * x[:, 4] - self.buffer_coef * x[:, 2]
+            return x[:, 1] - self.change_coef * x[:, 2] - self.buffer_coef * x[:, 0]
 
     def predict(self, sent_state):
         best_action = -1
@@ -51,4 +50,4 @@ class SLModel(NN_Model):
         }, f"{fill_default_key_conf(self.model_config, 'weights_path')}{path}")
     
     def done(self):
-        pass
+        self.save()

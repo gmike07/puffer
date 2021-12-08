@@ -33,12 +33,11 @@ class SLTrainer:
         self.measurements[state['server_id']].put(state)
         if self.measurements[state['server_id']].qsize() > 1:
             prev_state = self.measurements[state['server_id']].get()['state']
-            curr_cc = state['state'][-self.num_actions-self.qoe_vec_len:-self.qoe_vec_len]
-            curr_qoe = state['state'][-3:]
-            input = torch.from_numpy(np.append(prev_state, curr_cc).reshape(1, -1))
+            curr_cc = state['state'].reshape(-1)[-self.num_actions-self.qoe_vec_len:-self.qoe_vec_len]
+            curr_qoe = state['state'].reshape(-1)[-3:]
+            input = torch.from_numpy(np.append(prev_state.reshape(-1), curr_cc).reshape(1, -1))
             output = torch.from_numpy(curr_qoe.reshape(1, -1))
             self.clean_data.put((input, output))
-
 
     def clear(self):
         self.measurements = [Queue() for _ in range(self.num_clients)]
@@ -52,7 +51,7 @@ class SLTrainer:
         print('loaded SLTrainer')
     
     def done(self):
-        pass
+        self.save()
 
     def update_helper_model(self, helper_model):
         self.prediction_model = helper_model
@@ -60,4 +59,4 @@ class SLTrainer:
 
 
 def train_sl(model, event):
-    train_ae(model, event)
+    train_ae(model, event, 'sl')

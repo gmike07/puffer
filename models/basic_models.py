@@ -52,7 +52,7 @@ class RandomModel:
 
 class IdModel:
     def __init__(self, config):
-        self.actions = len(get_config()['ccs'])
+        self.len_actions = len(get_config()['ccs'])
         print('created id model')
     
     def predict(self, state):

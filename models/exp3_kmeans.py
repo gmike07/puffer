@@ -1,3 +1,4 @@
+from config_creator import CONFIG
 from models.cluster_model import ClusterModel
 from models.helper_functions import get_updated_config_model, fill_default_key, fill_default_key_conf
 from models.exp3 import Exp3
@@ -6,7 +7,7 @@ import numpy as np
 
 class Exp3Kmeans:
     def __init__(self, num_clients, model_config):
-        self.cluster_model = ClusterModel(get_updated_config_model('clusterModel', model_config))
+        self.cluster_model = ClusterModel(model_config)
         self.cluster_model.load()
         exp3_config = get_updated_config_model('exp3', model_config)
 
@@ -35,13 +36,14 @@ class Exp3Kmeans:
     def save(self):
         for exp3 in self.exp3_contexts:
             exp3.save()
-        self.cluster_counter = np.load(self.cluster_counter_path)
+        if not CONFIG['test']:
+            np.save(self.cluster_counter_path, self.cluster_counter)
 
     def load(self):
         for exp3 in self.exp3_contexts:
             exp3.load()
-        np.save(self.cluster_counter_path, self.cluster_counter)
+        self.cluster_counter = np.load(self.cluster_counter_path)
         print('loaded exp3Kmeans')
 
     def done(self):
-        pass
+        self.save()

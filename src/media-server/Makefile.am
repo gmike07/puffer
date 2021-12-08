@@ -8,10 +8,17 @@ AM_CPPFLAGS = $(CXX17_FLAGS) $(SSL_CFLAGS) $(POSTGRES_CFLAGS) \
 	-I/home/ubuntu/.local/lib/python3.7/site-packages/pybind11/include
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
-bin_PROGRAMS = run_servers maintenance_server ws_media_server
 
-ws_media_server_SOURCES = ws_media_server.cc \
-	ws_client.hh ws_client.cc channel.hh channel.cc \
+noinst_LIBRARIES = libnethelper.a
+
+# libnet_a_LDFLAGS = -L../../third_party/libtorch/lib \
+# 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib'
+
+# libnet_a_LDADD = $(POSTGRES_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) -lstdc++fs \
+#                     -ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread
+ 
+
+libnethelper_a_SOURCES = ws_client.hh ws_client.cc channel.hh channel.cc \
 	client_message.hh client_message.cc server_message.hh server_message.cc \
 	../notifier/inotify.hh ../notifier/inotify.cc \
 	../abr/abr_algo.hh ../abr/abr_algo.cc \
@@ -27,9 +34,15 @@ ws_media_server_SOURCES = ws_media_server.cc \
 	../abr/puffer_exp3.cc ../abr/puffer_exp3.hh \
 	../abr/exp3_policy.cc ../abr/exp3_policy.hh \
 	../../third_party/json.upstream/single_include/nlohmann/json.hpp
+
+
+bin_PROGRAMS = run_servers maintenance_server ws_media_server
+
+
+ws_media_server_SOURCES = ws_media_server.cc
 ws_media_server_LDFLAGS = -L../../third_party/libtorch/lib \
 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib'
-ws_media_server_LDADD = ../util/libutil.a ../net/libnet.a ../util/libutil.a \
+ws_media_server_LDADD = ../util/libutil.a ../net/libnet.a ./libnethelper.a ../util/libutil.a \
 	$(POSTGRES_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) -lstdc++fs \
 	-ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread 
 
@@ -37,7 +50,7 @@ run_servers_LDFLAGS = -L../../third_party/libtorch/lib \
 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib'
 run_servers_SOURCES = run_servers.cc
 	../monitoring/influxdb_client.hh ../monitoring/influxdb_client.cc
-run_servers_LDADD = ../util/libutil.a ../net/libnet.a \
+run_servers_LDADD = ../util/libutil.a ../net/libnet.a  ./libnethelper.a\
 	$(POSTGRES_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) -lstdc++fs \
 	-ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread 
 
@@ -45,7 +58,7 @@ maintenance_server_LDFLAGS = -L../../third_party/libtorch/lib \
 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib'
 maintenance_server_SOURCES = maintenance_server.cc \
 	server_message.hh server_message.cc
-maintenance_server_LDADD = ../util/libutil.a ../net/libnet.a ../util/libutil.a \
+maintenance_server_LDADD = ../util/libutil.a ../net/libnet.a ./libnethelper.a ../util/libutil.a \
 	$(SSL_LIBS) $(CRYPTO_LIBS) $(YAML_LIBS) \
 	-ltorch -lcaffe2 -lc10 -lmkldnn -lcurl -lcurlpp -lpthread 
 

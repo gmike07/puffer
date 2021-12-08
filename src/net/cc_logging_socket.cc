@@ -177,3 +177,24 @@ bool TCPSocket::is_valid_score_type() const
 {
     return std::find(scoring_types.begin(), scoring_types.end(), scoring_type) != scoring_types.end();
 }
+
+
+
+
+#include "abr_algo.hh"
+#include "algorithm"
+
+double TCPSocket::get_qoe(double curr_ssim, 
+                          double prev_ssim, 
+                          uint64_t curr_trans_time,
+                          std::size_t curr_buffer)
+{
+  double qoe = ssim_db(curr_ssim);
+  qoe -= quality_change_qoef * fabs(ssim_db(curr_ssim) - ssim_db(prev_ssim));
+
+  double rebuffer = buffer_length_coef * std::max(curr_trans_time*0.001 - curr_buffer*UNIT_BUF_LENGTH, 0.0);
+  qoe -= rebuffer;
+
+  return qoe;
+}
+

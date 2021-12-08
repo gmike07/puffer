@@ -24,7 +24,7 @@ class AETrainer:
     def update(self, state):
         if not self.training:
             return
-        torched_state = torch.from_numpy(state.reshape(1,-1))
+        torched_state = torch.from_numpy(state['state'].reshape(1,-1))
         self.clean_data.put((torched_state, torched_state))
 
     def clear(self):
@@ -39,27 +39,29 @@ class AETrainer:
         print('loaded AETrainer')
     
     def done(self):
-        pass
+        self.save()
 
     def update_helper_model(self, helper_model):
         self.prediction_model = helper_model
         self.load()
 
 
-def train_ae(model, event):
+def train_ae(model, event, type_trainer='ae'):
     CONFIG = get_config()
     rounds_to_save = model.rounds_to_sleep
     gradients = 0
+    CONFIG['batch_size'] = 16
     while not event.is_set():
-        time.sleep(model.sleep_time)
+        if model.clean_data.qsize() < CONFIG['batch_size'] / 2:
+            time.sleep(model.sleep_time)
         if event.is_set():
             break
         if model.clean_data.qsize() < CONFIG['batch_size']:
             continue
         inputs, outputs = [], []
         for _ in range(CONFIG['batch_size']):
-            input, output = model.clean_data.get()
-            inputs.append(input)
+            input_, output = model.clean_data.get()
+            inputs.append(input_)
             outputs.append(output)
         inputs = torch.cat(inputs)
         outputs = torch.cat(outputs)
@@ -74,7 +76,7 @@ def train_ae(model, event):
         gradients += 1
         # save weights
         if rounds_to_save <= 0:
-            print(f'saving ae...')
+            print(f'saving {type_trainer}...', model.clean_data.qsize(), len(inputs))
             model.model.save()
             rounds_to_save = model.rounds_to_sleep
             with open(model.logs_file, 'w') as logs_file:

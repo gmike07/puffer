@@ -1,108 +1,108 @@
-#ifndef REINFROCE_POLICY_HH
-#define REINFROCE_POLICY_HH
+// #ifndef REINFROCE_POLICY_HH
+// #define REINFROCE_POLICY_HH
 
-#include "abr_algo.hh"
-#include <deque>
-#include <vector>
-#include "filesystem.hh"
-#include "reinforce.hh"
-#include <torch/torch.h>
+// #include "abr_algo.hh"
+// #include <deque>
+// #include <vector>
+// #include "filesystem.hh"
+// #include "reinforce.hh"
+// #include <torch/torch.h>
 
-class ReinforcePolicy : public ABRAlgo
-{
-public:
-  ReinforcePolicy(const WebSocketClient & client,
-         const std::string & abr_name, const YAML::Node & abr_config);
+// class ReinforcePolicy : public ABRAlgo
+// {
+// public:
+//   ReinforcePolicy(const WebSocketClient & client,
+//          const std::string & abr_name, const YAML::Node & abr_config);
 
-  void video_chunk_acked(Chunk && c) override;
-  VideoFormat select_video_format() override;
+//   void video_chunk_acked(Chunk && c) override;
+//   VideoFormat select_video_format() override;
 
-protected:
-  static constexpr size_t MAX_NUM_PAST_CHUNKS = 8;
-  static constexpr size_t MAX_LOOKAHEAD_HORIZON = 5;
-  static constexpr size_t MAX_DIS_BUF_LENGTH = 100;
-  static constexpr double REBUFFER_LENGTH_COEFF = 20;
-  static constexpr double SSIM_DIFF_COEFF = 1;
-  static constexpr size_t MAX_NUM_FORMATS = 20;
-  static constexpr double UNIT_BUF_LENGTH = 0.5;
-  static constexpr size_t MAX_DIS_SENDING_TIME = 20;
-  static constexpr double ST_PROB_EPS = 1e-5;
-  static constexpr size_t HIDDEN_SIZE = 64;
+// protected:
+//   static constexpr size_t MAX_NUM_PAST_CHUNKS = 8;
+//   static constexpr size_t MAX_LOOKAHEAD_HORIZON = 5;
+//   static constexpr size_t MAX_DIS_BUF_LENGTH = 100;
+//   static constexpr double REBUFFER_LENGTH_COEFF = 20;
+//   static constexpr double SSIM_DIFF_COEFF = 1;
+//   static constexpr size_t MAX_NUM_FORMATS = 20;
+//   static constexpr double UNIT_BUF_LENGTH = 0.5;
+//   static constexpr size_t MAX_DIS_SENDING_TIME = 20;
+//   static constexpr double ST_PROB_EPS = 1e-5;
+//   static constexpr size_t HIDDEN_SIZE = 64;
 
-  /* past chunks and max number of them */
-  size_t max_num_past_chunks_ {MAX_NUM_PAST_CHUNKS};
-  std::deque<Chunk> past_chunks_ {};
+//   /* past chunks and max number of them */
+//   size_t max_num_past_chunks_ {MAX_NUM_PAST_CHUNKS};
+//   std::deque<Chunk> past_chunks_ {};
 
-  /* all the time durations are measured in sec */
-  size_t max_lookahead_horizon_ {MAX_LOOKAHEAD_HORIZON};
-  size_t lookahead_horizon_ {};
-  size_t dis_chunk_length_ {};
-  size_t dis_buf_length_ {MAX_DIS_BUF_LENGTH};
-  size_t dis_sending_time_ {MAX_DIS_SENDING_TIME};
-  double unit_buf_length_ {UNIT_BUF_LENGTH};
-  size_t num_formats_ {};
-  double rebuffer_length_coeff_ {REBUFFER_LENGTH_COEFF};
-  double ssim_diff_coeff_ {SSIM_DIFF_COEFF};
-  double st_prob_eps_ {ST_PROB_EPS};
+//   /* all the time durations are measured in sec */
+//   size_t max_lookahead_horizon_ {MAX_LOOKAHEAD_HORIZON};
+//   size_t lookahead_horizon_ {};
+//   size_t dis_chunk_length_ {};
+//   size_t dis_buf_length_ {MAX_DIS_BUF_LENGTH};
+//   size_t dis_sending_time_ {MAX_DIS_SENDING_TIME};
+//   double unit_buf_length_ {UNIT_BUF_LENGTH};
+//   size_t num_formats_ {};
+//   double rebuffer_length_coeff_ {REBUFFER_LENGTH_COEFF};
+//   double ssim_diff_coeff_ {SSIM_DIFF_COEFF};
+//   double st_prob_eps_ {ST_PROB_EPS};
 
-  /* whether the current chunk is the first chunk */
-  bool is_init_ {};
+//   /* whether the current chunk is the first chunk */
+//   bool is_init_ {};
 
-  /* for the current buffer length */
-  size_t curr_buffer_ {};
+//   /* for the current buffer length */
+//   size_t curr_buffer_ {};
 
-  /* for storing the value function */
-  uint64_t flag_[MAX_LOOKAHEAD_HORIZON + 1][MAX_DIS_BUF_LENGTH + 1][MAX_NUM_FORMATS] {};
-  double v_[MAX_LOOKAHEAD_HORIZON + 1][MAX_DIS_BUF_LENGTH + 1][MAX_NUM_FORMATS] {};
+//   /* for storing the value function */
+//   uint64_t flag_[MAX_LOOKAHEAD_HORIZON + 1][MAX_DIS_BUF_LENGTH + 1][MAX_NUM_FORMATS] {};
+//   double v_[MAX_LOOKAHEAD_HORIZON + 1][MAX_DIS_BUF_LENGTH + 1][MAX_NUM_FORMATS] {};
 
-  /* record the current round of DP */
-  uint64_t curr_round_ {};
+//   /* record the current round of DP */
+//   uint64_t curr_round_ {};
 
-  /* the ssim and size of the chunk given the timestamp and format */
-  double curr_ssims_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS] {};
-  int curr_sizes_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS] {};
+//   /* the ssim and size of the chunk given the timestamp and format */
+//   double curr_ssims_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS] {};
+//   int curr_sizes_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS] {};
 
-  /* the estimation of sending time given the timestamp and format */
-  double sending_time_prob_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS]
-                           [HIDDEN_SIZE] {};
+//   /* the estimation of sending time given the timestamp and format */
+//   double sending_time_prob_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS]
+//                            [HIDDEN_SIZE] {};
 
-  /* denote whether a chunk is abandoned */
-  bool is_ban_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS] {};
+//   /* denote whether a chunk is abandoned */
+//   bool is_ban_[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS] {};
 
-  void reinit();
-  virtual void reinit_sending_time() {};
+//   void reinit();
+//   virtual void reinit_sending_time() {};
 
-  /* calculate the value of corresponding state and return the best strategy */
-  size_t update_value(size_t i, size_t curr_buffer, size_t curr_format);
+//   /* calculate the value of corresponding state and return the best strategy */
+//   size_t update_value(size_t i, size_t curr_buffer, size_t curr_format);
 
-  /* return the qvalue of the given cur state and next action */
-  double get_qvalue(size_t i, size_t curr_buffer, size_t curr_format,
-                    size_t next_format);
+//   /* return the qvalue of the given cur state and next action */
+//   double get_qvalue(size_t i, size_t curr_buffer, size_t curr_format,
+//                     size_t next_format);
 
-  /* return the value of the given state */
-  double get_value(size_t i, size_t curr_buffer, size_t curr_format);
+//   /* return the value of the given state */
+//   double get_value(size_t i, size_t curr_buffer, size_t curr_format);
 
-  /* discretize the buffer length */
-  size_t discretize_buffer(double buf);
+//   /* discretize the buffer length */
+//   size_t discretize_buffer(double buf);
 
-  /* deal with the situation when all formats are banned */
-  void deal_all_ban(size_t i);
+//   /* deal with the situation when all formats are banned */
+//   void deal_all_ban(size_t i);
 
-  Reinforce rl_model_;
-  bool training_mode_ = false;
-  static constexpr size_t DONE = 10;
-  size_t steps_to_update_ = DONE;
-  std::deque<torch::Tensor> log_probs_ {};
-  std::deque<double> rewards_ {};
+//   Reinforce rl_model_;
+//   bool training_mode_ = false;
+//   static constexpr size_t DONE = 10;
+//   size_t steps_to_update_ = DONE;
+//   std::deque<torch::Tensor> log_probs_ {};
+//   std::deque<double> rewards_ {};
 
-  double calc_qoe();
+//   double calc_qoe();
 
-  void load_weights();
-  std::string policy_model_dir_;
-  unsigned int version_;
-  std::shared_ptr<torch::jit::script::Module> policy_ {};
-  virtual void send_chunk_statistics(double qoe) {};
-  std::tuple<size_t,torch::Tensor> get_action(double state[20][64]);
-};
+//   void load_weights();
+//   std::string policy_model_dir_;
+//   unsigned int version_;
+//   std::shared_ptr<torch::jit::script::Module> policy_ {};
+//   virtual void send_chunk_statistics(double qoe) {};
+//   std::tuple<size_t,torch::Tensor> get_action(double state[20][64]);
+// };
 
-#endif /* REINFROCE_POLICY_HH */
+// #endif /* REINFROCE_POLICY_HH */
