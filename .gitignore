@@ -29,6 +29,10 @@ weights/exp3/
 weights/logs.txt
 weights/plots/
 data_points/
+cc_scoring/
+clusters/
+exp3/
+weights/
 
 ##### autotools
 

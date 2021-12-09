@@ -10,7 +10,6 @@ class Exp3Kmeans:
         self.cluster_model = ClusterModel(model_config)
         self.cluster_model.load()
         exp3_config = get_updated_config_model('exp3', model_config)
-
         save_name = fill_default_key(model_config, 'save_name', f"exp3_{self.cluster_model.cluster_name[len('clusters_'):]}")
         self.exp3_contexts = [Exp3(num_clients, exp3_config) for _ in range(self.cluster_model.num_clusters)]
         for i in range(self.cluster_model.num_clusters):
@@ -21,7 +20,8 @@ class Exp3Kmeans:
         print('created exp3Kmeans')
 
     def predict(self, state):
-        return self.exp3_contexts[self.cluster_model.get_cluster_id(state['state'])].predict(state)
+        id = self.cluster_model.get_cluster_id(state['state'])
+        return self.exp3_contexts[id].predict(state)
 
     def update(self, state):
         id = self.cluster_model.get_cluster_id(state['state'])

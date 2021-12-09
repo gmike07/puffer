@@ -1,7 +1,8 @@
 AM_CPPFLAGS = -I$(srcdir)/../net $(CXX17_FLAGS) \
 	-isystem$(srcdir)/../../third_party/json.upstream/single_include/nlohmann \
 	-isystem$(srcdir)/../../third_party/libtorch/include \
-	-isystem$(srcdir)/../../third_party/libtorch/include/torch/csrc/api/include
+	-isystem$(srcdir)/../../third_party/libtorch/include/torch/csrc/api/include \
+	-I$(srcdir)/../abr -I$(srcdir)/../notifier -I$(srcdir)/../media-server
 
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS)
 

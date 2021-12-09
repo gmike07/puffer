@@ -8,6 +8,8 @@ from models.cluster_trainer import ClusterTrainer
 from models.rl_model import RLModel
 from models.srl_model import SRLModel
 from models.exp3_kmeans import Exp3Kmeans
+from models.sl_model import SLModel
+from models.helper_functions import fill_default_key_conf
 
 
 #models: [constant*, random, idModel, exp3, resettingExp3, sl, ae, slTrainer + random \ idmodel, aeTrainer + random \ idmodel, 
@@ -16,12 +18,20 @@ from models.exp3_kmeans import Exp3Kmeans
 
 class StackingModelsServer:
     def __init__(self, models_data):
-        models_data = fill_default(models_data, get_config()['test_models'])
-        print(models_data)
-        self.models = [create_model(len(models_data), model_data) for model_data in models_data]
+        self.model_names = fill_default_key_conf(models_data, 'models')
+        print(self.model_names)
+        self.models = [create_model(len(self.model_names), model_data) for model_data in self.model_names]
+        self.path = fill_default_key_conf(models_data, 'cc_scoring_path')
+        self.counter = 0
+        self.open_files()
         print('created stacking model')
     
+    def open_files(self):
+        self.files = [open(f"{self.path}cc_score_{i}_abr_{get_config()['abr']}_{self.counter}_{self.model_names[i]}.txt",'w') for i in range(len(self.models))]
+        self.counter += 1
+
     def predict(self, state):
+        self.files[state['server_id']].write(f"{state['qoe']}\n")
         return self.models[state['server_id']].predict(state)
 
     def update(self, state):
@@ -30,6 +40,9 @@ class StackingModelsServer:
     def clear(self):
         for model in self.models:
             model.clear()
+        for file in self.files:
+            file.close()
+        self.open_files()
 
     def save(self):
         if get_config()['test']:
@@ -57,6 +70,9 @@ def create_model(num_clients, model_name, helper_model=''):
         if model_name == 'idModel':
             return IdModel(conf)
 
+        if model_name == 'sl':
+            return SLModel(conf)
+
         if model_name in ['resettingExp3', 'exp3']:
             return Exp3(num_clients, conf)
 
@@ -76,9 +92,9 @@ def create_model(num_clients, model_name, helper_model=''):
             return Exp3Kmeans(num_clients, conf)
         
         if model_name == 'stackingModel':
-            return StackingModelsServer(conf['models'])
+            return StackingModelsServer(conf)
         
-        if model_name in ['contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer']:
+        if model_name in ['contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer', 'boggartClusterTrainer']:
             return ClusterTrainer(conf, create_model(num_clients, helper_model))
         
         print(model_name)

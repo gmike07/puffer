@@ -2,6 +2,7 @@ AM_CPPFLAGS = -I$(srcdir)/../util $(CXX17_FLAGS) $(SSL_CFLAGS) \
             -isystem$(srcdir)/../../third_party/json.upstream/single_include/nlohmann \
             -isystem$(srcdir)/../../third_party/libtorch/include \
             -isystem$(srcdir)/../../third_party/libtorch/include/torch/csrc/api/include \
+            -I$(srcdir)/../abr -I$(srcdir)/../util -I$(srcdir)/../media-server -I$(srcdir)/../notifier \
             -I/usr/include/python3.7 \
             -I/home/ubuntu/.local/lib/python3.7/site-packages/pybind11/include
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS) -pthread
@@ -23,7 +24,7 @@ libnet_a_SOURCES = address.cc address.hh body_parser.hh \
                    http_request_parser.hh http_response.cc http_response.hh \
                    http_response_parser.cc http_response_parser.hh \
                    mime_type.cc mime_type.hh \
-                   secure_socket.cc secure_socket.hh socket.cc socket.hh cc_logging_socket.cc \
+                   secure_socket.cc secure_socket.hh socket.cc socket.hh cc_logging_socket.cc cc_socket_helper.cc \
                    serialization.cc serialization.hh \
                    strict_conversions.hh strict_conversions.cc \
                    nb_secure_socket.hh nb_secure_socket.cc \

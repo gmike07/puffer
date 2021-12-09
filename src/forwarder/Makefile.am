@@ -1,4 +1,4 @@
-AM_CPPFLAGS = $(CXX17_FLAGS) -I$(srcdir)/../util -I$(srcdir)/../net
+AM_CPPFLAGS = $(CXX17_FLAGS) -I$(srcdir)/../util -I$(srcdir)/../net -I$(srcdir)/../abr -I$(srcdir)/../media-server -I$(srcdir)/../notifier
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 bin_PROGRAMS = udp_to_tcp file_receiver file_sender

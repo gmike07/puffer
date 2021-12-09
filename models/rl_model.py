@@ -3,7 +3,7 @@ from models.nn_models import NN_Model
 import torch.nn.functional as F
 from queue import Queue
 import numpy as np
-
+import torch
 
 class RLModel(NN_Model):
     def __init__(self, num_clients, model_config):
@@ -20,4 +20,6 @@ class RLModel(NN_Model):
         print('created rl')
 
     def forward(self, x):
-        return F.softmax(self.model(x), dim=1)
+        x = self.model(x)
+        x /= torch.sum(x, dim=1)
+        return F.softmax(x, dim=1)

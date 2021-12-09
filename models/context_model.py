@@ -31,6 +31,8 @@ class ContextModel(torch.nn.Module):
             self.forward_lambda = self.forward_ae
             self.generate_context_lambda = self.generate_context_ae
             self.output_size = self.base_model.encoder_sizes[-1]
+        elif self.context_type == 'boggart':
+            self.output_size = fill_default_key_conf(model_config, 'boggart_size')
         print(f'created context model with context type {self.context_type}')
 
     def to_numpy(self, x):

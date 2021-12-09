@@ -55,9 +55,10 @@ def get_server_model(models_lst):
         def handle_state(self, parsed_data):
             parsed_data['server_id'] -= 1
             parsed_data['state'] = np.array(parsed_data['state']).reshape(1, -1)
+            print('predicting server', parsed_data['server_id'], end=' ')
             models_lst[0].update(parsed_data)
             prediction = models_lst[0].predict(parsed_data)
-            print('predicting server', parsed_data['server_id'], 'prediction is', prediction)
+            print('prediction is', prediction)
             self.send_response(406 + prediction)
             self.end_headers()
 

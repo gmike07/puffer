@@ -31,8 +31,8 @@ def add_server_index_to_config(config):
 
 def create_setting_yaml(test=False):
     copy_fingerprint = copy.deepcopy(CONFIG['fingerprint'])
-    if test:
-        copy_fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
+    # if test:
+    #     copy_fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
 
     copy_fingerprint['cc_config']['random_cc'] = False
     experiments_dct = {'experiments': [{'fingerprint': copy.deepcopy(copy_fingerprint), 
@@ -43,8 +43,8 @@ def create_setting_yaml(test=False):
     for i in range(CONFIG['num_clients']):
         fingerprint = experiments_dct['experiments'][i]['fingerprint']
         if test:
-            model_config = CONFIG['all_models_config'][CONFIG['test_models'][i]]
-            fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
+            model_config = CONFIG['all_models_config'][CONFIG['models'][i]]
+            # fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
             fingerprint['cc_config']['model_name'] = model_config['model_name']
         fingerprint['cc'] = 'bbr'
         fingerprint['cc_config']['server_path'] = f"http://localhost:{CONFIG['server_port']}"
@@ -83,7 +83,7 @@ def create_all_models_config(models_config_dct):
 def update_clients(num_clients, simulation_constants, test, scoring_path):
     if test:
         create_dir(scoring_path[:scoring_path.rfind('/')])
-        CONFIG['num_clients'] = len(CONFIG['test_models'])
+        CONFIG['num_clients'] = len(CONFIG['models'])
     elif num_clients == -1:
         CONFIG['num_clients'] = simulation_constants['clients']
     else:
@@ -92,9 +92,9 @@ def update_clients(num_clients, simulation_constants, test, scoring_path):
 
 def update_scoring_config():
     path = CONFIG['cc_scoring_path']
-    index = path.rfind('/')
-    scoring_path = path[:index] + '/' + CONFIG['abr'] + '_' + 'eval' + path[index:]
-    CONFIG.update({'scoring_path': scoring_path})
+    # index = path.rfind('/')
+    # scoring_path = path[:index] + '/' + CONFIG['abr'] + '_' + 'eval' + path[index:]
+    CONFIG.update({'scoring_path': path})
 
 
 def update_key_not_empty(key, val):
@@ -122,6 +122,9 @@ def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=Fals
         create_all_models_config(yaml_dct['all_models'])
         update_scoring_config()
         update_clients(num_clients, yaml_dct['simulation_constants'], test, CONFIG['scoring_path'])
+
+        for path in [CONFIG['scoring_path'], CONFIG['exp3_model_path'], CONFIG['weights_path'], CONFIG['saving_cluster_path'], CONFIG['logs_path']]:
+            create_dir(path)
         
 
 

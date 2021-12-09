@@ -21,6 +21,7 @@ class SLTrainer:
         self.sleep_time = fill_default_key_conf(config, 'sleep_sec')
         self.rounds_to_sleep = fill_default_key_conf(config, 'rounds_to_save')
         self.logs_file = fill_default_key_conf(config, 'logs_file')
+        self.logs_path = fill_default_key_conf(config, 'logs_path')
         self.training = not get_config()['test']
         print('created SLTrainer')
 

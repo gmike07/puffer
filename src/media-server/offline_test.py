@@ -16,8 +16,11 @@ grandparentdir = os.path.dirname(parentdir)
 sys.path.append(grandparentdir)
 from argument_parser import parse_arguments
 from config_creator import get_config, create_setting_yaml
+import signal
+import sys
 
 
+plist = []
 CONFIG = {}
 
 
@@ -39,6 +42,11 @@ def run_offline_media_servers():
     time.sleep(5)
     return p1, p2
 
+
+def signal_handler(sig, frame):
+    kill_proccesses(plist, 0)
+    subprocess.check_call("rm -rf ./*.profile", shell=True, executable='/bin/bash')
+    sys.exit(0)
 
 def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
     remote_port = CONFIG['remote_base_port'] + trace_index
@@ -94,6 +102,7 @@ def kill_proccesses(plist, sleep_time=3):
 
 
 def start_maimahi_clients(clients, filedir, exit_condition):
+    global plist
     plist = []
     try:
         trace_dir = CONFIG['trace_dir'] + 'test/' if CONFIG['test'] else CONFIG['trace_dir'] + 'train/'
@@ -128,6 +137,10 @@ def start_maimahi_clients(clients, filedir, exit_condition):
                 send_clear_to_server()
                 subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
+                with open(CONFIG['log_path'] + CONFIG['train_test_log_file'], 'w') as f:
+                    f.write(f"{CONFIG['model_name']}:\n")
+                    f.write(f"epoch: {epoch} / {CONFIG['mahimahi_epochs']}\n")
+                    f.write(f"trace: {f} / {len(traces) // num_clients}")
                 if exit_condition(setting):
                     break
     except Exception as e:
@@ -223,7 +236,7 @@ def test_simulation():
 if __name__ == '__main__':
     parse_arguments()
     CONFIG.update(get_config())
-
+    signal.signal(signal.SIGINT, signal_handler)
     prepare_env()
     if CONFIG['test']:
         test_simulation()

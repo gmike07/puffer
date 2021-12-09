@@ -20,6 +20,15 @@ class RLTrainer(torch.nn.Module):
         self.optimizer = self.model.optimizer
         self.input_size = self.model.input_size
         self.config = model.config
+
+        self.logs_file = fill_default_key_conf(self.config, 'logs_file')
+        self.logs_path = fill_default_key_conf(self.config, 'logs_path')
+        self.rounds_to_save = fill_default_key_conf(model.config, 'rounds_to_save')
+
+        self.sleep_sec = fill_default_key_conf(model.config, 'sleep_sec')
+        self.rl_min_measuremets = fill_default_key_conf(model.config, 'rl_min_measuremets')
+        self.rl_batch_size = fill_default_key_conf(model.config, 'rl_batch_size')
+
         print('created RLTrainer')
     
     def forward(self, x):
@@ -33,7 +42,6 @@ class RLTrainer(torch.nn.Module):
 
     def predict(self, sent_state):
         probabilities = self.forward(torch.from_numpy(sent_state['state']))
-        print(probabilities)
         return np.random.choice(self.actions, p=probabilities.detach().cpu().numpy().reshape(-1))
 
     def save(self, path=''):
@@ -83,42 +91,46 @@ class RLTrainer(torch.nn.Module):
         policy_gradient = torch.stack(policy_gradient).sum()
         policy_gradient.backward()
         self.optimizer.step()
+        print('optimized')
 
 
+def normalize_qoe(qoe, min_value=-1000, max_value=60):
+        qoe = max(qoe, min_value) # qoe >= min_value
+        qoe = min(qoe, max_value) # qoe in [min_value, max_value]
+        return (qoe - min_value) / (max_value - min_value)
 
 def train_rl(model, event, rl_type='rl'):
     total_measurements = [[] for _ in range(len(model.measurements))]
-    rounds_to_save = fill_default_key_conf(model.config, 'rounds_to_save')
+    rounds_to_save = model.rounds_to_save
     gradients = 0
     while not event.is_set():
-        time.sleep(fill_default_key_conf(model.config, 'sleep_sec'))
+        time.sleep(model.sleep_sec)
         if event.is_set():
             break
         for i, client_measures in enumerate(model.measurements):
-            while not client_measures.empty() and client_measures.qsize() < fill_default_key_conf(model.config, 'rl_min_measuremets'):
+            while not client_measures.empty() and client_measures.qsize() < model.rl_min_measuremets:
                 total_measurements[i].append(client_measures.get())
         
             rounds_to_save -= 1
 
-            if len(total_measurements[i]) < fill_default_key_conf(model.config, 'rl_min_measuremets'):
+            if len(total_measurements[i]) < model.rl_min_measuremets:
                 continue
 
             # select batch and update weights
             measures = np.array(total_measurements[i])
-            indices = np.random.choice(np.arange(measures.size), fill_default_key_conf(model.config, 'rl_batch_size'))
+            indices = np.random.choice(np.arange(measures.size), model.rl_batch_size)
             measures_batch = measures[indices]
             measures = np.delete(measures, indices)
 
             total_measurements[i] = list(measures)
 
             states = np.array(list(map(lambda s: s["state"], measures_batch)))
-            rewards = np.array(list(map(lambda s: s["qoe"], measures_batch)))
+            rewards = np.array(list(map(lambda s: normalize_qoe(s["qoe"]), measures_batch)))
 
             log_probs = []
             for state in states:
                 log_prob = model.get_log_highest_probability(state)
                 log_probs.append(log_prob)
-
             model.update_policy(rewards, log_probs)
             gradients += 1
 
@@ -128,6 +140,6 @@ def train_rl(model, event, rl_type='rl'):
                 model.save()
                 total_measurements[i] = []
                 model.clear_client_history(i)
-                rounds_to_save = fill_default_key_conf(model.config, 'rounds_to_save')
-                with open(fill_default_key_conf(model.config, 'logs_file'), 'w') as logs_file:
+                rounds_to_save = model.rounds_to_save
+                with open(f'{model.logs_path}{model.logs_file}', 'w') as logs_file:
                     logs_file.write(f"Num of calculated gradients: {gradients}.")

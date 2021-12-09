@@ -15,6 +15,7 @@ class AETrainer:
         self.sleep_time = fill_default_key_conf(config, 'sleep_sec')
         self.rounds_to_sleep = fill_default_key_conf(config, 'rounds_to_save')
         self.logs_file = fill_default_key_conf(config, 'logs_file')
+        self.logs_path = fill_default_key_conf(config, 'logs_path')
         self.training = not get_config()['test']
         print('created AETrainer')
 
@@ -79,5 +80,5 @@ def train_ae(model, event, type_trainer='ae'):
             print(f'saving {type_trainer}...', model.clean_data.qsize(), len(inputs))
             model.model.save()
             rounds_to_save = model.rounds_to_sleep
-            with open(model.logs_file, 'w') as logs_file:
+            with open(f'{model.logs_path}{model.logs_file}', 'w') as logs_file:
                 logs_file.write(f"Num of calculated gradients: {gradients}.")

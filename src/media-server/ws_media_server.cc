@@ -804,6 +804,7 @@ int run_websocket_server()
           client.get_socket()->scoring_type = get_attribute<string>(cc_config, "scoring_function_type", "ssim");
 
           client.get_socket()->server_path = get_attribute<string>(cc_config, "server_path", "");
+          client.get_socket()->client = &client;
 
           client.get_socket()->server_id = server_id_int;
           for (const auto & cc : ccs) {

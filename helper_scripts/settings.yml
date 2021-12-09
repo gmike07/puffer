@@ -26,18 +26,22 @@ all_models:
 
   - model_name: "ae" # other properties: ae_model_name + NN traits
 
-  - model_name: "AETrainer" # other properties: sleep_sec, rounds_to_save, logs_file + AE traits
+  - model_name: "AETrainer" # other properties: sleep_sec, rounds_to_save, logs_file, logs_path + AE traits
 
-  - model_name: "rl" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file + NN traits
+  - model_name: "rl" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file, logs_path + NN traits
 
-  - model_name: "srl" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file + SL traits + context_layers
+  - model_name: "srl" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file, logs_path + SL traits + context_layers
     context_type: "sl"
 
-  - model_name: "srlAE" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file + AE traits
+  - model_name: "srlAE" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file, logs_path + AE traits
     context_type: "ae"
 
   - model_name: "contextlessClusterTrainer" # other properties: num_clusters, cluster_name, saving_cluster_path
     context_type: "contextless"
+
+  - model_name: "boggartClusterTrainer" # other properties: num_clusters, cluster_name, saving_cluster_path
+    context_type: "boggart"
+    boggart_size: 5
 
   - model_name: "SLClusterTrainer" # other properties: num_clusters, cluster_name, saving_cluster_path + SL traits + context_layers
     context_type: "sl"
@@ -54,7 +58,7 @@ all_models:
   - model_name: "exp3KmeansAutoEncoder" # other properties: save_name + exp3 traits + AEClusterTrainer traits
     context_type: "ae"
 
-  - model_name: "stackingModel"
+  - model_name: "stackingModel" # other properties: models, cc_scoring_path
   
 
 
@@ -154,6 +158,7 @@ simulation_constants:
 
   delays: [100, 30, 40, 60]
   losses: [0, 0.02, 0.05, 0.01]
+  train_test_log_file: 'train_test_log.txt'
 
 
 nn_model:
@@ -179,14 +184,15 @@ srl_model:
 thread_training_settings:
   rounds_to_save: 1
   sleep_sec: 1
-  logs_file: './weights/server_logs.txt'
+  logs_file: 'server_logs.txt'
+  logs_path: './logs/'
   #specific to rl:
   rl_batch_size: 3
   rl_min_measuremets: 7
 
 exp3:
   exp3_explore_parameter: 0.1
-  exp3_model_path: '/home/mike/puffer/exp3/'
+  exp3_model_path: './exp3/'
 
 contexts:
   # [500, 200, 100, 80, 50, 40, 30, 20] = layers
@@ -195,7 +201,7 @@ contexts:
 clusters:
 # new for clusters
   num_clusters: 20
-  saving_cluster_path: '/home/mike/puffer/clusters/'
+  saving_cluster_path: './clusters/'
 
 servers:
   server_port: 5675
@@ -203,4 +209,4 @@ servers:
   models: ["constant_0", "constant_1", "constant_2", "srl", "exp3Kmeans", "sl", "rl"]
 
 paths:
-  cc_scoring_path: "/home/mike/cc_scoring/cc_score_" # start path to save the scoring file of the abr data
+  cc_scoring_path: "./cc_scoring/" # start path to save the scoring file of the abr data

@@ -18,9 +18,9 @@
 #include <memory>
 #include "address.hh"
 #include "file_descriptor.hh"
+#include <deque>
+#include "abr_algo.hh"
 
-
-class WebSocketClient;
 
 /* class for network sockets (UDP, TCP, etc.) */
 class Socket : public FileDescriptor
@@ -110,11 +110,11 @@ private:
     static constexpr double MIN_SSIM = 0;
     static constexpr double million = 1000000;
     static constexpr double pkt_bytes = 1500;
-    std::vector<std::string> supported_ccs{};
+    std::vector<std::string> scoring_types = {"ssim"}; //"bit_rate"
     std::string current_cc = "";
+    std::vector<std::string> supported_ccs{};
 
     std::string get_congestion_control_tcp() const;
-
 protected:
     /* constructor used by accept() and SecureSocket() */
     TCPSocket( FileDescriptor && fd ) : Socket( std::move( fd ), AF_INET, SOCK_STREAM ){
@@ -149,9 +149,7 @@ public:
     ChunkInfo prev_chunk = {false, 0, 0, 0, 0, 0, ""};
     ChunkInfo curr_chunk = {false, 0, 0, 0, 0, 0, ""};
 
-    std::shared_ptr<WebSocketClient> client = nullptr;
-
-    std::vector<std::string> scoring_types = {"ssim"}; //"bit_rate"
+    WebSocketClient* client = nullptr;
 
     TCPSocket() : Socket( AF_INET, SOCK_STREAM ) {
         current_cc = get_congestion_control_tcp();
@@ -212,8 +210,6 @@ public:
     std::vector<std::string>& get_supported_cc();
 
     bool is_valid_score_type() const;
-
-    double get_qoe(double curr_ssim, double prev_ssim, uint64_t curr_trans_time, std::size_t curr_buffer);
 };
 
 #endif /* SOCKET_HH */
