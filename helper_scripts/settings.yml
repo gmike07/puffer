@@ -58,7 +58,7 @@ all_models:
   - model_name: "exp3KmeansAutoEncoder" # other properties: save_name + exp3 traits + AEClusterTrainer traits
     context_type: "ae"
 
-  - model_name: "stackingModel" # other properties: models, cc_scoring_path
+  - model_name: "stackingModel" # other properties: models, scoring_path
   
 
 

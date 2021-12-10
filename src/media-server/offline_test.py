@@ -165,7 +165,7 @@ def create_arr(filedir, abr, i, ccs, func):
 
 def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     dfs = []
-    ccs = get_config()['test_models']
+    ccs = get_config()['models']
     dct = {'constant_0': 0, 'constant_1': 1, 'constant_2': 2}
     ccs_named = list(map(lambda x: get_config()['ccs'][dct[x]] if x in dct else x, ccs))
     for i in range(max_iter):
@@ -187,12 +187,17 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     return df
 
 
+def find_index(filename):
+    filename = filename[filename.rfind(f"_{CONFIG['abr']}_") + len(f"_{CONFIG['abr']}_"):]
+    filename = filename[:filename.find('_')]
+    return int(filename)
+
+
 def eval_scores():
-    path = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/')]
-    files = os.listdir(path)
-    max_num = max(int(file[file.rfind('_') + 1:-len('.txt')]) for file in files if file.endswith('.txt'))
+    files = os.listdir(CONFIG['scoring_path'])
+    max_num = max(find_index(file) for file in files if file.endswith('.txt'))
     print('mean')
-    show_table(path, CONFIG['abr'], max_num, np.mean)
+    show_table(CONFIG['scoring_path'], CONFIG['abr'], max_num, np.mean)
 
 
 def prepare_env():
@@ -230,6 +235,7 @@ def train_simulation(model_name):
 
 def test_simulation():
     run_simulation('stackingModel', True)
+    send_done_to_server()
     eval_scores()
 
 

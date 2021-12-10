@@ -21,7 +21,7 @@ class StackingModelsServer:
         self.model_names = fill_default_key_conf(models_data, 'models')
         print(self.model_names)
         self.models = [create_model(len(self.model_names), model_data) for model_data in self.model_names]
-        self.path = fill_default_key_conf(models_data, 'cc_scoring_path')
+        self.path = fill_default_key_conf(models_data, 'scoring_path')
         self.counter = 0
         self.open_files()
         print('created stacking model')
