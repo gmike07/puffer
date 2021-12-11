@@ -3,15 +3,14 @@ import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread, Event
 
-from numpy.core.defchararray import mod
-
 from models.model_creator import create_model
-from models.ae_trainer import AETrainer, train_ae
-from models.rl_trainer import RLTrainer, train_rl
-from models.sl_trainer import SLTrainer, train_sl
-from config_creator import CONFIG, get_config
+from models.ae_trainer import train_ae
+from models.rl_trainer import train_rl
+from models.sl_trainer import train_sl
+from config_creator import get_config, requires_helper_model, is_threaded_model
 from argument_parser import parse_arguments
 
+from typing import *
 
 def get_lambda_trainer(model, model_name, event):
     if model_name == 'SLTrainer':
@@ -20,20 +19,19 @@ def get_lambda_trainer(model, model_name, event):
         return lambda: train_ae(model, event)
     if model_name in ['rl', 'srl']:
         return lambda: train_rl(model, event)
-    
-
-def is_threaded_model(model_name):
-    return model_name in ['SLTrainer', 'AETrainer', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer', 'rl', 'srl']
-
-def requires_helper_model(model_name):
-    return model_name in ['SLTrainer', 'AETrainer', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer']
 
 
 def get_server_model(models_lst):   
     other_thread = [None]
     event_thread = [None]
     model_name = [None]
+    finished_server_ids = [set()]
     class HandlerClass(BaseHTTPRequestHandler):
+        def default_headers(self):
+            self.send_response(200, 'OK')
+            self.end_headers()
+
+
         def do_GET(self):
             self.send_response(200)
             self.end_headers()
@@ -42,34 +40,50 @@ def get_server_model(models_lst):
             print('clearing...')
             if models_lst[0] is not None:
                 models_lst[0].clear()
-            self.send_response(200, 'OK')
-            self.end_headers()
+            finished_server_ids[0] = []
+            return self.default_headers()
 
         def handle_done(self):
             print('done...')
             if models_lst[0] is not None:
                 models_lst[0].done()
-            self.send_response(200, 'OK')
-            self.end_headers()
+            finished_server_ids[0] = set()
+            return self.default_headers()
+
+        def send_OK_and_prediction(self, prediction):
+            self.default_headers()
+            self.wfile.write(json.dumps({'cc': str(prediction)}).encode('utf-8'))
 
         def handle_state(self, parsed_data):
+            if parsed_data['server_id'] in finished_server_ids[0]:
+                print('ignore state')
+                return self.send_OK_and_prediction(0)
             parsed_data['server_id'] -= 1
             parsed_data['state'] = np.array(parsed_data['state']).reshape(1, -1)
             print('predicting server', parsed_data['server_id'], end=' ')
             models_lst[0].update(parsed_data)
             prediction = models_lst[0].predict(parsed_data)
             print('prediction is', prediction)
-            self.send_response(406 + prediction)
-            self.end_headers()
+            self.send_OK_and_prediction(prediction)
+
+        def handle_stateless(self, parsed_data):
+            if parsed_data['server_id'] in finished_server_ids[0]:
+                print('ignore state', parsed_data['server_id'])
+                return self.send_OK_and_prediction(0)
+            parsed_data['server_id'] -= 1
+            print('predicting server', parsed_data['server_id'], end=' ')
+            prediction = models_lst[0].predict(parsed_data)
+            print('prediction is', prediction)
+            self.send_OK_and_prediction(prediction)
+
 
         def handle_switch(self, parsed_data):
             print(f"switching to model {parsed_data['model_name']} and load: {parsed_data['load']}")
+            finished_server_ids[0] = set()
             if model_name[0] == parsed_data['model_name']:
                 if requires_helper_model(model_name[0]):
                     models_lst[0].update_helper_model(create_model(get_config()['num_clients'], parsed_data['helper_model']))
-                self.send_response(200, 'OK')
-                self.end_headers()
-                return
+                return self.default_headers()
             if models_lst[0] is not None:
                 if event_thread[0] is not None:
                     event_thread[0].set()
@@ -87,8 +101,12 @@ def get_server_model(models_lst):
                 other_thread[0] = Thread(target=get_lambda_trainer(models_lst[0], parsed_data['model_name'], event_thread[0]))
                 other_thread[0].start()
             model_name[0] = parsed_data['model_name']
-            self.send_response(200, 'OK')
-            self.end_headers()
+            return self.default_headers()
+
+        def hanlde_message(self, parsed_data):
+            if parsed_data['message'] == 'sock finished':
+                finished_server_ids[0] |= {parsed_data['server_id']}
+                print('server', parsed_data['server_id'], 'finished')
 
         def do_POST(self):
             try:
@@ -97,13 +115,18 @@ def get_server_model(models_lst):
                 parsed_data = json.loads(data)
                 if 'state' in parsed_data:
                     self.handle_state(parsed_data)
+                elif 'stateless' in parsed_data:
+                    self.handle_stateless(parsed_data)
                 elif 'clear' in parsed_data:
                     self.handle_clear()
                 elif 'done' in parsed_data:
                     self.handle_done()
                 elif 'switch_model' in parsed_data:
                     self.handle_switch(parsed_data)
+                elif 'message' in parsed_data:
+                    self.hanlde_message(parsed_data)
                 else:
+                    print(parsed_data)
                     self.send_response(400)
                     self.end_headers()
             except Exception as e:
@@ -121,7 +144,6 @@ def run_server(server_handler, addr, port, server_class=HTTPServer):
     httpd.serve_forever()
 
 
-#create_model(get_config()['num_clients'], 'rl')
 if __name__ == '__main__':
     parse_arguments()
     get_config()['batch_size'] = 1

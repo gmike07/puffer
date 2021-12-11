@@ -11,9 +11,8 @@ T get_attribute(YAML::Node& cc_config, std::string atribute_name, T default_valu
   return default_value;
 }
 
-SocketHelper::SocketHelper(const WebSocketClient& client, TCPSocket& socket, const std::string& abr_name, YAML::Node& ccs, YAML::Node cc_config, int server_id_int)
+SocketHelper::SocketHelper(const WebSocketClient& client, TCPSocket& socket, YAML::Node& ccs, YAML::Node& cc_config, int server_id_int): client_(client), sock(socket)
 {
-  sock = &socket;
   history_size = get_attribute(cc_config, "history_size", 40);
   sample_size = get_attribute(cc_config, "random_sample_size", 5);
   abr_time = get_attribute(cc_config, "abr_time", false);
@@ -21,10 +20,11 @@ SocketHelper::SocketHelper(const WebSocketClient& client, TCPSocket& socket, con
   buffer_length_coef = get_attribute(cc_config, "buffer_length_coef", 100.0);
   quality_change_qoef = get_attribute(cc_config, "quality_change_qoef", 1.0);
   scoring_type = get_attribute<std::string>(cc_config, "scoring_function_type", "ssim");
+  is_boggart = get_attribute<bool>(cc_config, "boggart", false);
+  stateless = get_attribute<bool>(cc_config, "start_stateless", false);
 
   server_path = get_attribute<std::string>(cc_config, "server_path", "");
   server_id = server_id_int;
-  client_p = &client;
   dis_buf_length_ = std::min(dis_buf_length_, discretize_buffer(WebSocketClient::MAX_BUFFER_S));
 
   for (const auto & cc : ccs) {
@@ -38,7 +38,6 @@ SocketHelper::SocketHelper(const WebSocketClient& client, TCPSocket& socket, con
   std::cout << cc_string << std::endl;
   reinit();
 }
-
 
 double SocketHelper::get_qoe()
 {
@@ -69,7 +68,7 @@ std::vector<double> SocketHelper::get_qoe_vector()
 
 std::vector<uint64_t> SocketHelper::get_tcp_full_vector()
 {
-    tcp_info info = sock->get_tcp_full_info();
+    tcp_info info = sock.get_tcp_full_info();
     return 
         {info.tcpi_sndbuf_limited, info.tcpi_rwnd_limited, info.tcpi_busy_time, info.tcpi_delivery_rate,
         info.tcpi_data_segs_out, info.tcpi_data_segs_in, info.tcpi_min_rtt, info.tcpi_notsent_bytes,
@@ -83,9 +82,9 @@ std::vector<uint64_t> SocketHelper::get_tcp_full_vector()
 }
 
 
-std::vector<double> SocketHelper::get_custon_cc_state()
+std::vector<double> SocketHelper::get_custom_cc_state()
 {
-  auto curr_tcp_info = sock->get_tcp_info();
+  auto curr_tcp_info = sock.get_tcp_info();
   return {
       (double) curr_tcp_info.delivery_rate / PKT_BYTES,
       (double) curr_tcp_info.cwnd,
@@ -128,7 +127,11 @@ std::vector<double> SocketHelper::get_tcp_full_normalized_vector(const std::vect
 
 
 
-
+std::size_t SocketHelper::get_boggart_qoe_state_id()
+{
+  auto boggart_state = get_boggart_qoe_state();
+  return boggart_state[0] * NUM_OF_ACTIONS + boggart_state[1];
+}
 
 
 
@@ -138,7 +141,6 @@ std::vector<double> SocketHelper::get_tcp_full_normalized_vector(const std::vect
 
 void SocketHelper::init_vformats()
 {
-  auto& client_ = *client_p;
   uint64_t curr_vts = client_.next_vts().value();
   sorted_vformats_ = client_.channel()->vformats();
   std::sort(sorted_vformats_.begin(),
@@ -170,7 +172,6 @@ double SocketHelper::get_normalized_qoe()
     return 0;
   }
 
-  auto& client_ = *client_p;
   ABRAlgo::Chunk curr_chunk = past_chunks_.back();
   ABRAlgo::Chunk prev_chunk = *(past_chunks_.end() - 2);
 
@@ -237,7 +238,6 @@ void SocketHelper::init_ssim(const std::shared_ptr<Channel>& channel, const std:
 
 void SocketHelper::reinit()
 {
-  auto& client_ = *client_p;
   const auto &channel = client_.channel();
   const auto &vformats = channel->vformats();
   const unsigned int vduration = channel->vduration();
@@ -274,11 +274,11 @@ void SocketHelper::add_chunk(ABRAlgo::Chunk &&c)
   {
     past_chunks_.pop_front();
   }
+  reinit();
   if(past_chunks_.size() <= 1)
   {
     return;
   }
-  reinit();
   is_new_chunk_scoring = true;
   is_new_chunk_model = true;
 }
@@ -302,7 +302,6 @@ std::vector<std::size_t> SocketHelper::find_boggart_state_helper(std::vector<std
 
   size_t max_conservative = 0;
   size_t max_risk = 0;
-  auto& client_ = *client_p;
 
   for (size_t i = 1; i <= 1; i++) // lookahead_horizon_
   {

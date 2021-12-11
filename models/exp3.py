@@ -24,11 +24,6 @@ class Exp3:
             self.weights = np.ones(self.num_actions)
         else:
             self.save()
-    
-    def normalize_qoe(self, qoe, min_value=-1000, max_value=60):
-        qoe = max(qoe, min_value) # qoe >= min_value
-        qoe = min(qoe, max_value) # qoe in [min_value, max_value]
-        return (qoe - min_value) / (max_value - min_value)
 
     def save(self):
         np.save(self.save_path, self.weights)
@@ -52,7 +47,7 @@ class Exp3:
     def update(self, state):
         if get_config()['test']:
             return
-        qoe = self.normalize_qoe(state['qoe'])
+        qoe = state["normalized_qoe"]
         action_chosen = self.last_actions[state['server_id']]
         if action_chosen is None:
             return

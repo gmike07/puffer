@@ -38,6 +38,7 @@
 #include "cc_logging.hh"
 
 #include "json.hpp"
+#include "cc_socket_helper.hh"
 
 using json = nlohmann::json;
 
@@ -50,7 +51,7 @@ static const uint64_t BILLION = 1000 * MILLION;
 /*
  * returns the current time in uint64_t type
 */
-static inline uint64_t get_timestamp_ms()
+static uint64_t get_timestamp_ms()
 {
   timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
@@ -62,29 +63,29 @@ static inline uint64_t get_timestamp_ms()
 /*
  * changes the curremt cc to the given string in the socket
 */
-static inline void change_cc(TCPSocket& socket, std::string cc)
+static void change_cc(SocketHelper& socket_helper, std::string cc)
 {
-  socket.set_congestion_control(cc);
+  socket_helper.set_congestion_control(cc);
   std::cerr << "cc: " << cc << std::endl;
 }
 
 /*
  * changes the curremt cc to the given string of the corresponding index in the supported ccs
 */
-static inline void change_cc(TCPSocket& socket, int index)
+static void change_cc(SocketHelper& socket_helper, int index)
 { 
-  static std::vector<std::string>& cc_supported = socket.get_supported_cc();
-  change_cc(socket, cc_supported[index]);
+  static std::vector<std::string>& cc_supported = socket_helper.get_supported_cc();
+  change_cc(socket_helper, cc_supported[index]);
 }
 
 /*
  * changes the curremt cc to a random cc in supported ccs
 */
-static inline void random_cc(TCPSocket& socket, bool replace_cc)
+static void random_cc(SocketHelper& socket_helper, bool replace_cc)
 {
   if(replace_cc)
   {
-    change_cc(socket, rand() % socket.get_supported_cc().size());
+    change_cc(socket_helper, rand() % socket_helper.get_supported_cc().size());
   }
 }
 
@@ -92,11 +93,11 @@ static inline void random_cc(TCPSocket& socket, bool replace_cc)
 /*
  * returns the predicted cc sample normalized
 */
-static inline std::vector<double> convert_tcp_info_normalized_vec(TCPSocket& socket, uint64_t start_time)
+static std::vector<double> convert_tcp_info_normalized_vec(SocketHelper& socket_helper, uint64_t start_time)
 {
-  std::vector<double> vec = socket.get_tcp_full_normalized_vector(get_timestamp_ms() - start_time);
-  auto& cc_vec = socket.get_supported_cc();
-  auto cc = socket.get_congestion_control();
+  std::vector<double> vec = socket_helper.get_tcp_full_normalized_vector(get_timestamp_ms() - start_time);
+  auto& cc_vec = socket_helper.get_supported_cc();
+  auto cc = socket_helper.get_congestion_control();
   for(size_t i = 0; i < cc_vec.size(); i++)
   {
     vec.push_back(cc_vec[(int)i] == cc ? 1.0 : 0.0);

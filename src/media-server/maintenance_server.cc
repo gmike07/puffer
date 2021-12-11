@@ -4,6 +4,7 @@
 #include "yaml-cpp/yaml.h"
 #include "ws_server.hh"
 #include "server_message.hh"
+#include "cc_socket_helper.hh"
 
 using namespace std;
 

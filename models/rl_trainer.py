@@ -91,13 +91,7 @@ class RLTrainer(torch.nn.Module):
         policy_gradient = torch.stack(policy_gradient).sum()
         policy_gradient.backward()
         self.optimizer.step()
-        print('optimized')
 
-
-def normalize_qoe(qoe, min_value=-1000, max_value=60):
-        qoe = max(qoe, min_value) # qoe >= min_value
-        qoe = min(qoe, max_value) # qoe in [min_value, max_value]
-        return (qoe - min_value) / (max_value - min_value)
 
 def train_rl(model, event, rl_type='rl'):
     total_measurements = [[] for _ in range(len(model.measurements))]
@@ -125,7 +119,7 @@ def train_rl(model, event, rl_type='rl'):
             total_measurements[i] = list(measures)
 
             states = np.array(list(map(lambda s: s["state"], measures_batch)))
-            rewards = np.array(list(map(lambda s: normalize_qoe(s["qoe"]), measures_batch)))
+            rewards = np.array(list(map(lambda s: s["normalized_qoe"], measures_batch)))
 
             log_probs = []
             for state in states:

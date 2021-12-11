@@ -15,7 +15,7 @@ parentdir = os.path.dirname(currentdir)
 grandparentdir = os.path.dirname(parentdir)
 sys.path.append(grandparentdir)
 from argument_parser import parse_arguments
-from config_creator import get_config, create_setting_yaml
+from config_creator import get_config, create_setting_yaml, requires_helper_model
 import signal
 import sys
 
@@ -47,6 +47,7 @@ def signal_handler(sig, frame):
     kill_proccesses(plist, 0)
     subprocess.check_call("rm -rf ./*.profile", shell=True, executable='/bin/bash')
     sys.exit(0)
+
 
 def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
     remote_port = CONFIG['remote_base_port'] + trace_index
@@ -137,10 +138,10 @@ def start_maimahi_clients(clients, filedir, exit_condition):
                 send_clear_to_server()
                 subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
-                with open(CONFIG['log_path'] + CONFIG['train_test_log_file'], 'w') as f:
-                    f.write(f"{CONFIG['model_name']}:\n")
-                    f.write(f"epoch: {epoch} / {CONFIG['mahimahi_epochs']}\n")
-                    f.write(f"trace: {f} / {len(traces) // num_clients}")
+                with open(CONFIG['logs_path'] + CONFIG['train_test_log_file'], 'w') as f_log:
+                    f_log.write(f"{CONFIG['model_name']}:\n")
+                    f_log.write(f"epoch: {epoch} / {CONFIG['mahimahi_epochs']}\n")
+                    f_log.write(f"trace: {f} / {len(traces) // num_clients}")
                 if exit_condition(setting):
                     break
     except Exception as e:
@@ -220,7 +221,7 @@ def run_simulation(model_name, should_load, f=lambda _: False, helper_model=''):
 
 def train_simulation(model_name):
     test_f = lambda _: True
-    if model_name not in ['SLTrainer', 'AETrainer', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer']:
+    if not requires_helper_model(model_name):
         run_simulation(model_name, False, f=test_f)
         send_done_to_server()
         return

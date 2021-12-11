@@ -123,11 +123,13 @@ constants:
 
 
   qualities: ['426x240', '640x360', '854x480', '1280x720', '1920x1080']
-  quality_cols: ['file_index', 'chunk_index', 'ssim', 'video_buffer',
-                  'cum_rebuffer', 'media_chunk_size', 'trans_time',
+  # quality_cols: ['file_index', 'chunk_index', 'ssim', 'video_buffer',
+  #                 'cum_rebuffer', 'media_chunk_size', 'trans_time',
 
-                  'qoe', 'ssim_quality', 'ssim_change', 'rebuffer', 
-                  'bit_quality', 'bit_change']
+  #                 'qoe', 'ssim_quality', 'ssim_change', 'rebuffer', 
+  #                 'bit_quality', 'bit_change']
+
+  quality_cols: ['file_index', 'chunk_index', 'qoe', 'video_buffer', 'rebuffer', 'ssim_quality', 'ssim_change']
 
   cc_cols: ['file_index', 'chunk_index', 'sndbuf_limited', 'rwnd_limited', 'busy_time',
             'delivery_rate', 'data_segs_out', 'data_segs_in', 'min_rtt', 'notsent_bytes',

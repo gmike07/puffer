@@ -27,6 +27,7 @@
 #include "media_formats.hh"
 #include "yaml.hh"
 #include "abr_algo.hh"
+#include "cc_socket_helper.hh"
 
 using namespace std;
 using namespace PollerShortNames;
@@ -572,6 +573,11 @@ void handle_client_video_ack(WebSocketServer & server,
     try { 
       client.video_chunk_acked(msg.video_format, msg.ssim,
                               media_chunk_size, trans_time);
+
+      const auto & ti = client.tcp_info1();
+      SocketHelper* socket_helper = client.get_socket()->socket_helper_p.get();
+      socket_helper->add_chunk({msg.video_format, msg.ssim, media_chunk_size, 
+                    trans_time, ti.cwnd, ti.in_flight, ti.min_rtt, ti.rtt, ti.delivery_rate});
       client.set_last_video_send_ts(nullopt);
       client.set_tcp_info(nullopt);
     } catch (const logic_error & e) {
@@ -592,8 +598,6 @@ void handle_client_video_ack(WebSocketServer & server,
       + double_to_string(msg.cum_rebuffer, 3);
     append_to_log("video_acked", log_line);
   }
-  client.get_socket()->add_chunk({true, msg.ssim, msg.video_buffer, msg.cum_rebuffer, 
-                                    media_chunk_size, trans_time, msg.video_format.resolution()});
 }
 
 void handle_client_audio_ack(WebSocketClient & client,
@@ -620,7 +624,6 @@ void handle_client_audio_ack(WebSocketClient & client,
 
   /* allow sending another chunk */
   client.set_client_next_ats(msg.timestamp + client.channel()->aduration());
-  client.get_socket()->add_chunk({false, 0, 0, 0, 0, 0, ""});
 }
 
 void create_channels(Inotify & inotify)
@@ -794,53 +797,8 @@ int run_websocket_server()
           handle_client_init(server, client, msg);
 
           client.set_server_socket(server.get_socket(connection_id));
-          client.get_socket()->history_size = get_attribute(cc_config, "history_size", 40);
-          client.get_socket()->sample_size = get_attribute(cc_config, "random_sample_size", 5);
-          client.get_socket()->abr_time = get_attribute(cc_config, "abr_time", false);
-          client.get_socket()->predict_score = get_attribute(cc_config, "predict_score", false);
-          client.get_socket()->nn_roundup = get_attribute(cc_config, "nn_roundup", 1000);
-          client.get_socket()->buffer_length_coef = get_attribute(cc_config, "buffer_length_coef", 100.0);
-          client.get_socket()->quality_change_qoef = get_attribute(cc_config, "quality_change_qoef", 1.0);
-          client.get_socket()->scoring_type = get_attribute<string>(cc_config, "scoring_function_type", "ssim");
-
-          client.get_socket()->server_path = get_attribute<string>(cc_config, "server_path", "");
-          client.get_socket()->client = &client;
-
-          client.get_socket()->server_id = server_id_int;
-          for (const auto & cc : ccs) {
-            client.get_socket()->add_cc(cc.as<string>());
-          }
-          std::string cc_string = "\nsupported ccs:\n";
-          for(const auto& cc: client.get_socket()->get_supported_cc())
-          {
-            cc_string += cc + "\n";
-          }
-          std::cout << cc_string << std::endl;
-          string scoring_path = get_attribute<string>(cc_config, "cc_scoring_path", "");
-          //std::cout << "logging path: " << monitoring_path << std::endl;
-          if(scoring_path != "")
-          {
-            string cc = "nn";
-            if(client.get_socket()->server_path == "")
-            {
-              cc = client.get_socket()->get_congestion_control();
-            }
-            std::string model_name = get_attribute<string>(cc_config, "model_name", "");
-            if(model_name != "")
-            {
-              cc = model_name;
-            }
-            scoring_path = scoring_path + server_id + "_abr_" + abr_name + "_" + cc + "_";
-            int index = find_index(scoring_path);
-            scoring_path = scoring_path + to_string(index) + ".txt";
-
-          }
-          client.get_socket()->scoring_path = scoring_path;
-          //std::cout << "scoring path: " << scoring_path << std::endl;
-
-          client.get_socket()->created_socket = true;
-          
-
+          client.get_socket()->socket_helper_p = std::make_shared<SocketHelper>(client, *(client.get_socket()), ccs, cc_config, server_id_int);
+          client.get_socket()->socket_helper_p.get()->finish_creating_socket();
         } else {
           switch (msg_parser.msg_type()) {
           case ClientMsgParser::Type::Info:

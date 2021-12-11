@@ -3,26 +3,29 @@
 #define CC_LOGGING_OBJECTS_HH
 #include "cc_logging_functions.hh"
 #include "socket.hh"
+#include "cc_socket_helper.hh"
 
 typedef std::vector<double> qoe_sample;
 typedef std::vector<std::vector<double>> chunk_sample;
+typedef std::vector<double> boggart_sample;
 
 
 class DefaultHandler
 {
 public:
-  DefaultHandler(TCPSocket& sock): socket(sock) {}
+  DefaultHandler(SocketHelper& socket_helper_): socket_helper(socket_helper_) {}
   virtual void operator()()=0;
   virtual ~DefaultHandler()=default;
 protected:
-  TCPSocket& socket;
+  SocketHelper& socket_helper;
 };
 
 class ScoreHandler: public virtual DefaultHandler
 {
 public:
-  ScoreHandler(TCPSocket& sock, std::string prefix=""): DefaultHandler(sock), 
-            scoring_file(std::ofstream(sock.scoring_path, std::ios::out | std::ios::app)), pref(prefix){};
+  ScoreHandler(SocketHelper& socket_helper_, std::string prefix=""): DefaultHandler(socket_helper_), 
+            scoring_file(std::ofstream(socket_helper_.scoring_path, std::ios::out | std::ios::app)), 
+            pref(prefix){};
   virtual void operator()();
   virtual ~ScoreHandler()=default;
 private:
@@ -34,30 +37,71 @@ private:
 class ServerSender
 {
 public:
-  ServerSender(TCPSocket& sock, int start_good_code=406): socket(sock), base_good_code(start_good_code) {};
-  int send(std::vector<double> state);
-  void send_state_and_replace_cc(std::vector<double> state);
+  ServerSender(SocketHelper& socket_helper_): socket_helper(socket_helper_) {};
+  int send(std::vector<double> state, int boggart_id=0, bool stateless=false);
+  static std::pair<int, std::string> send_and_receive(const std::string& host, const json& js);
+  static std::pair<int, std::string> send_and_receive_str(const std::string& host, const std::string& str, int server_id);
+  void send_state_and_replace_cc(std::vector<double> state, int boggart_id=0, bool stateless=false);
 private:
-  TCPSocket& socket;
-  int base_good_code;
+  SocketHelper& socket_helper;
 };
 
 
-class ChunkHistory
+class AbstractHistory
 {
+protected:
+  SocketHelper& socket_helper;
 public:
-  ChunkHistory(TCPSocket& socket): 
-    history_size(socket.history_size), sample_size(socket.sample_size),  curr_chunk(0),  history_chunks(0), qoe_statistics(0){}
-  
-  /*
-  * returns the history current size
-  */
-  inline size_t size() {return history_chunks.size();}
+  AbstractHistory(SocketHelper& socket_helper_): socket_helper(socket_helper_){}
+  virtual ~AbstractHistory()=default;
+
+  virtual void update_chunk(std::uint64_t start_time) = 0;
+
+  virtual void push_statistic() = 0;
+
+  virtual int get_boggart_id(){return 0;}
 
   /*
-  * adds a cc sample to the current chunk
+  * adds to vec a random sample of each chunk of the history
   */
-  inline void update_chunk(std::vector<double> sample_cc) {curr_chunk.push_back(sample_cc);}
+  virtual void get_state(std::vector<double>& vec) = 0;
+
+  
+  virtual size_t size() = 0;
+
+  /*
+  * adds the current chunk to the history and updates the size of the history if needed
+  */
+  virtual void push_chunk() = 0;
+
+  virtual std::string get_info() const{return "";}
+
+};
+
+
+
+template <typename ChunkObject, typename QoEObject>
+class AbstractHistoryHelper: public virtual AbstractHistory
+{
+protected:
+  const int history_size;
+  ChunkObject curr_chunk;
+  std::deque<ChunkObject> history_chunks;
+  std::deque<QoEObject> qoe_statistics;
+
+  void push_statistic_helper(const QoEObject& curr_statistics)
+  {
+    qoe_statistics.push_back(curr_statistics);
+    if(qoe_statistics.size() > (size_t) history_size)
+    {
+      qoe_statistics.pop_front();
+    }
+  }
+public:
+  AbstractHistoryHelper(SocketHelper& socket_helper_):  AbstractHistory(socket_helper_), history_size(socket_helper_.history_size), curr_chunk(0),  history_chunks(0), qoe_statistics(0){}
+  virtual ~AbstractHistoryHelper()=default;
+
+  size_t size() {return history_chunks.size();}
 
   /*
   * adds the current chunk to the history and updates the size of the history if needed
@@ -65,26 +109,39 @@ public:
   void push_chunk()
   {
     history_chunks.push_back(curr_chunk);
-    curr_chunk = chunk_sample(0);
+    curr_chunk = ChunkObject(0);
     if(history_chunks.size() > (size_t) history_size)
     {
       history_chunks.pop_front();
     }
   }
 
-  void push_statistic(TCPSocket& socket)
+  std::string get_info() const
   {
-    qoe_statistics.push_back(socket.get_qoe_vector());
-    if(qoe_statistics.size() > (size_t) history_size)
-    {
-      qoe_statistics.pop_front();
-    }
+    return "history size:" + std::to_string(history_size) + 
+          // ",\tsample size" + std::to_string((*history_chunks.begin())[0].size()) +
+          ",\tqoe length" + std::to_string((*qoe_statistics.begin()).size());
   }
+};
+
+
+class ChunkHistory: public virtual AbstractHistoryHelper<chunk_sample, qoe_sample>
+{
+public:
+  ChunkHistory(SocketHelper& socket_helper_): AbstractHistory(socket_helper_), AbstractHistoryHelper(socket_helper_), sample_size(socket_helper_.sample_size){}
+  virtual ~ChunkHistory()=default;
+
+  /*
+  * adds a cc sample to the current chunk
+  */
+  void update_chunk(std::uint64_t start_time) {curr_chunk.push_back(convert_tcp_info_normalized_vec(socket_helper, start_time));}
+
+  void push_statistic(){push_statistic_helper(socket_helper.get_qoe_vector());}
 
   /*
   * adds to vec a random sample of each chunk of the history
   */
-  void get_sample_history(std::vector<double>& vec)
+  void get_state(std::vector<double>& vec)
   {
     for(size_t i = 0; i < history_chunks.size(); i++)
     {
@@ -99,54 +156,69 @@ public:
       vec.insert(std::end(vec), std::begin(vec_statistics), std::end(vec_statistics));
     }
   }
+private:
+  const int sample_size;
+};
 
 
-  inline std::string get_info() const
-  {
-    return "history size:" + std::to_string(history_size) + 
-          ",\tsample size" + std::to_string((*history_chunks.begin())[0].size()) +
-          ",\tnum of samples" + std::to_string(sample_size) +
-          ",\tqoe length" + std::to_string((*qoe_statistics.begin()).size());
+class BoggartCustomHistory: public virtual AbstractHistoryHelper<boggart_sample, qoe_sample>
+{
+public:
+  BoggartCustomHistory(SocketHelper& socket_helper_): AbstractHistory(socket_helper_), AbstractHistoryHelper(socket_helper_), counter(0){}
+  virtual ~BoggartCustomHistory()=default;
+
+  /*
+  * adds a cc sample to the current chunk
+  */
+  void update_chunk(std::uint64_t) {
+    auto sample = socket_helper.get_custom_cc_state();
+    if(counter == 0 or curr_chunk.size() == 0)
+    {
+      curr_chunk = sample;
+      counter = 1;
+    }
+    else{
+      for(unsigned int i = 0; i < curr_chunk.size(); i++)
+      {
+        counter++;
+        double n = counter;
+        curr_chunk[i] = (n - 1) / n * curr_chunk[i] + sample[i] / n;
+      }
+    }
   }
 
+  void push_statistic(){counter = 0; push_statistic_helper(socket_helper.get_qoe_vector());}
+  /*
+  * adds to vec a random sample of each chunk of the history
+  */
+  void get_state(std::vector<double>& vec)
+  {
+    vec.insert(std::end(vec), std::begin(curr_chunk), std::end(curr_chunk));
+  }
+
+  int get_boggart_id(){return socket_helper.get_boggart_qoe_state_id();}
+
 private:
-  const int history_size;
-  const int sample_size;
-  chunk_sample curr_chunk;
-  std::deque<chunk_sample> history_chunks;
-  std::deque<qoe_sample> qoe_statistics;
+  std::size_t counter = 0;
 };
 
 
 class StateServerHandler: public virtual DefaultHandler
 {
 public:
-  StateServerHandler(TCPSocket& sock): 
-                                DefaultHandler(sock), sender(sock), history(sock),
+  StateServerHandler(SocketHelper& socket_helper_, const std::shared_ptr<AbstractHistory>& history_p_r): 
+                                DefaultHandler(socket_helper_), sender(socket_helper_), history_p(history_p_r),
                                 start_time(get_timestamp_ms()), counter(0), 
-                                nn_roundup(sock.nn_roundup), abr_time(sock.abr_time){};
+                                nn_roundup(socket_helper_.nn_roundup), abr_time(socket_helper_.abr_time){};
   virtual void operator()();
   virtual ~StateServerHandler()=default;
 private:
   ServerSender sender;
-  ChunkHistory history;
+  std::shared_ptr<AbstractHistory> history_p;
   uint64_t start_time;
   uint64_t counter;
   uint64_t nn_roundup;
   bool abr_time;
 };
-
-// class StatelessServerHandler: public virtual DefaultHandler
-// {
-// public:
-//   StatelessServerHandler(TCPSocket& sock): DefaultHandler(sock), sender(sock), counter(0), 
-//                                 nn_roundup(sock.nn_roundup), abr_time(sock.abr_time){};
-//   virtual void operator()(){}
-// private:
-//   ServerSender sender;
-//   uint64_t counter;
-//   uint64_t nn_roundup;
-//   bool abr_time;
-// };
 
 #endif /* CC_LOGGING_OBJECTS_HH */

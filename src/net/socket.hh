@@ -21,6 +21,7 @@
 #include <deque>
 #include "abr_algo.hh"
 
+class SocketHelper;
 
 /* class for network sockets (UDP, TCP, etc.) */
 class Socket : public FileDescriptor
@@ -122,34 +123,9 @@ protected:
     }
 
 public:
-    int server_id = -1;
     //finished initializing all variables
     bool created_socket = false;
-
-    //new chunk booleans
-    bool is_new_chunk_scoring = false;
-    bool is_new_chunk_model = false;
-
-    //paths
-    std::string scoring_path = "";
-    std::string server_path = "";
-
-
-    //data for model
-    int history_size = 40;
-    int sample_size = 7;
-    bool abr_time = false;
-    int nn_roundup = 1000;
-    bool predict_score = false;
-
-    //scoring data
-    double quality_change_qoef = 1.0;
-    double buffer_length_coef = 1.0;
-    std::string scoring_type = "ssim";
-    ChunkInfo prev_chunk = {false, 0, 0, 0, 0, 0, ""};
-    ChunkInfo curr_chunk = {false, 0, 0, 0, 0, 0, ""};
-
-    WebSocketClient* client = nullptr;
+    std::shared_ptr<SocketHelper> socket_helper_p = nullptr;
 
     TCPSocket() : Socket( AF_INET, SOCK_STREAM ) {
         current_cc = get_congestion_control_tcp();
@@ -176,40 +152,6 @@ public:
     TCPInfo get_tcp_info() const;
 
     tcp_info get_tcp_full_info() const;
-
-    void add_chunk(ChunkInfo info);
-
-    std::string socket_double_to_string(const double input, const int precision) const;
-
-    double quality_chunk(const ChunkInfo& chunk, const std::string& score_type) const;
-
-    double quality_chunk(const ChunkInfo& chunk) const;
-
-    double calc_rebuffer(const ChunkInfo& curr_chunk) const;
-
-    double score_chunks(const ChunkInfo& prev_chunk, const ChunkInfo& curr_chunk) const;
-
-    double score_chunks() const;
-
-    void add_cc(std::string cc);
-
-    std::vector<double> get_qoe_vector() const;
-
-    std::string generate_chunk_statistics() const;
-
-    std::vector<uint64_t> get_tcp_full_vector() const;
-
-    std::vector<double> get_tcp_full_normalized_vector(uint64_t delta_time) const;
-
-    std::vector<double> get_tcp_full_normalized_vector(const std::vector<uint64_t>& vec) const;
-
-    static double ssim_db_cc(const double ssim);
-
-    const ChunkInfo& get_current_chunk() const;
-
-    std::vector<std::string>& get_supported_cc();
-
-    bool is_valid_score_type() const;
 };
 
 #endif /* SOCKET_HH */

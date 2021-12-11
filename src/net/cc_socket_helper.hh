@@ -1,3 +1,6 @@
+#ifndef CC_SOCKET_HELPER_HH
+#define CC_SOCKET_HELPER_HH
+
 #include "socket.hh"
 #include "abr_algo.hh"
 #include "algorithm"
@@ -19,7 +22,7 @@ private:
 
   std::vector<VideoFormat> sorted_vformats_{};
   std::deque<ABRAlgo::Chunk> past_chunks_{};
-  const WebSocketClient* client_p = nullptr;
+  const WebSocketClient & client_;
   /* for the current buffer length */
   size_t curr_buffer_ = 0;
   std::size_t last_format_idx_ = 0;
@@ -49,12 +52,15 @@ private:
   double buffer_length_coef = 1.0;
   std::string scoring_type = "ssim";
   std::vector<std::string> scoring_types = {"ssim"}; //"bit_rate"
-  TCPSocket* sock = nullptr;
+  TCPSocket& sock;
+
+
+  static constexpr double MILLION = 1000000;
+  static constexpr double PKT_BYTES = 1500;
 
 public:
   int server_id = -1;
   //finished initializing all variables
-  bool created_socket = false;
 
   //new chunk booleans
   bool is_new_chunk_scoring = false;
@@ -71,10 +77,8 @@ public:
   bool abr_time = false;
   int nn_roundup = 1000;
 
-  static constexpr double MILLION = 1000000;
-  static constexpr double PKT_BYTES = 1500;
-
-
+  bool is_boggart = false;
+  bool stateless = false;
   double get_qoe(double curr_ssim, double prev_ssim,  uint64_t curr_trans_time, std::size_t curr_buffer);
 
   void init_vformats();
@@ -92,7 +96,10 @@ public:
   std::vector<double> get_tcp_full_normalized_vector(const std::vector<uint64_t>& vec);
 
 public:
-  SocketHelper(const WebSocketClient& client, TCPSocket& socket, const std::string& abr_name, YAML::Node& ccs, YAML::Node cc_config, int server_id_int);  
+  SocketHelper(const WebSocketClient& client, TCPSocket& socket, YAML::Node& ccs, YAML::Node& cc_config, int server_id_int);  
+
+  SocketHelper(const SocketHelper&)=delete;
+  SocketHelper& operator=(const SocketHelper&)=delete;
 
   void add_chunk(ABRAlgo::Chunk &&c);
 
@@ -100,11 +107,13 @@ public:
 
   std::vector<std::size_t> get_boggart_qoe_state();
 
+  std::size_t get_boggart_qoe_state_id();
+
   std::vector<double> get_qoe_vector();
 
   std::vector<double> get_tcp_full_normalized_vector(uint64_t delta_time);
 
-  std::vector<double> get_custon_cc_state();
+  std::vector<double> get_custom_cc_state();
 
   double get_qoe();
 
@@ -115,4 +124,12 @@ public:
 
   std::vector<std::string>& get_supported_cc() {return supported_ccs;}
 
+  std::string get_congestion_control(){return sock.get_congestion_control();}
+
+  void set_congestion_control(const std::string & cc){sock.set_congestion_control(cc);}
+
+  void finish_creating_socket() {sock.created_socket = true;}
+
 };
+
+#endif /* CC_SOCKET_HELPER_HH */

@@ -13,7 +13,7 @@ class SLTrainer:
         self.clean_data = Queue()
         self.prediction_model = helper_model
         self.num_actions = len(get_config()['ccs'])
-        self.qoe_vec_len = 11
+        self.qoe_vec_len = len(get_config()['quality_cols']) - 2 #file_index, col_index
         if not get_config()['test']:
             self.model = SLModel(get_updated_config_model('sl', config))
         else:

@@ -1,65 +1,91 @@
 /* -*-mode:c++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 #include "cc_logging_objects.hh"
+#include <string>
 
 using json = nlohmann::json;
 
 void ScoreHandler::operator()()
 {
-  if(not socket.is_new_chunk_scoring)
-    {
-      return;
-    }
-    if(not socket.is_valid_score_type() or (not socket.prev_chunk.is_video) or (not socket.curr_chunk.is_video))
-    {
-      socket.is_new_chunk_scoring = false;
-      return;
-    }
-    double score = socket.score_chunks();
-    std::string s = socket.get_congestion_control() + " " + std::to_string(score);
-    if(not pref.empty())
-    {
-      s = pref + " " + s;
-    }
-    std::cout << s << std::endl;
-    scoring_file << score << std::endl;
-    socket.is_new_chunk_scoring = false;
+  if(not socket_helper.is_new_chunk_scoring)
+  {
+    return;
+  }
+  if(not socket_helper.is_valid_score_type())
+  {
+    socket_helper.is_new_chunk_scoring = false;
+    return;
+  }
+  double score = socket_helper.get_qoe();
+  std::string s = socket_helper.get_congestion_control() + " " + std::to_string(score);
+  if(not pref.empty())
+  {
+    s = pref + " " + s;
+  }
+  std::cout << s << std::endl;
+  scoring_file << score << std::endl;
+  socket_helper.is_new_chunk_scoring = false;
 }
 
-
-int ServerSender::send(std::vector<double> state)
+std::pair<int, std::string> ServerSender::send_and_receive_str(const std::string& host, const std::string& str, int server_id)
 {
-  json json_state(state);
-  
   json data;
-  data["state"] = json_state;
-  data["server_id"] = socket.server_id;
-  data["qoe"] = socket.score_chunks();
+  data["message"] = str;
+  data["server_id"] = server_id;
+  return ServerSender::send_and_receive(host, data);
+}
 
-  // send request
+std::pair<int, std::string> ServerSender::send_and_receive(const std::string& host, const json& js)
+{
+  std::ostringstream response;
   std::list<std::string> header;
   header.push_back("Content-Type: application/json");
 
   curlpp::Cleanup clean;
   curlpp::Easy request;
-  std::ostringstream response;
-  request.setOpt(new curlpp::options::Url(socket.server_path));
+  request.setOpt(new curlpp::options::Url(host));
   request.setOpt(new curlpp::options::HttpHeader(header));
-  request.setOpt(new curlpp::options::PostFields(data.dump()));
-  request.setOpt(new curlpp::options::PostFieldSize(data.dump().size()));
+  request.setOpt(new curlpp::options::PostFields(js.dump()));
+  request.setOpt(new curlpp::options::PostFieldSize(js.dump().size()));
   request.setOpt(new curlpp::options::WriteStream(&response));
-
   try {
     request.perform(); // 200 = ok and not enough data to switch, 409 = ok and sent json with {"cc": cc_to switch to}
     long status = curlpp::infos::ResponseCode::get(request);
+    return {status, response.str()};
+  }
+  catch (std::exception& e) {
+    std::cout << "exception " << e.what() << std::endl;
+  }
+  return {-1, "error"};
+}
+
+int ServerSender::send(std::vector<double> state, int boggart_id, bool stateless)
+{ 
+  json data;
+  if(not stateless)
+  {
+    json json_state(state);
+    data["state"] = json_state;
+  }
+  else
+  {
+    data["stateless"] = "stateless";
+  }
+  data["server_id"] = socket_helper.server_id;
+  data["qoe"] = socket_helper.get_qoe();
+  data["normalized qoe"] = socket_helper.get_normalized_qoe();
+  data["boggart_id"] = boggart_id;
+
+  auto pair = ServerSender::send_and_receive(socket_helper.server_path, data);
+  int status = pair.first;
+  std::string response = pair.second;
+  try {
     if(status == 400)
     {
       std::cout << "error" << std::endl;
       return -1;
     }
-    if(status != 200)
-    {
-      return status - base_good_code;
-    }
+    auto js = json::parse(response);
+    return std::stoi(js["cc"].get<std::string>());
   }
   catch (std::exception& e) {
     std::cout << "exception " << e.what() << std::endl;
@@ -67,37 +93,42 @@ int ServerSender::send(std::vector<double> state)
   return -1;
 }
 
-void ServerSender::send_state_and_replace_cc(std::vector<double> state)
+void ServerSender::send_state_and_replace_cc(std::vector<double> state, int boggart_id, bool stateless)
 {
-  int cc_index = send(state);
+  int cc_index = send(state, boggart_id, stateless);
   if(cc_index != -1)
   {
-    change_cc(socket, cc_index);
+    change_cc(socket_helper, cc_index);
   }
 }
 
+
 void StateServerHandler::operator()()
 {
-  history.update_chunk(convert_tcp_info_normalized_vec(socket, start_time));
+  history_p.get()->update_chunk(start_time);
   counter = (counter + 1) % nn_roundup;
-  bool change_cc_1 = (abr_time and socket.is_new_chunk_model);
-  socket.is_new_chunk_model = false;
+  bool change_cc_1 = (abr_time and socket_helper.is_new_chunk_model);
+  socket_helper.is_new_chunk_model = false;
   bool change_cc_2 = ((not abr_time) and (counter % nn_roundup == 0));
   if((not change_cc_1) and (not change_cc_2))
   {
     return;
   }
   //should change cc
-  history.push_chunk();
-  history.push_statistic(socket);
+  history_p.get()->push_chunk();
+  history_p.get()->push_statistic();
   start_time = get_timestamp_ms();
-  if(history.size() != ((size_t) socket.history_size))
+  if(history_p.get()->size() != ((size_t) socket_helper.history_size))
   {
+    if(socket_helper.stateless)
+    {
+      std::thread([this](){sender.send_state_and_replace_cc({}, history_p.get()->get_boggart_id(), true);}).detach();
+    }
     return;
   }
   std::vector<double> state(0);
-  history.get_sample_history(state);
-  std::thread([this, state](){sender.send_state_and_replace_cc(state);}).detach();
+  history_p.get()->get_state(state);
+  std::thread([this, state](){sender.send_state_and_replace_cc(state, history_p.get()->get_boggart_id());}).detach();
 }
 
 
