@@ -1,7 +1,7 @@
 # git clone https://github.cs.huji.ac.il/mikeg/puffer.git
 cd ..
 git branch -a
-git checkout congestion_control
+git checkout amazon_congestion_control
 git submodule update --recursive --init
 
 sudo apt-get update -qq
