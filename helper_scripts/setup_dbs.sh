@@ -1,7 +1,7 @@
 
 sudo apt install python3-pip
 sudo apt install python3
-pip3 install django psycopg2-binary influxdb pyyaml matplotlib flask
+pip3 install django psycopg2-binary influxdb pyyaml matplotlib flask, tqdm
 pip3 install django[argon2]
 sudo apt install postgresql
 # sudo -u postgres psql
