@@ -241,7 +241,7 @@ def train_simulation(model_name):
     epochs = get_config()['mahimahi_epochs']
     get_config()['mahimahi_epochs'] = 1
     for epoch in range(epochs):
-        run_simulation(model_name, bool(epoch != 0), f=test_f, helper_model='random')
+        run_simulation(model_name, bool(epoch != 0), helper_model='random')
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
         run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
     get_config()['mahimahi_epochs'] = epochs
