@@ -20,7 +20,7 @@ git clone https://github.com/jtv/libpqxx.git
 cd libpqxx && git checkout 7.1.0 && sudo ./configure --enable-documentation=no && sudo make -j3 install
 sudo useradd --create-home --shell /bin/bash user
 sudo cp -R . /home/user/puffer
-sudo chown mike -R /home/user/puffer
+sudo chown ubuntu -R /home/user/puffer # machine home name
 cd ..
 
 cd third_party/
