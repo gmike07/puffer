@@ -52,6 +52,9 @@ all_models:
   - model_name: "exp3Kmeans" # other properties: save_name + exp3 traits + SLClusterTrainer traits
     context_type: "sl"
 
+  - model_name: "exp3KmeansCustom" # other properties: save_name + exp3 traits + SLClusterTrainer traits
+    context_type: "custom"
+
   - model_name: "contextlessExp3Kmeans" # other properties: save_name + exp3 traits + contextlessClusterTrainer traits
     context_type: "contextless"
 

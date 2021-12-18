@@ -4,9 +4,12 @@ from models.helper_functions import fill_default_key_conf, fill_default_key, cre
 
 
 OUTPUT_DIMS = {'qoe': 1, 'ssim': 3, 'bit_rate': 3}
-
+QOE_SSIM_INDEX = 0
+QOE_CHANGE_INDEX = 1
+REBUFFER_INDEX = 2
 
 class SLModel(NN_Model):
+
     def __init__(self, model_config):
        super(SLModel, self).__init__(model_config, get_config()['nn_input_size'], OUTPUT_DIMS[fill_default_key_conf(model_config, 'scoring_function_type')])
        self.CONFIG = get_config()
@@ -24,7 +27,7 @@ class SLModel(NN_Model):
         if self.output_size == 1:
             return x
         if self.output_size == 3:
-            return x[:, 1] - self.change_coef * x[:, 2] - self.buffer_coef * x[:, 0]
+            return x[:, QOE_SSIM_INDEX] - self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * x[:, REBUFFER_INDEX]
 
     def predict(self, sent_state):
         best_action = -1

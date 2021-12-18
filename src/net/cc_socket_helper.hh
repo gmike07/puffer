@@ -48,8 +48,6 @@ private:
 private:
   std::vector<std::string> supported_ccs{};
   //scoring data
-  double quality_change_qoef = 1.0;
-  double buffer_length_coef = 1.0;
   std::string scoring_type = "ssim";
   std::vector<std::string> scoring_types = {"ssim"}; //"bit_rate"
   TCPSocket& sock;
@@ -79,6 +77,9 @@ public:
 
   bool is_boggart = false;
   bool stateless = false;
+
+  double quality_change_qoef = 1.0;
+  double buffer_length_coef = 1.0;
   double get_qoe(double curr_ssim, double prev_ssim,  uint64_t curr_trans_time, std::size_t curr_buffer);
 
   void init_vformats();
@@ -129,6 +130,14 @@ public:
   void set_congestion_control(const std::string & cc){sock.set_congestion_control(cc);}
 
   void finish_creating_socket() {sock.created_socket = true;}
+
+  double get_change_ssim();
+
+  double get_ssim();
+
+  double get_rebuffer();
+
+  int get_congestion_control_index();
 
 };
 

@@ -15,21 +15,19 @@ parentdir = os.path.dirname(currentdir)
 grandparentdir = os.path.dirname(parentdir)
 sys.path.append(grandparentdir)
 from argument_parser import parse_arguments
-from config_creator import get_config, create_setting_yaml, requires_helper_model
+from config_creator import get_config, create_setting_yaml, requires_helper_model, create_config
 import signal
 import sys
 
 
 plist = []
-CONFIG = {}
-
 
 def get_delay_loss(index):
-    delay, loss = CONFIG['settings'][index % len(CONFIG['settings'])]
-    if CONFIG['loss'] != -1.0:
-        loss = CONFIG['loss']
-    if CONFIG['delay'] != -1.0:
-        delay = CONFIG['delay']
+    delay, loss = get_config()['settings'][index % len(get_config()['settings'])]
+    if get_config()['loss'] != -1.0:
+        loss = get_config()['loss']
+    if get_config()['delay'] != -1.0:
+        delay = get_config()['delay']
     return delay, loss
 
 
@@ -43,15 +41,19 @@ def run_offline_media_servers():
     return p1, p2
 
 
-def signal_handler(sig, frame):
-    kill_proccesses(plist, 0)
+def clear_and_kill_all():
+    kill_all_proccesses()
     subprocess.check_call("rm -rf ./*.profile", shell=True, executable='/bin/bash')
+
+
+def signal_handler(sig, frame):
+    clear_and_kill_all()
     sys.exit(0)
 
 
 def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
-    remote_port = CONFIG['remote_base_port'] + trace_index
-    port = CONFIG['base_port'] + trace_index
+    remote_port = get_config()['remote_base_port'] + trace_index
+    port = get_config()['base_port'] + trace_index
     mahimahi_chrome_cmd = "mm-delay {} ".format(int(delay))
     if loss != 0:
         mahimahi_chrome_cmd += "mm-loss uplink {} ".format(loss)
@@ -67,7 +69,7 @@ def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
 
 def send_dct_to_server(dct):
     try:
-        requests.post(f"http://localhost:{CONFIG['server_port']}", json.dumps(dct))
+        requests.post(f"http://localhost:{get_config()['server_port']}", json.dumps(dct))
     except Exception as e:
         pass
     time.sleep(3)
@@ -81,16 +83,18 @@ def send_done_to_server():
     send_dct_to_server({'done': 'done'})
 
 
-def send_switch_to_server(model_name, should_load, helper_model=''):
-    send_dct_to_server({'switch_model': 'switch_model', 'model_name': model_name, 'load': should_load, 'helper_model': helper_model})
+def send_switch_to_server(model_name, should_load, helper_model='', models=None):
+    if models is None:
+        models = []
+    send_dct_to_server({'switch_model': 'switch_model', 'model_name': model_name, 'load': should_load, 'helper_model': helper_model, 'models': models})
 
 
 def create_failed_files(filedir, setting):
-    if not CONFIG['test']:
+    if not get_config()['test']:
         return
     arr = get_config()['test_models']
     for i in range(len(arr)):
-        filepath = f"{filedir}cc_score_{i+1}_abr_{CONFIG['abr']}_{arr[i]}_{setting}.txt"
+        filepath = f"{filedir}cc_score_{i+1}_abr_{get_config()['abr']}_{arr[i]}_{setting}.txt"
         if not os.path.exists(filepath):
             with open(filepath, 'w') as f:
                 pass
@@ -102,16 +106,21 @@ def kill_proccesses(plist, sleep_time=3):
         time.sleep(sleep_time)
 
 
+def kill_all_proccesses():
+    global plist
+    kill_proccesses(plist, 0)
+
+
 def start_maimahi_clients(clients, filedir, exit_condition):
     global plist
     plist = []
     try:
-        trace_dir = CONFIG['trace_dir'] + 'test/' if CONFIG['test'] else CONFIG['trace_dir'] + 'train/'
+        trace_dir = get_config()['trace_dir'] + 'test/' if get_config()['test'] else get_config()['trace_dir'] + 'train/'
         traces = os.listdir(trace_dir)
         traces = list(sorted(traces))
         
-        for epoch in range(CONFIG['mahimahi_epochs']):
-            num_clients = 1 if CONFIG['test'] else clients
+        for epoch in range(get_config()['mahimahi_epochs']):
+            num_clients = 1 if get_config()['test'] else clients
             for f in range(0, len(traces), num_clients):
 
                 p1, p2 = run_offline_media_servers()
@@ -122,25 +131,25 @@ def start_maimahi_clients(clients, filedir, exit_condition):
 
 
                 for i in range(1, clients + 1):
-                    index = f if CONFIG['test'] else f + i - 1
+                    index = f if get_config()['test'] else f + i - 1
                     time.sleep(sleep_time)
                     mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index % len(traces)], i, delay, loss)
                     p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
                                          preexec_fn=os.setsid)
                     plist.append(p)
 
-                time.sleep(60*10 - sleep_time * clients)
+                time.sleep(60*10) # - sleep_time * clients
 
                 kill_proccesses(plist[2:], sleep_time)
                 kill_proccesses(plist[:2])
                 
-                create_failed_files(filedir, setting)
+                # create_failed_files(filedir, setting)
                 send_clear_to_server()
                 subprocess.check_call("rm -rf ./*.profile", shell=True,
                                       executable='/bin/bash')
-                with open(CONFIG['logs_path'] + CONFIG['train_test_log_file'], 'w') as f_log:
-                    f_log.write(f"{CONFIG['model_name']}:\n")
-                    f_log.write(f"epoch: {epoch} / {CONFIG['mahimahi_epochs']}\n")
+                with open(get_config()['logs_path'] + get_config()['train_test_log_file'], 'w') as f_log:
+                    f_log.write(f"{get_config()['model_name']}:\n")
+                    f_log.write(f"epoch: {epoch} / {get_config()['mahimahi_epochs']}\n")
                     f_log.write(f"trace: {f} / {len(traces) // num_clients}")
                 if exit_condition(setting):
                     break
@@ -156,7 +165,8 @@ def create_arr(filedir, abr, i, ccs, func):
     arr = np.empty((len(ccs)))
     files = os.listdir(filedir)
     for j in range(len(ccs)):
-        file = [f for f in files if f.find(f'abr_{abr}_{ccs[j]}_{i}.txt') != -1][0]
+        print(f'abr_{abr}_{i}_{ccs[j]}.txt')
+        file = [f for f in files if f.find(f'abr_{abr}_{i}_{ccs[j]}.txt') != -1][0]
         lines = open(filedir + '/' + file, 'r').readlines()
         if len(lines) < 100:
             return None
@@ -178,8 +188,8 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     df = pd.concat(dfs)
     arr = df['exp']
     df = df.drop(['exp'], 1)
-    delays = np.array([tup[0] for tup in CONFIG['settings']])
-    losses = np.array([tup[1] for tup in CONFIG['settings']])
+    delays = np.array([tup[0] for tup in get_config()['settings']])
+    losses = np.array([tup[1] for tup in get_config()['settings']])
     df.insert(0, "loss", losses[(arr - 1) % len(losses)])
     df.insert(0, "delay", delays[(arr - 1) % len(delays)])
     df = df[df['bbr'] < 17]
@@ -189,20 +199,24 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
 
 
 def find_index(filename):
-    filename = filename[filename.rfind(f"_{CONFIG['abr']}_") + len(f"_{CONFIG['abr']}_"):]
+    filename = filename[filename.rfind(f"_{get_config()['abr']}_") + len(f"_{get_config()['abr']}_"):]
     filename = filename[:filename.find('_')]
     return int(filename)
 
 
 def eval_scores():
-    files = os.listdir(CONFIG['scoring_path'])
+    files = os.listdir(get_config()['scoring_path'])
+    print(get_config()['scoring_path'], files)
     max_num = max(find_index(file) for file in files if file.endswith('.txt'))
     print('mean')
-    show_table(CONFIG['scoring_path'], CONFIG['abr'], max_num, np.mean)
+    show_table(get_config()['scoring_path'], get_config()['abr'], max_num, np.mean)
 
 
-def prepare_env():
-    if CONFIG['eval']:
+def prepare_env(args=None):
+    if get_config()['eval']:
+        if args is not None:
+            create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path)
+            get_config()['models'] = [model[0] for model in args.models]
         eval_scores()
         exit()
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
@@ -210,42 +224,40 @@ def prepare_env():
                                       executable='/bin/bash')
 
 
-def run_simulation(model_name, should_load, f=lambda _: False, helper_model=''):
-    create_setting_yaml(test=CONFIG['test'])
+def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', models=None):
+    create_setting_yaml(test=get_config()['test'])
     send_clear_to_server()
-    send_switch_to_server(model_name, should_load, helper_model)
-    scoring_dir = CONFIG['scoring_path'][:CONFIG['scoring_path'].rfind('/') + 1]
-    start_maimahi_clients(CONFIG['num_clients'], scoring_dir, f)
+    send_switch_to_server(model_name, should_load, helper_model, models)
+    scoring_dir = get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1]
+    start_maimahi_clients(get_config()['num_clients'], scoring_dir, f)
     print('finished part simulation!')
 
 
 def train_simulation(model_name):
-    test_f = lambda _: True
     if not requires_helper_model(model_name):
-        run_simulation(model_name, False, f=test_f)
+        run_simulation(model_name, False)
         send_done_to_server()
         return
-    epochs = CONFIG['mahimahi_epochs']
-    CONFIG['mahimahi_epochs'] = 1
+    epochs = get_config()['mahimahi_epochs']
+    get_config()['mahimahi_epochs'] = 1
     for epoch in range(epochs):
         run_simulation(model_name, bool(epoch != 0), f=test_f, helper_model='random')
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
-        run_simulation(model_name, True, f=test_f, helper_model='idModel')
-    CONFIG['mahimahi_epochs'] = epochs
+        run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
+    get_config()['mahimahi_epochs'] = epochs
     send_done_to_server()
 
 def test_simulation():
-    run_simulation('stackingModel', True)
+    run_simulation('stackingModel', True, models=get_config()['models'])
     send_done_to_server()
     eval_scores()
 
 
 if __name__ == '__main__':
     parse_arguments()
-    CONFIG.update(get_config())
     signal.signal(signal.SIGINT, signal_handler)
     prepare_env()
-    if CONFIG['test']:
+    if get_config()['test']:
         test_simulation()
     else:
-        train_simulation(CONFIG['model_name'])
+        train_simulation(get_config()['model_name'])

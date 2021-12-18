@@ -1,5 +1,5 @@
 from queue import Queue
-from models.helper_functions import fill_default_key_conf, get_updated_config_model, get_config
+from models.helper_functions import create_actions, fill_default_key_conf, get_updated_config_model, get_config
 from models.sl_model import SLModel
 import torch
 from models.ae_trainer import train_ae
@@ -23,6 +23,7 @@ class SLTrainer:
         self.logs_file = fill_default_key_conf(config, 'logs_file')
         self.logs_path = fill_default_key_conf(config, 'logs_path')
         self.training = not get_config()['test']
+        self.mapping_actions = {cc: np.arange(self.num_actions) == i for i, cc in enumerate(get_config()['ccs'])}
         print('created SLTrainer')
 
     def predict(self, state):
@@ -34,11 +35,10 @@ class SLTrainer:
         self.measurements[state['server_id']].put(state)
         if self.measurements[state['server_id']].qsize() > 1:
             prev_state = self.measurements[state['server_id']].get()['state']
-            curr_cc = state['state'].reshape(-1)[-self.num_actions-self.qoe_vec_len:-self.qoe_vec_len]
-            curr_qoe = state['state'].reshape(-1)[-3:]
-            input = torch.from_numpy(np.append(prev_state.reshape(-1), curr_cc).reshape(1, -1))
-            output = torch.from_numpy(curr_qoe.reshape(1, -1))
-            self.clean_data.put((input, output))
+            output = torch.from_numpy(np.array(state['qoe_state']).reshape(1, -1))
+            curr_cc = self.mapping_actions[state['curr_cc']]
+            input = torch.from_numpy(np.append(prev_state.reshape(-1), curr_cc.reshape(-1)).reshape(1, -1))
+            self.clean_data.put((input, output / 10))
 
     def clear(self):
         self.measurements = [Queue() for _ in range(self.num_clients)]
@@ -59,5 +59,5 @@ class SLTrainer:
         self.load()
 
 
-def train_sl(model, event):
-    train_ae(model, event, 'sl')
+def train_sl(model, event,  f=None):
+    train_ae(model, event, 'sl', f)

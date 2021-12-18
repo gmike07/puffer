@@ -2,7 +2,8 @@ import torch
 from models.helper_functions import create_actions, fill_default_key_conf, merge_state_actions
 import numpy as np
 from models.helper_functions import fill_default_key_conf, fill_default_key, get_updated_config_model, get_config
-from models.sl_model import SLModel
+from models.sl_model import SLModel, REBUFFER_INDEX, QOE_SSIM_INDEX, QOE_CHANGE_INDEX
+
 from models.ae_model import AutoEncoder
 
 class ContextModel(torch.nn.Module):
@@ -33,6 +34,17 @@ class ContextModel(torch.nn.Module):
             self.output_size = self.base_model.encoder_sizes[-1]
         elif self.context_type == 'boggart':
             self.output_size = fill_default_key_conf(model_config, 'boggart_size')
+        elif self.context_type == 'custom':
+            self.base_model = SLModel(get_updated_config_model('sl', model_config))
+            self.base_model.load()
+            self.base_model.eval()
+            self.actions = create_actions()
+            self.num_actions = len(self.actions)
+            self.forward_lambda = self.forward_custom
+            self.generate_context_lambda = self.generate_context_custom
+            self.output_size = 1
+        self.is_custom_context = self.context_type == 'custom'
+
         print(f'created context model with context type {self.context_type}')
 
     def to_numpy(self, x):
@@ -91,3 +103,18 @@ class ContextModel(torch.nn.Module):
 
     def done(self):
         pass
+
+    def generate_context_custom(self, x):
+        x = self.to_numpy(x)
+        context_action = []
+        for action in self.actions:
+            context_action.append(self.to_numpy(self.base_model(merge_state_actions(x, action))).reshape(-1))
+        context_action = np.array(context_action)
+        max_ssim = np.argmax(context_action[:, QOE_SSIM_INDEX])
+        max_rebuffer = np.argmax(context_action[:, REBUFFER_INDEX])
+        min_rebuffer = np.argmin(context_action[:, REBUFFER_INDEX])
+        return int(max_ssim * self.num_actions * self.num_actions + max_rebuffer * self.num_actions + min_rebuffer)
+
+    def forward_custom(self, x):
+        x = self.to_torch(x)
+        return self.to_torch(self.generate_context_custom(x))

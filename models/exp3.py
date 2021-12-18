@@ -47,7 +47,7 @@ class Exp3:
     def update(self, state):
         if get_config()['test']:
             return
-        qoe = state["normalized_qoe"]
+        qoe = state["normalized qoe"]
         action_chosen = self.last_actions[state['server_id']]
         if action_chosen is None:
             return

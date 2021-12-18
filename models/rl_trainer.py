@@ -119,7 +119,7 @@ def train_rl(model, event, rl_type='rl'):
             total_measurements[i] = list(measures)
 
             states = np.array(list(map(lambda s: s["state"], measures_batch)))
-            rewards = np.array(list(map(lambda s: s["normalized_qoe"], measures_batch)))
+            rewards = np.array(list(map(lambda s: s["normalized qoe"], measures_batch)))
 
             log_probs = []
             for state in states:

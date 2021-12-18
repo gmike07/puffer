@@ -59,10 +59,30 @@ std::vector<double> SocketHelper::get_qoe_vector()
   ABRAlgo::Chunk prev_chunk = *(past_chunks_.end() - 2);
 
   double curr_ssim = ssim_db(curr_chunk.ssim);
-  double change_ssim = std::fabs(ssim_db(curr_ssim) - ssim_db(prev_chunk.ssim));
+  double change_ssim = std::fabs(ssim_db(curr_chunk.ssim) - ssim_db(prev_chunk.ssim));
   double rebuffer =  std::max(curr_chunk.trans_time * 0.001 - curr_buffer_ * UNIT_BUF_LENGTH, 0.0);
-  double qoe = curr_ssim - change_ssim * quality_change_qoef  -  rebuffer * buffer_length_coef;
-  return {curr_buffer_ / 10.0, qoe, rebuffer * buffer_length_coef, curr_ssim, change_ssim * quality_change_qoef};
+  return {curr_buffer_ / 100.0, get_normalized_qoe(), curr_ssim / MAX_SSIM, change_ssim * quality_change_qoef / MAX_SSIM, rebuffer * buffer_length_coef / 1000};
+}
+
+double SocketHelper::get_rebuffer()
+{
+  ABRAlgo::Chunk curr_chunk = past_chunks_.back();
+  return std::max(curr_chunk.trans_time * 0.001 - curr_buffer_ * UNIT_BUF_LENGTH, 0.0);
+}
+
+
+double SocketHelper::get_ssim()
+{
+  ABRAlgo::Chunk curr_chunk = past_chunks_.back();
+  return ssim_db(curr_chunk.ssim);
+}
+
+
+double SocketHelper::get_change_ssim()
+{
+  ABRAlgo::Chunk curr_chunk = past_chunks_.back();
+  ABRAlgo::Chunk prev_chunk = *(past_chunks_.end() - 2);
+  return std::fabs(ssim_db(curr_chunk.ssim) - ssim_db(prev_chunk.ssim));
 }
 
 
@@ -73,12 +93,13 @@ std::vector<uint64_t> SocketHelper::get_tcp_full_vector()
         {info.tcpi_sndbuf_limited, info.tcpi_rwnd_limited, info.tcpi_busy_time, info.tcpi_delivery_rate,
         info.tcpi_data_segs_out, info.tcpi_data_segs_in, info.tcpi_min_rtt, info.tcpi_notsent_bytes,
         info.tcpi_segs_in, info.tcpi_segs_out, info.tcpi_bytes_received, info.tcpi_bytes_acked, 
-        info.tcpi_max_pacing_rate, info.tcpi_total_retrans, info.tcpi_rcv_space, info.tcpi_rcv_rtt,
-        info.tcpi_reordering, info.tcpi_advmss, info.tcpi_snd_cwnd, info.tcpi_snd_ssthresh, info.tcpi_rttvar,
-        info.tcpi_rtt, info.tcpi_rcv_ssthresh, info.tcpi_pmtu, info.tcpi_last_ack_recv, info.tcpi_last_data_recv,
-        info.tcpi_last_data_sent, info.tcpi_fackets, info.tcpi_retrans, info.tcpi_lost, info.tcpi_sacked, 
-        info.tcpi_unacked, info.tcpi_rcv_mss, info.tcpi_snd_mss, info.tcpi_ato, info.tcpi_rto, 
-        info.tcpi_backoff, info.tcpi_probes, info.tcpi_ca_state};
+        info.tcpi_total_retrans, info.tcpi_rcv_space, info.tcpi_rcv_rtt,
+        info.tcpi_snd_cwnd, info.tcpi_snd_ssthresh, info.tcpi_rttvar,
+        info.tcpi_rtt, info.tcpi_rcv_ssthresh, info.tcpi_last_ack_recv, info.tcpi_last_data_recv,
+        info.tcpi_last_data_sent, info.tcpi_retrans, info.tcpi_lost, info.tcpi_sacked, 
+        info.tcpi_unacked, info.tcpi_rcv_mss, info.tcpi_ato, info.tcpi_rto, 
+        info.tcpi_backoff, info.tcpi_ca_state};
+         // info.tcpi_reordering, info.tcpi_advmss, info.tcpi_probes, info.tcpi_pmtu, info.tcpi_fackets, info.tcpi_max_pacing_rate, info.tcpi_snd_mss - don't change
 }
 
 
@@ -103,26 +124,12 @@ std::vector<double> SocketHelper::get_tcp_full_normalized_vector(uint64_t delta_
 
 std::vector<double> SocketHelper::get_tcp_full_normalized_vector(const std::vector<uint64_t>& vec)
 {
-    return 
+    std::vector<double> state(0);
+    for(const auto& num : vec)
     {
-        vec[0] / (10 * MILLION), vec[1] / (10 * MILLION), 
-        vec[2] / (1000 * MILLION), vec[3] / (10 * MILLION),
-        vec[4] / (16 * PKT_BYTES), vec[5] / (16 * PKT_BYTES), 
-        vec[6] / (10 * MILLION), vec[7] / (1024 *  PKT_BYTES),
-        vec[8] / (16 * PKT_BYTES), vec[9] / (16 * PKT_BYTES), 
-        vec[10] / (1024 *  PKT_BYTES), vec[11] / (16 * 1024 *  PKT_BYTES), 
-        vec[12] / 100.0,vec[13] / (16 * PKT_BYTES), 
-        vec[14] / (10 * MILLION), vec[15] / (16 * PKT_BYTES), 
-        vec[16] / (1000 * 1024 * PKT_BYTES), vec[17] / (10 * MILLION),
-        vec[18] / (10 * MILLION), vec[19] / (1000 * 16 * PKT_BYTES), 
-        vec[20] / (16 * PKT_BYTES), vec[21] / (16 * PKT_BYTES),
-        vec[22] / (16 * PKT_BYTES), vec[23] / 1024.0, 
-        vec[24] / 1024.0, vec[25] / 1024.0, 
-        vec[26] / 1024.0, vec[27] / (16 * PKT_BYTES), 
-        vec[28] / (10 * MILLION), vec[29] / (10 * MILLION), 
-        vec[30] / 1.0, vec[31] / 4.0,
-        vec[32] / (10 * MILLION)
-    };
+      state.push_back(num / (10 * MILLION));
+    }
+    return state;
 }
 
 
@@ -135,7 +142,18 @@ std::size_t SocketHelper::get_boggart_qoe_state_id()
 
 
 
-
+int SocketHelper::get_congestion_control_index()
+{
+  const auto& cc = get_congestion_control();
+  for(unsigned int i = 0; i < supported_ccs.size(); i++)
+  {
+    if(cc == supported_ccs[i])
+    {
+      return i;
+    }
+  }
+  return -1;
+}
 
 
 

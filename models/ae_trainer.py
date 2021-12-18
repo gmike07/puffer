@@ -47,7 +47,7 @@ class AETrainer:
         self.load()
 
 
-def train_ae(model, event, type_trainer='ae'):
+def train_ae(model, event, type_trainer='ae', f=None):
     CONFIG = get_config()
     rounds_to_save = model.rounds_to_sleep
     gradients = 0
@@ -77,7 +77,11 @@ def train_ae(model, event, type_trainer='ae'):
         gradients += 1
         # save weights
         if rounds_to_save <= 0:
-            print(f'saving {type_trainer}...', model.clean_data.qsize(), len(inputs))
+            print(f'saving {type_trainer}...', model.clean_data.qsize(), len(inputs), loss.item())
+            if f is not None:
+                f.write(f'saving {type_trainer}... ' + str(model.clean_data.qsize()) + " " + str(len(inputs)) + " " + str(loss.item()) + "\n")
+                f.flush()
+
             model.model.save()
             rounds_to_save = model.rounds_to_sleep
             with open(f'{model.logs_path}{model.logs_file}', 'w') as logs_file:

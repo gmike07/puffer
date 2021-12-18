@@ -88,7 +88,7 @@ def create_model(num_clients, model_name, helper_model=''):
         if model_name in ['srl', 'srlAE']: # no reason to support srlContextless
             return RLTrainer(SRLModel(num_clients, conf))
         
-        if model_name in ['contextlessExp3Kmeans', 'exp3Kmeans', 'exp3KmeansAutoEncoder']:
+        if model_name in ['contextlessExp3Kmeans', 'exp3Kmeans', 'exp3KmeansAutoEncoder', 'exp3KmeansCustom']:
             return Exp3Kmeans(num_clients, conf)
         
         if model_name == 'stackingModel':

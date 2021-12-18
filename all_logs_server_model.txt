@@ -1,0 +1,79 @@
+Starting httpd server on localhost:5675 with model None
+clearing...
+switching to model stackingModel and load: True
+['constant_0', 'constant_1', 'constant_2', 'sl', 'srl', 'exp3Kmeans', 'exp3KmeansCustom']
+creatad constant model with value 0
+creatad constant model with value 1
+creatad constant model with value 2
+created NN model
+created SL model with scoring ssim
+created NN model
+created SL model with scoring ssim
+loaded SL model
+created context model with context type sl
+loaded SL model
+loaded context model with context type sl
+created NN model
+created srl model
+created RLTrainer
+created NN model
+created SL model with scoring ssim
+loaded SL model
+created context model with context type sl
+created cluster model
+loaded cluster model
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3Kmeans
+created NN model
+created SL model with scoring ssim
+loaded SL model
+created context model with context type custom
+created cluster model
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3
+created exp3Kmeans
+created stacking model

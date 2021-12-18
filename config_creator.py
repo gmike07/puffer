@@ -120,6 +120,7 @@ def update_key_not_empty(key, val):
         CONFIG[key] = val
 
 def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, epochs=-1, model_name='', scoring_path=''):
+    CONFIG.clear()
     with open(yaml_input_path + 'settings.yml', 'r') as f:
         yaml_dct = yaml.safe_load(f)
         headers = [header for header in yaml_dct if header != 'all_models']
