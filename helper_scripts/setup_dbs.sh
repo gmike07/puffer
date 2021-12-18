@@ -6,9 +6,9 @@ pip3 install django[argon2]
 sudo apt install postgresql
 # sudo -u postgres psql
 # DO ONCE
-# CREATE DATABASE puffer;
-# CREATE USER puffer WITH PASSWORD '<postgres password>';
-# GRANT ALL PRIVILEGES ON DATABASE puffer TO puffer;
+# CREATE DATABASE puffer1;
+# CREATE USER puffer1 WITH PASSWORD '<postgres password>';
+# GRANT ALL PRIVILEGES ON DATABASE puffer1 TO puffer1;
 # \q
 
 wget -qO- https://repos.influxdata.com/influxdb.key | sudo apt-key add -
@@ -28,7 +28,8 @@ sudo systemctl start influxdb
 #sudo systemctl restart influxdb
 #influx
 #auth
-#username: puffer
+#username: puffer1
 #password: <influxdb password>
-#CREATE DATABASE puffer
+#CREATE DATABASE puffer1
 #SHOW DATABASES
+#exit
