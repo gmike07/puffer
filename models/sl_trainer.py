@@ -1,10 +1,10 @@
 from queue import Queue
 from models.helper_functions import create_actions, fill_default_key_conf, get_updated_config_model, get_config
-from models.sl_model import SLModel
+from models.sl_model import REBUFFER_INDEX, SLModel
 import torch
 from models.ae_trainer import train_ae
 import numpy as np
-
+from models.sl_model import REBUFFER_INDEX
 
 class SLTrainer:
     def __init__(self, num_clients, config, helper_model):
@@ -38,7 +38,9 @@ class SLTrainer:
             output = torch.from_numpy(np.array(state['qoe_state']).reshape(1, -1))
             curr_cc = self.mapping_actions[state['curr_cc']]
             input = torch.from_numpy(np.append(prev_state.reshape(-1), curr_cc.reshape(-1)).reshape(1, -1))
-            self.clean_data.put((input, output / 10))
+            output = output / 10
+            output[0, REBUFFER_INDEX] = 3 * np.log(1 + output[0, REBUFFER_INDEX])
+            self.clean_data.put((input, output))
 
     def clear(self):
         self.measurements = [Queue() for _ in range(self.num_clients)]

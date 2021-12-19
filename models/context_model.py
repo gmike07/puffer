@@ -113,7 +113,10 @@ class ContextModel(torch.nn.Module):
         max_ssim = np.argmax(context_action[:, QOE_SSIM_INDEX])
         max_rebuffer = np.argmax(context_action[:, REBUFFER_INDEX])
         min_rebuffer = np.argmin(context_action[:, REBUFFER_INDEX])
-        return int(max_ssim * self.num_actions * self.num_actions + max_rebuffer * self.num_actions + min_rebuffer)
+        if context_action[max_rebuffer, REBUFFER_INDEX] <= 0: #no rebuffer:
+            max_rebuffer = self.num_actions
+            min_rebuffer = 0
+        return int(max_rebuffer * self.num_actions * self.num_actions + min_rebuffer * self.num_actions + max_ssim)
 
     def forward_custom(self, x):
         x = self.to_torch(x)

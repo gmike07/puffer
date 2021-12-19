@@ -1,7 +1,7 @@
 from models.nn_models import NN_Model
 import torch
 from models.helper_functions import fill_default_key_conf, fill_default_key, create_actions, merge_state_actions, get_config
-
+import numpy as np
 
 OUTPUT_DIMS = {'qoe': 1, 'ssim': 3, 'bit_rate': 3}
 QOE_SSIM_INDEX = 0
@@ -27,7 +27,7 @@ class SLModel(NN_Model):
         if self.output_size == 1:
             return x
         if self.output_size == 3:
-            return x[:, QOE_SSIM_INDEX] - self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * x[:, REBUFFER_INDEX]
+            return x[:, QOE_SSIM_INDEX] - self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * (torch.exp(x[:, REBUFFER_INDEX] / 3) - 1)
 
     def predict(self, sent_state):
         best_action = -1
