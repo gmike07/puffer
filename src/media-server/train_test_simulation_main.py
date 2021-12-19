@@ -57,6 +57,8 @@ def start_server(args):
         server_command += ' -t'
     if args.scoring_path and args.test:
         server_command += f' -sp {args.scoring_path}'
+    if args.clients != -1:
+        server_command += f' --clients {args.clients}'
     print(server_command)
     return subprocess.Popen(server_command, shell=True, preexec_fn=os.setsid)
 

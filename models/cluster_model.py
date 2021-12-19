@@ -13,7 +13,7 @@ class ClusterModel:
         self.get_cluster_id = self.get_cluster_id_default
         if self.context_model.is_custom_context:
             self.get_cluster_id = lambda x: self.context_model.generate_context(x)
-            self.num_clusters = int(len(self.context_model.actions) ** 3) + 1
+            self.num_clusters = int(len(self.context_model.actions) ** 3) + len(self.context_model.actions)
             context_layers = []
         else:
             context_layers = fill_default_key_conf(model_config, 'context_layers')

@@ -20,14 +20,14 @@ class Exp3Kmeans:
         print('created exp3Kmeans')
 
     def predict(self, state):
-        id = self.cluster_model.get_cluster_id(state['state'])
-        return self.exp3_contexts[id].predict(state)
+        id_ = self.cluster_model.get_cluster_id(state['state'])
+        return self.exp3_contexts[id_].predict(state)
 
     def update(self, state):
-        id = self.cluster_model.get_cluster_id(state['state'])
-        if not get_config()['test']:
-            self.cluster_counter[id] += 1
-        self.exp3_contexts[id].update(state)
+        id_ = self.cluster_model.get_cluster_id(state['state'])
+        # if not get_config()['test']:
+        #     self.cluster_counter[id] += 1
+        self.exp3_contexts[id_].update(state)
 
     def clear(self):
         for exp3 in self.exp3_contexts:
@@ -36,13 +36,13 @@ class Exp3Kmeans:
     def save(self):
         for exp3 in self.exp3_contexts:
             exp3.save()
-        if not CONFIG['test']:
-            np.save(self.cluster_counter_path, self.cluster_counter)
+        # if not CONFIG['test']:
+        #     np.save(self.cluster_counter_path, self.cluster_counter)
 
     def load(self):
         for exp3 in self.exp3_contexts:
             exp3.load()
-        self.cluster_counter = np.load(self.cluster_counter_path)
+        # self.cluster_counter = np.load(self.cluster_counter_path)
         print('loaded exp3Kmeans')
 
     def done(self):
