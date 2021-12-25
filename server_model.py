@@ -55,7 +55,7 @@ def get_server_model(models_lst):
             print('clearing...')
             if models_lst[0] is not None:
                 models_lst[0].clear()
-            finished_server_ids[0] = []
+            finished_server_ids[0] = set()
             return self.default_headers()
 
         def handle_done(self):

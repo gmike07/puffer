@@ -38,8 +38,19 @@ class SLTrainer:
             output = torch.from_numpy(np.array(state['qoe_state']).reshape(1, -1))
             curr_cc = self.mapping_actions[state['curr_cc']]
             input = torch.from_numpy(np.append(prev_state.reshape(-1), curr_cc.reshape(-1)).reshape(1, -1))
-            output = output / 10
-            output[0, REBUFFER_INDEX] = 3 * np.log(1 + output[0, REBUFFER_INDEX])
+            if self.model.scoring_type in ['ssim', 'bit_rate']:
+                output = output / 10
+                output[0, REBUFFER_INDEX] = 3 * np.log(1 + output[0, REBUFFER_INDEX])
+            elif self.model.scoring_type == 'rebuffer':
+                output[0, REBUFFER_INDEX] /= get_config()['buffer_length_coef']
+                output = output[:, REBUFFER_INDEX].reshape(-1, 1)
+            elif self.model.scoring_type == 'bin_rebuffer':
+                output[0, REBUFFER_INDEX] /= get_config()['buffer_length_coef']
+                output = self.model.discretize_output(output[0, REBUFFER_INDEX]).reshape(-1, 1)
+            elif self.model.scoring_type in ['ssim_bin_rebuffer', 'bit_rate_bin_rebuffer']:
+                output[0, REBUFFER_INDEX] /= get_config()['buffer_length_coef']
+                output[0, REBUFFER_INDEX] = self.model.discretize_output(output[0, REBUFFER_INDEX])
+                output[0, :REBUFFER_INDEX] /= 30.0
             self.clean_data.put((input, output))
 
     def clear(self):

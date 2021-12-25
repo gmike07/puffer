@@ -155,6 +155,7 @@ experiments:
       scoring_function_type: ssim
       server_id: 0
       server_path: http://localhost:5675
+      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -176,6 +177,7 @@ experiments:
       scoring_function_type: ssim
       server_id: 1
       server_path: http://localhost:5675
+      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -197,6 +199,7 @@ experiments:
       scoring_function_type: ssim
       server_id: 2
       server_path: http://localhost:5675
+      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -218,6 +221,7 @@ experiments:
       scoring_function_type: ssim
       server_id: 3
       server_path: http://localhost:5675
+      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -239,6 +243,7 @@ experiments:
       scoring_function_type: ssim
       server_id: 4
       server_path: http://localhost:5675
+      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -260,6 +265,7 @@ experiments:
       scoring_function_type: ssim
       server_id: 5
       server_path: http://localhost:5675
+      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -281,6 +287,7 @@ experiments:
       scoring_function_type: ssim
       server_id: 6
       server_path: http://localhost:5675
+      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -302,6 +309,7 @@ experiments:
       scoring_function_type: ssim
       server_id: 7
       server_path: http://localhost:5675
+      start_stateless: true
     ccs:
     - bbr
     - vegas

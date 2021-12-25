@@ -32,6 +32,7 @@ def parse_arguments():
     parser.add_argument("-v", "--eval", default=False, action='store_true', help='A flag to specify whether you want to show the results in of simulating')
     parser.add_argument("--epochs", default=-1, type=int, help='number of epochs to do training \ testing')
     parser.add_argument('-sp',"--scoring_path", default='', help='Specify the place to store the scoring data')
+    parser.add_argument("-d", "--default_path", default=False, action='store_true', help='A flag to specify whether you want to use the default path for all paths')
     parser.add_argument('-m', '--models', nargs='+', default=[])
     args = parser.parse_args()
     new_models = []
@@ -43,7 +44,7 @@ def parse_arguments():
     args.models = new_models
     model_folder = '_'.join(sorted([model[0] for model in args.models]))
     args.clients = len(args.models) if args.clients == -1 else args.clients
-    create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, '', args.scoring_path)
+    create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, '', args.scoring_path, args.default_path)
     args.scoring_path = get_config()['scoring_path'] + model_folder + '/'
     if args.test:
         create_dir(args.scoring_path)
@@ -82,16 +83,16 @@ def main_train_test():
     start_server(args)
     time.sleep(DEFAULT_SLEEP_TIME)
     if args.eval:
-        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path)
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
         get_config()['models'] = [model[0] for model in args.models]
         eval_scores()
     if args.test:
-        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path)
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
         get_config()['models'] = [model[0] for model in args.models]
         test_simulation()
     else:
         for (model_name, epochs) in args.models:
-            create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, epochs, model_name, args.scoring_path)
+            create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, epochs, model_name, args.scoring_path, args.default_path)
             train_simulation(model_name)
             time.sleep(DEFAULT_SLEEP_TIME)
     signal_handler(0, 0)

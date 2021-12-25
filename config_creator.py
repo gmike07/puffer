@@ -2,6 +2,7 @@ import torch
 import yaml
 import os
 import copy
+import pathlib
 
 
 CONFIG = {}
@@ -26,6 +27,9 @@ def write_yaml_settings(experiments_dct):
     with open(CONFIG['yaml_path'] + 'default.yml', 'r') as f:
         default_dictionary = yaml.safe_load(f)
         default_dictionary.update(experiments_dct)
+        if 'default_path' in CONFIG:
+            default_dictionary['log_dir'] = f"{CONFIG['default_path']}/src/monitoring"
+            default_dictionary['media_dir'] = f"{CONFIG['default_path']}/media-181230"
         with open(CONFIG['yml_output_dir'] + 'settings.yml', 'w') as outfile:
             yaml.dump(default_dictionary, outfile)
         with open(CONFIG['yml_output_dir'] + 'settings_offline.yml', 'w') as outfile:
@@ -119,14 +123,14 @@ def update_key_not_empty(key, val):
     if val:
         CONFIG[key] = val
 
-def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, epochs=-1, model_name='', scoring_path=''):
+def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, epochs=-1, model_name='', scoring_path='', use_default=True):
     CONFIG.clear()
     with open(yaml_input_path + 'settings.yml', 'r') as f:
         yaml_dct = yaml.safe_load(f)
         headers = [header for header in yaml_dct if header != 'all_models']
+        CONFIG.update(yaml_dct['fingerprint']['cc_config'])
         for dct_name in headers:
             CONFIG.update(yaml_dct[dct_name])
-        CONFIG.update(yaml_dct['fingerprint']['cc_config'])
         update_constants_config()
         CONFIG.update({'test': test, 'yaml_path': yaml_input_path, 'eval': eval,
                         'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
@@ -144,6 +148,9 @@ def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=Fals
 
         for path in [CONFIG['scoring_path'], CONFIG['exp3_model_path'], CONFIG['weights_path'], CONFIG['saving_cluster_path'], CONFIG['logs_path']]:
             create_dir(path)
+
+        if use_default:
+            CONFIG['default_path'] = pathlib.Path().resolve()
         
 
 

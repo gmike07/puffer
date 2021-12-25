@@ -20,7 +20,7 @@ all_models:
 
   # NN traits: model_network_sizes, lr, weights_decay, weights_path
 
-  - model_name: "sl" # other properties: scoring_function_type, sl_model_name + NN traits
+  - model_name: "sl" # other properties: scoring_function_type, sl_model_name, sl_max_bin, sl_bin_size, sl_bin_model_network_sizes + NN traits
 
   - model_name: "SLTrainer" # other properties: sleep_sec, rounds_to_save, logs_file + SL traits
 
@@ -177,7 +177,10 @@ nn_model:
   weights_path: './cc_weights/' # start path to the place where to store the nn weights for python
 
 sl_model:
-  scoring_function_type: "ssim"
+  scoring_function_type: "ssim_bin_rebuffer" #options: ssim, bit_rate, rebuffer, bin_rebuffer, ssim_bin_rebuffer, bit_rate_bin_rebuffer 
+  sl_bin_size: 0.5
+  sl_max_bin: 20
+  sl_bin_model_network_sizes: [500, 200, 100, 80, 70, 60, 50, 40]
 
 rl_model:
   rl_gamma: 0.999

@@ -110,9 +110,10 @@ class ContextModel(torch.nn.Module):
         for action in self.actions:
             context_action.append(self.to_numpy(self.base_model(merge_state_actions(x, action))).reshape(-1))
         context_action = np.array(context_action)
-        max_ssim = np.argmax(context_action[:, QOE_SSIM_INDEX])
-        max_rebuffer = np.argmax(context_action[:, REBUFFER_INDEX])
-        min_rebuffer = np.argmin(context_action[:, REBUFFER_INDEX])
+        max_ssim = np.argmax(self.base_model.get_ssim(context_action))
+        rebuffer = self.base_model.get_rebuffer(context_action)
+        max_rebuffer = np.argmax(rebuffer)
+        min_rebuffer = np.argmin(rebuffer)
         if context_action[max_rebuffer, REBUFFER_INDEX] <= 0: #no rebuffer:
             max_rebuffer = self.num_actions
             min_rebuffer = 0

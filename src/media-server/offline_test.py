@@ -18,6 +18,7 @@ from argument_parser import parse_arguments
 from config_creator import get_config, create_setting_yaml, requires_helper_model, create_config
 import signal
 import sys
+import pathlib
 
 
 plist = []
@@ -59,11 +60,14 @@ def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
         mahimahi_chrome_cmd += "mm-loss uplink {} ".format(loss)
     mahimahi_chrome_cmd += "mm-link "
     # mahimahi_chrome_cmd += "--meter-downlink "
-    mahimahi_chrome_cmd += "/home/mike/puffer/src/media-server/12mbps "
+
+    mahimahi_chrome_cmd += f"{pathlib.Path().resolve()}/src/media-server/12mbps "
+    # mahimahi_chrome_cmd += "/home/mike/puffer/src/media-server/12mbps "
     mahimahi_chrome_cmd += "{}/{} ".format(trace_dir, filename)
     # mahimahi_chrome_cmd += "--downlink-log={} ".format('./uplink/uplink_{}.up'.format(str(f+i)))
     mahimahi_chrome_cmd += "-- sh -c 'chromium-browser disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
                         remote_port, port, port)
+    # print(mahimahi_chrome_cmd)
     return mahimahi_chrome_cmd
 
 

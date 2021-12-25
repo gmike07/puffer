@@ -2,6 +2,12 @@ import numpy as np
 from models.helper_functions import fill_default_key, fill_default_key_conf, get_config
 
 
+def fill_default(dct, key, val):
+    if key in dct:
+        return dct[key]
+    return val
+
+
 class Exp3:
     def __init__(self, num_clients, model_config):
 
@@ -12,7 +18,7 @@ class Exp3:
         self.weights = np.ones(self.num_actions)
         self.gamma = fill_default_key(model_config, 'exp3_explore_parameter', 0.1)
         self.probabilites = self.calc_probabilities()
-        self.should_load = fill_default_key(model_config, 'should_load_exp3', True)
+        self.should_load = fill_default(model_config, 'should_load_exp3', True)
         self.should_clear_weights = fill_default_key(model_config, 'should_clear_weights', False)
         self.save_name = fill_default_key(model_config, 'exp3_save_name', "exp3")
         self.save_path = f"{fill_default_key_conf(model_config, 'exp3_model_path')}{self.save_name}.npy"
@@ -26,6 +32,8 @@ class Exp3:
             self.save()
 
     def save(self):
+        if not self.should_load:
+            return
         np.save(self.save_path, self.weights)
 
     def load(self):

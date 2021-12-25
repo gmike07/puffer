@@ -25,7 +25,7 @@ class AutoEncoder(torch.nn.Module):
         layers = layers[:-1]
         self.decoder_model = torch.nn.Sequential(*layers).double().to(CONFIG['device'])
 
-        self.loss_metrics = torch.nn.MSELoss().to(device=CONFIG['device'])
+        self.loss_metric = torch.nn.MSELoss().to(device=CONFIG['device'])
         # self.loss_metrics = torch.nn.L1Loss().to(device=CONFIG['device'])
 
         self.optimizer = torch.optim.Adam(chain(self.encoder_model.parameters(), self.decoder_model.parameters()),

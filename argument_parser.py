@@ -12,10 +12,12 @@ def parse_arguments():
     parser.add_argument("--epochs", default=-1, type=int, help='number of epochs to do training \ testing')
     parser.add_argument('-mn',"--model_name", default='SLTrainer', help='Specify the model name if you want to work with a given one')
     parser.add_argument('-sp',"--scoring_path", default='', help='Specify the place to store the scoring data')
+    parser.add_argument("-d", "--default_path", default=False, action='store_true', help='A flag to specify whether you want to use the default path for all paths')
+
 
 
     args = parser.parse_args()
-    create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, args.model_name, args.scoring_path)
+    create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, args.model_name, args.scoring_path, args.default_path)
     return args
 
 if __name__ == '__main__':

@@ -25,7 +25,7 @@ class AETrainer:
     def update(self, state):
         if not self.training:
             return
-        torched_state = torch.from_numpy(state['state'].reshape(1,-1))
+        torched_state = torch.from_numpy(state['state'].reshape(1, -1))
         self.clean_data.put((torched_state, torched_state))
 
     def clear(self):
@@ -68,7 +68,7 @@ def train_ae(model, event, type_trainer='ae', f=None):
         outputs = torch.cat(outputs)
 
         predictions = model.model(inputs)
-        loss = model.model.loss_metrics(predictions, outputs)
+        loss = model.model.loss_metric(predictions, outputs)
         model.model.optimizer.zero_grad()
         loss.backward()
         model.model.optimizer.step()
@@ -79,7 +79,7 @@ def train_ae(model, event, type_trainer='ae', f=None):
         if rounds_to_save <= 0:
             print(f'saving {type_trainer}...', model.clean_data.qsize(), len(inputs), loss.item())
             if f is not None:
-                f.write(f'saving {type_trainer}... ' + str(model.clean_data.qsize()) + " " + str(len(inputs)) + " " + str(loss.item()) + "\n")
+                f.write(' '.join([f'saving {type_trainer}... ', str(model.clean_data.qsize()), str(len(inputs)), str(loss.item())]) + '\n')
                 f.flush()
 
             model.model.save()
