@@ -1,3 +1,3 @@
-exp3KmeansCustom:
-epoch: 3 / 4
-trace: 376 / 47
+SLTrainer:
+epoch: 0 / 1
+trace: 288 / 47
