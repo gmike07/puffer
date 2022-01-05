@@ -123,8 +123,10 @@ def start_maimahi_clients(clients, filedir, exit_condition):
         traces = os.listdir(trace_dir)
         traces = list(sorted(traces))
         
+        test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
+
         for epoch in range(get_config()['mahimahi_epochs']):
-            num_clients = 1 if get_config()['test'] else clients
+            num_clients = 1 if get_config()['test'] and not test_seperated else clients
             for f in range(0, len(traces), num_clients):
 
                 p1, p2 = run_offline_media_servers()
@@ -154,7 +156,7 @@ def start_maimahi_clients(clients, filedir, exit_condition):
                 with open(get_config()['logs_path'] + get_config()['train_test_log_file'], 'w') as f_log:
                     f_log.write(f"{get_config()['model_name']}:\n")
                     f_log.write(f"epoch: {epoch} / {get_config()['mahimahi_epochs']}\n")
-                    f_log.write(f"trace: {f} / {len(traces) // num_clients}")
+                    f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
                 if exit_condition(setting):
                     break
     except Exception as e:
@@ -199,6 +201,7 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     df = df[df['bbr'] < 17]
     if to_print and is_max:
         print(df)
+        print(df.describe())
     return df
 
 
@@ -221,6 +224,7 @@ def prepare_env(args=None):
         if args is not None:
             create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path)
             get_config()['models'] = [model[0] for model in args.models]
+            # get_config()['models'] = ['constant_0', 'constant_1', 'constant_2', 'exp3KmeansCustom', 'random', 'idModel']
         eval_scores()
         exit()
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
@@ -255,6 +259,36 @@ def test_simulation():
     run_simulation('stackingModel', True, models=get_config()['models'])
     send_done_to_server()
     eval_scores()
+
+
+def eval_scores_model(models, filedir, threshold=17):
+    files = os.listdir(get_config()['scoring_path'])
+    dct = {}
+    abr = get_config()['abr']
+    for model in models:
+        model_files = list(filter(lambda x: x.find(f'abr_{abr}_') and x.find(model) != -1 and x.find('.txt') != -1, files))
+        for file in model_files:
+            print(file)
+            lines = open(filedir + '/' + file, 'r').readlines()
+            if len(lines) < 100:
+                continue
+            if model not in dct:
+                dct[model] = []
+            qoe = np.array([float(x) for x in lines]).mean()
+            if qoe <  threshold:
+                dct[model].append(qoe)
+    
+    dct = {key: np.mean(dct[key]) for key in dct}
+    print(dct)
+
+
+def test_simulation_model(models):
+    get_config()['test_seperated'] = True
+    for model in models:
+        get_config()['models'] = [model] * get_config()['num_clients']
+        run_simulation('stackingModel', True, models=[model] * get_config()['num_clients'])
+        send_done_to_server()
+    eval_scores_model(models, get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1])
 
 
 if __name__ == '__main__':

@@ -62,8 +62,14 @@ class SLModel(NN_Model):
             self.loss_metric = self.loss_metrics
        print(f'created SL model with scoring {self.scoring_type}')
 
+    def to_torch(self, x):
+        if isinstance(x, np.ndarray):
+            return torch.from_numpy(x)
+        return x
+    
     def get_bin_rebuffer(self, x):
         with torch.no_grad():
+            x = self.to_torch(x)
             y_predicted = torch.max(x, 1)[1].to(device=get_config()['device'])
             ret = y_predicted.double().numpy()
             for i in range(len(ret)):
@@ -80,11 +86,11 @@ class SLModel(NN_Model):
             if self.scoring_type == 'rebuffer':
                 return -x[:, 0]
             if self.scoring_type == 'bin_rebuffer':
-                return self.get_bin_rebuffer(x)
+                return self.to_torch(self.get_bin_rebuffer(x))
             if self.output_size in ['ssim', 'bit_rate']:
                 return x[:, QOE_SSIM_INDEX] - self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * (torch.exp(x[:, REBUFFER_INDEX] / 3) - 1)
             if self.scoring_type in ['ssim_bin_rebuffer', 'bit_rate_bin_rebuffer']:
-                return x[:, QOE_SSIM_INDEX] - self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * self.get_bin_rebuffer(x[:, REBUFFER_INDEX:])
+                return x[:, QOE_SSIM_INDEX] - self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * self.to_torch(self.get_bin_rebuffer(x[:, REBUFFER_INDEX:]))
 
     def predict(self, sent_state):
         best_action = -1

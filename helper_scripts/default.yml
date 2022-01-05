@@ -21,7 +21,7 @@ influxdb_connection:
 enforce_moving_live_edge: false
 media_dir: /home/mike/puffer/media-181230 # change to your own media dir
 channels:
-  - cbs
+  - nbc
 channel_configs:
   abc:
     live: true

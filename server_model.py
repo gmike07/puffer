@@ -100,7 +100,7 @@ def get_server_model(models_lst):
             helper_logger[0].flush()
             print(f"switching to model {parsed_data['model_name']} and load: {parsed_data['load']}")
             finished_server_ids[0] = set()
-            if model_name[0] == parsed_data['model_name']:
+            if model_name[0] == parsed_data['model_name'] and parsed_data['model_name'] != 'stackingModel':
                 if requires_helper_model(model_name[0]):
                     with redirect_stdout(helper_logger[0]):
                         models_lst[0].update_helper_model(create_model(get_config()['num_clients'], parsed_data['helper_model']))

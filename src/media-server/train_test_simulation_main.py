@@ -8,7 +8,7 @@ parentdir = os.path.dirname(currentdir)
 grandparentdir = os.path.dirname(parentdir)
 sys.path.append(grandparentdir)
 from config_creator import create_config, create_dir, get_config
-from offline_test import clear_and_kill_all, prepare_env, train_simulation, test_simulation, eval_scores
+from offline_test import clear_and_kill_all, prepare_env, train_simulation, test_simulation, eval_scores, test_simulation_model, eval_scores_model
 import time
 
 
@@ -29,7 +29,9 @@ def parse_arguments():
     parser.add_argument('-yid', "--yaml_input_dir", default='./helper_scripts/', help='Specify the directory of the yaml setting files')
     parser.add_argument("--abr", default='', help='Specify the abr if you want to work with a given one')
     parser.add_argument("-t", "--test", default=False, action='store_true', help='A flag to indicate that it is testing and not training')
+    parser.add_argument("-ts", "--test_seperated", default=False, action='store_true', help='A flag to indicate that it is testing and not training')
     parser.add_argument("-v", "--eval", default=False, action='store_true', help='A flag to specify whether you want to show the results in of simulating')
+    parser.add_argument("-vs", "--eval_seperated", default=False, action='store_true', help='A flag to specify whether you want to show the results in of simulating')
     parser.add_argument("--epochs", default=-1, type=int, help='number of epochs to do training \ testing')
     parser.add_argument('-sp',"--scoring_path", default='', help='Specify the place to store the scoring data')
     parser.add_argument("-d", "--default_path", default=False, action='store_true', help='A flag to specify whether you want to use the default path for all paths')
@@ -44,7 +46,7 @@ def parse_arguments():
     args.models = new_models
     model_folder = '_'.join(sorted([model[0] for model in args.models]))
     args.clients = len(args.models) if args.clients == -1 else args.clients
-    create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, '', args.scoring_path, args.default_path)
+    create_config(args.yaml_input_dir, args.abr, args.clients, args.test or args.test_seperated, args.eval, args.epochs, '', args.scoring_path, args.default_path)
     args.scoring_path = get_config()['scoring_path'] + model_folder + '/'
     if args.test:
         create_dir(args.scoring_path)
@@ -54,9 +56,9 @@ def parse_arguments():
 
 def start_server(args):
     server_command = 'python3 server_model.py'
-    if args.test:
+    if args.test or args.test_seperated:
         server_command += ' -t'
-    if args.scoring_path and args.test:
+    if args.scoring_path and (args.test or args.test_seperated):
         server_command += f' -sp {args.scoring_path}'
     if args.clients != -1:
         server_command += f' --clients {args.clients}'
@@ -73,6 +75,21 @@ done"""
     return subprocess.Popen(kill_command, shell=True, preexec_fn=os.setsid)
 
 
+def eval(args):
+    if args.eval:
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
+        get_config()['models'] = [model[0] for model in args.models]
+        eval_scores()
+        return True
+    elif args.eval_seperated:
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
+        get_config()['models'] = [model[0] for model in args.models]
+        eval_scores_model(get_config()['models'], get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1])
+        return True
+    return False
+
+
+
 def main_train_test():
     global g_pserver
     args = parse_arguments()
@@ -80,16 +97,18 @@ def main_train_test():
     pid = kill_previous_server()
     time.sleep(10)
     pid.terminate()
+    if eval(args):
+        signal_handler(0, 0)
     start_server(args)
     time.sleep(DEFAULT_SLEEP_TIME)
-    if args.eval:
-        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
-        get_config()['models'] = [model[0] for model in args.models]
-        eval_scores()
     if args.test:
         create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
         get_config()['models'] = [model[0] for model in args.models]
         test_simulation()
+    elif args.test_seperated:
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test_seperated, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
+        get_config()['models'] = [model[0] for model in args.models]
+        test_simulation_model(get_config()['models'])
     else:
         for (model_name, epochs) in args.models:
             create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, epochs, model_name, args.scoring_path, args.default_path)

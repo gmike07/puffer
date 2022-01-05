@@ -75,7 +75,7 @@ fingerprint:
     # scoring_mu: 4.3
     # scoring_lambda: 1.0
     scoring_function_type: "ssim" # the scoring method
-    buffer_length_coef: 100.0
+    buffer_length_coef: 50.0
     quality_change_qoef: 1.0
 
     #state params
@@ -153,8 +153,8 @@ simulation_constants:
   trace_dir: './traces/final_traces/' # the folder that holds the final traces
   yml_output_dir: './src/' # the folder to contain the final settings.yml for the simulation
 
-  delay: -1.0 # default delay for the simulation, -1.0 means not to use this value
-  loss: -1.0 # default delay for the simulation, -1.0 means not to use this value
+  delay: 40.0 # -1.0 # default delay for the simulation, -1.0 means not to use this value
+  loss: 0.0 # -1.0 # default delay for the simulation, -1.0 means not to use this value
 
   mahimahi_epochs: 1 # how many iterations over the trace dir
 

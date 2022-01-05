@@ -1,9 +1,7 @@
-
 import os
 import shutil
 import numpy as np
 import argparse
-import random
 
 
 FILE_SIZE = 2000
@@ -57,7 +55,7 @@ def main():
         "-c",
         "--count",
         type=int,
-        default=7500,
+        default=500,
         help='num of traces'
     )
 
@@ -66,17 +64,19 @@ def main():
     if os.path.exists(args.output):
         shutil.rmtree(args.output)
     os.mkdir(args.output)
-    
-    files = os.listdir(args.cooked)
-    random.shuffle(files)
+
+    files = sorted(os.listdir(args.cooked))
 
     i = 0
     for trace_file in files:
-        if i > args.count:
-            return
+        if i >= args.count:
+            break
 
-        if os.stat(args.cooked + trace_file).st_size >= FILE_SIZE:
-            convert_file(args.cooked + trace_file, args.output + str(i))
+        if os.stat(args.cooked + trace_file).st_size >= FILE_SIZE or True:
+            input = args.cooked + trace_file
+            output = args.output + trace_file
+            convert_file(input, output)
+
             i += 1
             print(str(i) + '/' + str(min(args.count, len(files))))
 
