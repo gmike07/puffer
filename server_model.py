@@ -3,6 +3,8 @@ import numpy as np
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread, Event
 import sys
+from models.exp3 import train_exp3
+from models.exp3_kmeans import train_kmeans
 from models.model_creator import create_model
 from models.ae_trainer import train_ae
 from models.rl_trainer import train_rl
@@ -31,6 +33,10 @@ def get_lambda_trainer(model, model_name, event, f=None):
         return lambda: train_ae(model, event, f)
     if model_name in ['rl', 'srl']:
         return lambda: train_rl(model, event)
+    if model_name in ['contextlessExp3Kmeans', 'exp3Kmeans', 'exp3KmeansAutoEncoder', 'exp3KmeansCustom']:
+        return lambda: train_kmeans(model, event, f)
+    if model_name in ['resettingExp3', 'exp3']:
+        return lambda: train_exp3(model, event, f)
 
 
 def get_server_model(models_lst):   

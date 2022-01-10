@@ -6,7 +6,7 @@ import pathlib
 
 
 CONFIG = {}
-
+BATCH_SIZE = -1
 
 def is_boggart_model(model_name):
     return model_name in ['BoggartClusterTrainer']
@@ -15,7 +15,7 @@ def requires_helper_model(model_name):
     return model_name in ['SLTrainer', 'AETrainer', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer']
 
 def is_threaded_model(model_name):
-    return model_name in ['rl', 'srl'] or requires_helper_model(model_name)
+    return model_name in ['rl', 'srl', 'contextlessExp3Kmeans', 'exp3Kmeans', 'exp3KmeansAutoEncoder', 'exp3KmeansCustom'] or requires_helper_model(model_name)
 
 
 def create_dir(path):
@@ -124,6 +124,7 @@ def update_key_not_empty(key, val):
         CONFIG[key] = val
 
 def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, epochs=-1, model_name='', scoring_path='', use_default=True):
+    global BATCH_SIZE
     CONFIG.clear()
     with open(yaml_input_path + 'settings.yml', 'r') as f:
         yaml_dct = yaml.safe_load(f)
@@ -151,6 +152,7 @@ def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=Fals
 
         if use_default:
             CONFIG['default_path'] = pathlib.Path().resolve()
+        BATCH_SIZE = CONFIG['batch_size']
         
 
 

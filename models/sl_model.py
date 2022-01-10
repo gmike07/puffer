@@ -43,18 +43,18 @@ class SLModel(NN_Model):
        self.buffer_coef, self.change_coef = self.CONFIG['buffer_length_coef'], self.CONFIG['quality_change_qoef']
        self.output_size = get_output_dim(model_config)
        self.actions = create_actions()
-       self.model_name = fill_default_key(model_config, 'sl_model_name', f"sl_weights_abr_{get_config()['abr']}_{self.scoring_type}.pt")
+       self.model_name = fill_default_key(model_config, 'sl_model_name', f"sl_weights_abr_{get_config()['abr']}_{self.scoring_type}_scoring_{get_config()['buffer_length_coef']}.pt")
        self.model_config = model_config
 
        self.bin_size = fill_default_key_conf(model_config, 'sl_bin_size')
        self.max_bins = fill_default_key_conf(model_config, 'sl_max_bin')
        if self.scoring_type == 'bin_rebuffer':
-            self.model_name = fill_default_key(model_config, 'sl_model_name', f"sl_weights_abr_{get_config()['abr']}_{self.scoring_type}_{self.bin_size}_{self.max_bins}.pt")
+            self.model_name = fill_default_key(model_config, 'sl_model_name', f"sl_weights_abr_{get_config()['abr']}_{self.scoring_type}_{self.bin_size}_{self.max_bins}_scoring_{get_config()['buffer_length_coef']}.pt")
             self.entropy = torch.nn.CrossEntropyLoss().to(device=get_config()['device'])
             self.loss_metric = self.entropy_loss
     
        elif self.scoring_type in ['ssim_bin_rebuffer', 'bit_rate_bin_rebuffer']:
-            self.model_name = fill_default_key(model_config, 'sl_model_name', f"sl_weights_abr_{get_config()['abr']}_{self.scoring_type}_{self.bin_size}_{self.max_bins}.pt")
+            self.model_name = fill_default_key(model_config, 'sl_model_name', f"sl_weights_abr_{get_config()['abr']}_{self.scoring_type}_{self.bin_size}_{self.max_bins}_scoring_{get_config()['buffer_length_coef']}.pt")
             self.entropy = torch.nn.CrossEntropyLoss().to(device=get_config()['device'])
             self.norm_loss = torch.nn.MSELoss().to(device=get_config()['device'])
             self.loss_metric = self.ssim_entropy_loss

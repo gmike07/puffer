@@ -21,7 +21,8 @@ class SRLModel(torch.nn.Module):
         self.context_model = ContextModel(model_config)
         self.context_model.load()
         self.context_model.eval()
-        self.model_name = fill_default_key(model_config, 'srl_model_name', f"srl_{self.context_model.context_type}_weights_abr_{get_config()['abr']}.pt")
+        self.model_name = fill_default_key(model_config, 'srl_model_name', 
+                    f"srl_{self.context_model.context_type}_weights_abr_{get_config()['abr']}_scoring_{get_config()['buffer_length_coef']}.pt")
         self.config = model_config
         self.model = NN_Model(model_config, self.context_model.output_size, len(get_config()['ccs']), sizes=[])
         self.optimizer = self.model.optimizer

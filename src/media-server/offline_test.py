@@ -261,7 +261,7 @@ def test_simulation():
     eval_scores()
 
 
-def eval_scores_model(models, filedir, threshold=17):
+def eval_scores_model(models, filedir, threshold=np.inf):
     files = os.listdir(get_config()['scoring_path'])
     dct = {}
     abr = get_config()['abr']
@@ -273,13 +273,15 @@ def eval_scores_model(models, filedir, threshold=17):
             if len(lines) < 100:
                 continue
             if model not in dct:
-                dct[model] = []
+                dct[model] = [[] for _ in range(len(get_config()['settings']))]
             qoe = np.array([float(x) for x in lines]).mean()
+            setting = find_index(file)
             if qoe <  threshold:
-                dct[model].append(qoe)
-    
-    dct = {key: np.mean(dct[key]) for key in dct}
-    print(dct)
+                dct[model][setting % len(get_config()['settings'])].append(qoe)
+    dct = {key: np.array([np.mean(dct[key][setting]) for setting in range(len(get_config()['settings']))]) for key in dct}
+    dct['delay'] = np.array([delay for (delay, loss) in get_config()['settings']])[np.arange(len(get_config()['settings']))]
+    dct['loss'] = np.array([loss for (delay, loss) in get_config()['settings']])[np.arange(len(get_config()['settings']))]
+    print(pd.DataFrame(dct))
 
 
 def test_simulation_model(models):

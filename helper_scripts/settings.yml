@@ -75,7 +75,7 @@ fingerprint:
     # buffer_length_coef: 100.0
     # quality_change_qoef: 1.0
     scoring_function_type: "ssim" # the scoring method
-    buffer_length_coef: 100.0
+    buffer_length_coef: 50.0
     quality_change_qoef: 1.0
 
     #state params

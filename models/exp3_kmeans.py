@@ -4,13 +4,14 @@ from models.helper_functions import get_updated_config_model, fill_default_key, 
 from models.exp3 import Exp3
 from models.helper_functions import get_config
 import numpy as np
+import time
 
 class Exp3Kmeans:
     def __init__(self, num_clients, model_config):
         self.cluster_model = ClusterModel(model_config)
         self.cluster_model.load()
         exp3_config = get_updated_config_model('exp3', model_config)
-        save_name = fill_default_key(model_config, 'save_name', f"exp3_{self.cluster_model.cluster_name[len('clusters_'):]}")
+        save_name = fill_default_key(model_config, 'save_name', f"exp3_{self.cluster_model.cluster_name[len('clusters_'):]}_scoring_{get_config()['buffer_length_coef']}")
         self.exp3_contexts = [Exp3(num_clients, exp3_config) for _ in range(self.cluster_model.num_clusters)]
         for i in range(self.cluster_model.num_clusters):
             path = fill_default_key_conf(model_config, 'exp3_model_path')
@@ -47,3 +48,11 @@ class Exp3Kmeans:
 
     def done(self):
         self.save()
+
+
+def train_kmeans(model, event, f=None):
+    while not event.is_set():
+        if all(exp3.to_update_probability.qsize() == 0 for exp3 in model.exp3_contexts):
+            time.sleep(1)
+        for exp3 in model.exp3_contexts:
+            exp3.update_weights()
