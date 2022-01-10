@@ -279,9 +279,14 @@ def eval_scores_model(models, filedir, threshold=np.inf):
             if qoe <  threshold:
                 dct[model][setting % len(get_config()['settings'])].append(qoe)
     dct = {key: np.array([np.mean(dct[key][setting]) for setting in range(len(get_config()['settings']))]) for key in dct}
-    dct['delay'] = np.array([delay for (delay, loss) in get_config()['settings']])[np.arange(len(get_config()['settings']))]
-    dct['loss'] = np.array([loss for (delay, loss) in get_config()['settings']])[np.arange(len(get_config()['settings']))]
-    print(pd.DataFrame(dct))
+    final_dct = {}
+    final_dct['delay'] = np.array([delay for (delay, loss) in get_config()['settings']])[np.arange(len(get_config()['settings']))]
+    final_dct['loss'] = np.array([loss for (delay, loss) in get_config()['settings']])[np.arange(len(get_config()['settings']))]
+    final_dct.update(dct)
+    conversion = {'constant_0': 'bbr', 'constant_1': 'vegas', 'constant_2': 'cubic', 'exp3KmeansCustom': 'exp3CustomContext'}
+    f = lambda x: x if x not in conversion else conversion[x]
+    final_dct = {f(key): final_dct[key] for key in final_dct}
+    print(pd.DataFrame(final_dct))
 
 
 def test_simulation_model(models):

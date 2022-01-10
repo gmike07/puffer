@@ -44,7 +44,7 @@ def parse_arguments():
         else:
             new_models.append((data, args.epochs))
     args.models = new_models
-    model_folder = '_'.join(sorted([model[0] for model in args.models])) # + f"_scoring_{get_config()['buffer_length_coef']}"
+    model_folder = '_'.join(sorted([model[0] for model in args.models])) + f"_scoring_{get_config()['buffer_length_coef']}"
     args.clients = len(args.models) if args.clients == -1 else args.clients
     create_config(args.yaml_input_dir, args.abr, args.clients, args.test or args.test_seperated, args.eval, args.epochs, '', args.scoring_path, args.default_path)
     args.scoring_path = get_config()['scoring_path'] + model_folder + '/'
