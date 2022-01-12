@@ -19,6 +19,7 @@ from config_creator import get_config, create_setting_yaml, requires_helper_mode
 import signal
 import sys
 import pathlib
+import random
 
 
 plist = []
@@ -115,13 +116,14 @@ def kill_all_proccesses():
     kill_proccesses(plist, 0)
 
 
-def start_maimahi_clients(clients, filedir, exit_condition):
+def start_maimahi_clients(clients, filedir, exit_condition, random_setting=False):
     global plist
     plist = []
     try:
         trace_dir = get_config()['trace_dir'] + 'test/' if get_config()['test'] else get_config()['trace_dir'] + 'train/'
         traces = os.listdir(trace_dir)
         traces = list(sorted(traces))
+
         
         test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
 
@@ -132,7 +134,10 @@ def start_maimahi_clients(clients, filedir, exit_condition):
                 p1, p2 = run_offline_media_servers()
                 plist = [p1, p2]
                 sleep_time = 3
-                setting = (epoch * int(len(traces) / num_clients)) + int(f / num_clients)
+                if random_setting or epoch != 0:
+                    setting = random.randint(0, len(get_config()['settings']))
+                else:
+                    setting = (epoch * int(len(traces) / num_clients)) + int(f / num_clients)
                 delay, loss = get_delay_loss(setting)
 
 
@@ -159,6 +164,56 @@ def start_maimahi_clients(clients, filedir, exit_condition):
                     f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
                 if exit_condition(setting):
                     break
+    except Exception as e:
+        print("exception: " + str(e))
+    finally:
+        kill_proccesses(plist)
+        subprocess.check_call("rm -rf ./*.profile", shell=True,
+            executable='/bin/bash')
+
+
+def start_maimahi_clients_all_cases(clients, filedir, exit_condition):
+    global plist
+    plist = []
+    try:
+        trace_dir = get_config()['trace_dir'] + 'test/' if get_config()['test'] else get_config()['trace_dir'] + 'train/'
+        traces = os.listdir(trace_dir)
+        traces = list(sorted(traces, key=lambda x: len(open(x, 'r').readlines()))) # get those with the lowest throughput
+        traces = traces[:len(traces)//len(get_config()['settings'])]
+        test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
+
+
+        for epoch in range(get_config()['mahimahi_epochs']):
+            num_clients = 1 if get_config()['test'] and not test_seperated else clients
+            for f in range(0, len(traces), num_clients):
+                for setting in range(len(get_config()['settings'])):
+                    p1, p2 = run_offline_media_servers()
+                    plist = [p1, p2]
+                    sleep_time = 3
+                    delay, loss = get_delay_loss(setting)
+                    for i in range(1, clients + 1):
+                        index = f if get_config()['test'] else f + i - 1
+                        time.sleep(sleep_time)
+                        mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index % len(traces)], i, delay, loss)
+                        p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
+                                            preexec_fn=os.setsid)
+                        plist.append(p)
+
+                    time.sleep(60*10) # - sleep_time * clients
+
+                    kill_proccesses(plist[2:], sleep_time)
+                    kill_proccesses(plist[:2])
+                    
+                    # create_failed_files(filedir, setting)
+                    send_clear_to_server()
+                    subprocess.check_call("rm -rf ./*.profile", shell=True,
+                                        executable='/bin/bash')
+                    with open(get_config()['logs_path'] + get_config()['train_test_log_file'], 'w') as f_log:
+                        f_log.write(f"{get_config()['model_name']}:\n")
+                        f_log.write(f"epoch: {epoch} / {get_config()['mahimahi_epochs']}\n")
+                        f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
+                    if exit_condition(setting):
+                        break
     except Exception as e:
         print("exception: " + str(e))
     finally:
@@ -232,12 +287,15 @@ def prepare_env(args=None):
                                       executable='/bin/bash')
 
 
-def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', models=None):
+def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', models=None, random_setting=False, all_cases=False):
     create_setting_yaml(test=get_config()['test'])
     send_clear_to_server()
     send_switch_to_server(model_name, should_load, helper_model, models)
     scoring_dir = get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1]
-    start_maimahi_clients(get_config()['num_clients'], scoring_dir, f)
+    if all_cases:
+        start_maimahi_clients_all_cases(get_config()['num_clients'], scoring_dir, f)
+    else:
+        start_maimahi_clients(get_config()['num_clients'], scoring_dir, f, random_setting)
     print('finished part simulation!')
 
 
@@ -249,14 +307,14 @@ def train_simulation(model_name):
     epochs = get_config()['mahimahi_epochs']
     get_config()['mahimahi_epochs'] = 1
     for epoch in range(epochs):
-        run_simulation(model_name, bool(epoch != 0), helper_model='random')
+        run_simulation(model_name, bool(epoch != 0), helper_model='random', random_setting=(epoch != 0))
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
-        run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
+        run_simulation(model_name, True, f=exit_condition, helper_model='idModel', random_setting=(epoch != 0))
     get_config()['mahimahi_epochs'] = epochs
     send_done_to_server()
 
 def test_simulation():
-    run_simulation('stackingModel', True, models=get_config()['models'])
+    run_simulation('stackingModel', True, models=get_config()['models'], random_setting=True, all_cases=True)
     send_done_to_server()
     eval_scores()
 
