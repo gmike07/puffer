@@ -1,4 +1,5 @@
 from config_creator import get_config as helper_get_config
+from config_creator import get_batch_size as helper_get_batch_size
 import copy
 import torch
 import numpy as np
@@ -37,3 +38,6 @@ def merge_state_actions(state, action):
 
 def get_config():
     return helper_get_config()
+
+def get_batch_size():
+    return helper_get_batch_size()

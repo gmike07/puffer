@@ -1,5 +1,5 @@
 from queue import Queue
-from models.helper_functions import fill_default_key_conf, get_updated_config_model, get_config
+from models.helper_functions import fill_default_key_conf, get_updated_config_model, get_config, get_batch_size
 from models.ae_model import AutoEncoder
 import torch
 import time
@@ -51,7 +51,7 @@ def train_ae(model, event, type_trainer='ae', f=None):
     CONFIG = get_config()
     rounds_to_save = model.rounds_to_sleep
     gradients = 0
-    CONFIG['batch_size'] = 16
+    CONFIG['batch_size'] = get_batch_size()
     while not event.is_set():
         if model.clean_data.qsize() < CONFIG['batch_size'] / 2:
             time.sleep(model.sleep_time)

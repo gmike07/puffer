@@ -75,7 +75,7 @@ fingerprint:
     # buffer_length_coef: 100.0
     # quality_change_qoef: 1.0
     scoring_function_type: "ssim" # the scoring method
-    buffer_length_coef: 50.0
+    buffer_length_coef: 100.0
     quality_change_qoef: 1.0
 
     #state params
@@ -169,7 +169,7 @@ simulation_constants:
 nn_model:
   epochs: 5
   model_network_sizes: [500, 200, 100, 80, 50, 40, 30, 20]
-  batch_size: 16
+  batch_size: 32
   lr: 1e-4
   betas: (0.5, 0.999)
   version: 1.0

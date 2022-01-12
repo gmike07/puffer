@@ -158,3 +158,6 @@ def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=Fals
 
 def get_config():
     return CONFIG
+
+def get_batch_size():
+    return BATCH_SIZE
