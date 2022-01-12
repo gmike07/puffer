@@ -21,10 +21,10 @@ def main(traces_dir, output_dir):
     if not os.path.exists(test_dir):
         os.mkdir(test_dir)
 
-    for f in files[:-120]:
+    for f in files[:int(0.8*len(files))]:
         copy2(f, train_dir)
 
-    for f in files[-120:]:
+    for f in files[int(0.8*len(files)):]:
         copy2(f, test_dir)
 
 
