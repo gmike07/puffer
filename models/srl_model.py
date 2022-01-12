@@ -32,5 +32,5 @@ class SRLModel(torch.nn.Module):
 
     def forward(self, x):
         x = self.model(torch.from_numpy(self.context_model.generate_context(x)).double())
-        x /= torch.sum(x, dim=1)
+        # x /= torch.sum(x, dim=1)
         return F.softmax(x, dim=1)

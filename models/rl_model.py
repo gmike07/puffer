@@ -22,5 +22,5 @@ class RLModel(NN_Model):
 
     def forward(self, x):
         x = self.model(x)
-        x /= torch.sum(x, dim=1)
+        # x /= torch.sum(x, dim=1)
         return F.softmax(x, dim=1)

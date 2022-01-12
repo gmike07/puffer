@@ -1,1 +1,1 @@
-Num of calculated gradients: 8541.
+Num of calculated gradients: 138.

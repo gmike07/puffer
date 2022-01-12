@@ -48,11 +48,3 @@ class Exp3Kmeans:
 
     def done(self):
         self.save()
-
-
-def train_kmeans(model, event, f=None):
-    while not event.is_set():
-        if all(exp3.to_update_probability.qsize() == 0 for exp3 in model.exp3_contexts):
-            time.sleep(1)
-        for exp3 in model.exp3_contexts:
-            exp3.update_weights()

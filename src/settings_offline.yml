@@ -155,7 +155,6 @@ experiments:
       scoring_function_type: ssim
       server_id: 0
       server_path: http://localhost:5675
-      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -177,7 +176,6 @@ experiments:
       scoring_function_type: ssim
       server_id: 1
       server_path: http://localhost:5675
-      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -199,7 +197,6 @@ experiments:
       scoring_function_type: ssim
       server_id: 2
       server_path: http://localhost:5675
-      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -221,95 +218,6 @@ experiments:
       scoring_function_type: ssim
       server_id: 3
       server_path: http://localhost:5675
-      start_stateless: true
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: bbr
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      history_size: 8
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-      server_id: 4
-      server_path: http://localhost:5675
-      start_stateless: true
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: bbr
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      history_size: 8
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-      server_id: 5
-      server_path: http://localhost:5675
-      start_stateless: true
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: bbr
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      history_size: 8
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-      server_id: 6
-      server_path: http://localhost:5675
-      start_stateless: true
-    ccs:
-    - bbr
-    - vegas
-    - cubic
-  num_servers: 1
-- fingerprint:
-    abr: linear_bba
-    abr_config:
-      upper_reservoir: 0.9
-    cc: bbr
-    cc_config:
-      abr_time: true
-      buffer_length_coef: 100.0
-      history_size: 8
-      nn_roundup: 500
-      quality_change_qoef: 1.0
-      random_cc: false
-      random_sample_size: 100
-      scoring_function_type: ssim
-      server_id: 7
-      server_path: http://localhost:5675
-      start_stateless: true
     ccs:
     - bbr
     - vegas
@@ -321,8 +229,8 @@ influxdb_connection:
   password: INFLUXDB_PASSWORD
   port: 8086
   user: puffer1
-log_dir: /home/ubuntu/puffer/src/monitoring
-media_dir: /home/ubuntu/puffer/media-181230
+log_dir: /home/mike/puffer/src/monitoring
+media_dir: /home/mike/puffer/media-181230
 portal_settings:
   allowed_hosts:
   - '*'

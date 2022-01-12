@@ -15,7 +15,7 @@ def requires_helper_model(model_name):
     return model_name in ['SLTrainer', 'AETrainer', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer']
 
 def is_threaded_model(model_name):
-    return model_name in ['rl', 'srl', 'contextlessExp3Kmeans', 'exp3Kmeans', 'exp3KmeansAutoEncoder', 'exp3KmeansCustom'] or requires_helper_model(model_name)
+    return model_name in ['rl', 'srl'] or requires_helper_model(model_name)
 
 
 def create_dir(path):
