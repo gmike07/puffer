@@ -178,7 +178,7 @@ def start_maimahi_clients_all_cases(clients, filedir, exit_condition):
     try:
         trace_dir = get_config()['trace_dir'] + 'test/' if get_config()['test'] else get_config()['trace_dir'] + 'train/'
         traces = os.listdir(trace_dir)
-        traces = list(sorted(traces, key=lambda x: len(open(x, 'r').readlines()))) # get those with the lowest throughput
+        traces = list(sorted(sorted(traces), key=lambda x: len(open(x, 'r').readlines()))) # get those with the lowest throughput
         traces = traces[:len(traces)//len(get_config()['settings'])]
         test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
 
@@ -314,7 +314,7 @@ def train_simulation(model_name):
     send_done_to_server()
 
 def test_simulation():
-    run_simulation('stackingModel', True, models=get_config()['models'], random_setting=True, all_cases=True)
+    run_simulation('stackingModel', True, models=get_config()['models'], all_cases=True)
     send_done_to_server()
     eval_scores()
 
@@ -351,7 +351,7 @@ def test_simulation_model(models):
     get_config()['test_seperated'] = True
     for model in models:
         get_config()['models'] = [model] * get_config()['num_clients']
-        run_simulation('stackingModel', True, models=[model] * get_config()['num_clients'])
+        run_simulation('stackingModel', True, models=[model] * get_config()['num_clients'], all_cases=True)
         send_done_to_server()
     eval_scores_model(models, get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1])
 
