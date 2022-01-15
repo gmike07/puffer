@@ -130,6 +130,8 @@ tags
 *.out
 *.app
 traces/final_traces/
+traces/cooked/
+traces/mahimahi/
 *.pt
 data-raw-2016-jan.tar.gz
 libpqxx/

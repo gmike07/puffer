@@ -24,6 +24,9 @@ import random
 
 plist = []
 
+def get_trace_path(trace_dir, file):
+    return os.path.join(pathlib.Path().resolve(), trace_dir, file)
+
 def get_delay_loss(index):
     delay, loss = get_config()['settings'][index % len(get_config()['settings'])]
     if get_config()['loss'] != -1.0:
@@ -64,9 +67,9 @@ def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
 
     mahimahi_chrome_cmd += f"{pathlib.Path().resolve()}/src/media-server/12mbps "
     # mahimahi_chrome_cmd += "/home/mike/puffer/src/media-server/12mbps "
-    mahimahi_chrome_cmd += "{}/{} ".format(trace_dir, filename)
+    mahimahi_chrome_cmd += get_trace_path(trace_dir, filename) + " "
     # mahimahi_chrome_cmd += "--downlink-log={} ".format('./uplink/uplink_{}.up'.format(str(f+i)))
-    mahimahi_chrome_cmd += "-- sh -c 'chromium-browser disable-infobars --disable-gpu --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
+    mahimahi_chrome_cmd += "-- sh -c 'chromium-browser disable-infobars --disable-gpu --disable-software-rasterizer --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
                         remote_port, port, port)
     # print(mahimahi_chrome_cmd)
     return mahimahi_chrome_cmd
@@ -178,7 +181,7 @@ def start_maimahi_clients_all_cases(clients, filedir, exit_condition):
     try:
         trace_dir = get_config()['trace_dir'] + 'test/' if get_config()['test'] else get_config()['trace_dir'] + 'train/'
         traces = os.listdir(trace_dir)
-        traces = list(sorted(sorted(traces), key=lambda x: len(open(x, 'r').readlines()))) # get those with the lowest throughput
+        traces = list(sorted(sorted(traces), key=lambda x: len(open(get_trace_path(trace_dir, x), 'r').readlines()))) # get those with the lowest throughput
         traces = traces[:len(traces)//len(get_config()['settings'])]
         test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
 

@@ -105,8 +105,7 @@ def create_all_models_config(models_config_dct):
 def update_clients(num_clients, simulation_constants, test, scoring_path):
     if test:
         create_dir(scoring_path[:scoring_path.rfind('/')])
-        CONFIG['num_clients'] = len(CONFIG['models'])
-    elif num_clients == -1:
+    if num_clients == -1:
         CONFIG['num_clients'] = simulation_constants['clients']
     else:
         CONFIG['num_clients'] = num_clients
