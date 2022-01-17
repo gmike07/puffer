@@ -67,7 +67,7 @@ def main(traces_file):
     traces = []
 
     line_counter = 0
-    with open(traces_file, 'rb') as f:
+    with open(traces_file, 'r') as f:
         for line in f:
             parse = line.split(',')
             uid = parse[0]
@@ -89,7 +89,7 @@ def main(traces_file):
                 break
     
     c = 0
-    bw_keys = bw_measurements.keys()
+    bw_keys = list(bw_measurements.keys())
     random.shuffle(bw_keys)
     for k in bw_keys:
         if c > 500:
@@ -118,7 +118,7 @@ def main(traces_file):
             os.mkdir(OUTPUT_PATH)
 
         out_file = OUTPUT_PATH + out_file
-        with open(out_file, 'wb') as f:
+        with open(out_file, 'w') as f:
             for i in bw_measurements[k]:
                 f.write(str(i) + '\n')
 
