@@ -46,7 +46,7 @@ def main():
         file_path = MID_PATH +  f
         output_path = OUTPUT_PATH + f
 
-        print file_path
+        print(file_path)
 
         with open(file_path, 'r') as f, open(output_path, 'w') as mf:
             time_ms = []
