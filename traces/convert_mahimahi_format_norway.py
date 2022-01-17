@@ -1,5 +1,4 @@
 from calendar import c
-from decimal import MIN_EMIN
 import os
 import numpy as np
 import shutil
@@ -29,8 +28,8 @@ def create_mid_files():
             output_path = MID_PATH + f
             if not f.endswith('.log'):
                 continue
-            with open(file_path, 'r') as f1, open(output_path, 'w') as mf:
-                f1.write(mf.read())
+            with open(file_path, 'rb') as f1, open(output_path, 'wb') as mf:
+                mf.write(f1.read())
 
 
 
@@ -48,7 +47,7 @@ def main():
 
         print(file_path)
 
-        with open(file_path, 'r') as f, open(output_path, 'w') as mf:
+        with open(file_path, 'rb') as f, open(output_path, 'w') as mf:
             time_ms = []
             bytes_recv = []
             recv_time = []
@@ -68,7 +67,7 @@ def main():
             millisec_time = 0
             mf.write(str(millisec_time) + '\n')
 
-            for i in range(len(throughput_all)):
+            for i in xrange(len(throughput_all)):
 
                 throughput = throughput_all[i]
                 
@@ -83,7 +82,7 @@ def main():
                     to_send = (millisec_count * pkt_per_millisec) - pkt_count
                     to_send = np.floor(to_send)
 
-                    for i in range(int(to_send)):
+                    for i in xrange(int(to_send)):
                         mf.write(str(millisec_time) + '\n')
 
                     pkt_count += to_send
