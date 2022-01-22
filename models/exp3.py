@@ -1,6 +1,6 @@
 import numpy as np
 from models.helper_functions import fill_default_key, fill_default_key_conf, get_config
-import time
+from queue import Queue
 
 def fill_default(dct, key, val):
     if key in dct:
@@ -13,7 +13,7 @@ class Exp3:
 
         self.max_weight_value = int(fill_default_key(model_config, 'max_weight_exp3', 1e6))
         self.num_clients = num_clients
-        self.last_actions = [None for _ in range(num_clients)]
+        self.last_actions = [Queue() for _ in range(num_clients)]
         self.num_actions = len(get_config()['ccs'])
         self.weights = np.ones(self.num_actions)
         self.gamma = fill_default_key(model_config, 'exp3_explore_parameter', 0.1)
@@ -25,7 +25,7 @@ class Exp3:
         print('created exp3')
 
     def clear(self):
-        self.last_actions = [None for _ in range(self.num_clients)]
+        self.last_actions = [Queue() for _ in range(self.num_clients)]
         if self.should_clear_weights:
             self.weights = np.ones(self.num_actions)
         else:
@@ -49,16 +49,16 @@ class Exp3:
 
     def predict(self, state):
         action = np.random.choice(np.arange(self.num_actions), p=self.probabilites)
-        self.last_actions[state['server_id']] = action
+        self.last_actions[state['server_id']].put(action)
         return action
 
     def update(self, state):
         if get_config()['test']:
             return
-        qoe = state["normalized qoe"]
-        action_chosen = self.last_actions[state['server_id']]
-        if action_chosen is None:
+        if self.last_actions[state['server_id']].qsize() == 0:
             return
+        qoe = state["normalized qoe"]
+        action_chosen = self.last_actions[state['server_id']].get()
         scaled_reward = qoe / self.probabilites[action_chosen]
         self.weights[action_chosen] *= np.exp(self.gamma / self.num_actions * scaled_reward)
         if np.max(self.weights) > self.max_weight_value:

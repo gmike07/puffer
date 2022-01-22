@@ -148,7 +148,6 @@ experiments:
       abr_time: true
       buffer_length_coef: 100.0
       history_size: 8
-      model_name: constant_0
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false
@@ -170,7 +169,6 @@ experiments:
       abr_time: true
       buffer_length_coef: 100.0
       history_size: 8
-      model_name: constant_0
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false
@@ -192,7 +190,6 @@ experiments:
       abr_time: true
       buffer_length_coef: 100.0
       history_size: 8
-      model_name: constant_0
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false
@@ -214,7 +211,6 @@ experiments:
       abr_time: true
       buffer_length_coef: 100.0
       history_size: 8
-      model_name: constant_0
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false
