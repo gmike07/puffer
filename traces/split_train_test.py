@@ -5,8 +5,12 @@ import functools
 from shutil import copy2
 
 
-def main(traces_dir, output_dir):
-    files = [traces_dir + file for file in os.listdir(traces_dir)]
+def main(traces_dir, output_dir, seed):
+    files = list(sorted(traces_dir + file for file in os.listdir(traces_dir)))
+    
+    if seed is not None:
+        np.random.seed(seed)
+    
     np.random.shuffle(files)
 
     if not os.path.exists(output_dir):
@@ -40,6 +44,11 @@ if __name__ == '__main__':
         default='./final_traces/',
         help='output trace dir'
     )
+    parser.add_argument(
+        "--seed",
+        default=None,
+        help='seed value'
+    )
     args = parser.parse_args()
 
-    main(args.traces, args.output)
+    main(args.traces, args.output, args.seed)
