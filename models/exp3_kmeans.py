@@ -28,22 +28,27 @@ class Exp3Kmeans:
     def update(self, state):
         id_ = self.cluster_model.get_cluster_id(state['state'])
         if not get_config()['test']:
-            self.cluster_counter[id] += 1
+            self.cluster_counter[id_] += 1
         self.exp3_contexts[id_].update(state)
+
+    def save_json(self):
+        if CONFIG['test']:
+            return
+        dct = {str(i): list(self.exp3_contexts[i].weights) for i in range(len(self.exp3_contexts))}
+        dct['counter'] = list(self.cluster_counter)
+        with open(self.exp3_dct_path, 'w') as fp:
+            fp.write(json.dumps(dct))
+        print(self.exp3_dct_path, dct)
 
     def clear(self):
         for exp3 in self.exp3_contexts:
             exp3.clear()
+        self.save_json()
 
     def save(self):
         for exp3 in self.exp3_contexts:
             exp3.save()
-        if CONFIG['test']:
-            return
-        dct = {str(i): self.exp3_contexts[i].weights for i in range(len(self.exp3_contexts))}
-        dct['counter'] = list(self.cluster_counter)
-        with open(self.exp3_dct_path, 'w') as f:
-            json.dump(dct, f)
+        self.save_json()
 
     def load(self):
         for exp3 in self.exp3_contexts:

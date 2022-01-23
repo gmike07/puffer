@@ -1,4 +1,4 @@
-Starting httpd server on localhost:5675 with model None
+Starting httpd server on localhost:5676 with model None
 clearing...
 switching to model exp3KmeansCustom and load: False
 created NN model
@@ -37,5 +37,3 @@ created exp3
 created exp3
 created exp3
 created exp3Kmeans
-400-exception is Expecting value: line 1 column 1 (char 0)
-400-exception is Expecting value: line 1 column 1 (char 0)

@@ -8,15 +8,22 @@ def fill_default(dct, key, val):
     return val
 
 
+def fill_default_key_conf_default(dct, key, default):
+    if key in dct and dct[key]:
+        return dct[key]
+    if key in get_config() and get_config()[key]:
+        return get_config()[key]
+    return default
+
 class Exp3:
     def __init__(self, num_clients, model_config):
 
-        self.max_weight_value = int(fill_default_key(model_config, 'max_weight_exp3', 1e6))
+        self.max_weight_value = int(fill_default_key_conf_default(model_config, 'max_weight_exp3', 1e6))
         self.num_clients = num_clients
         self.last_actions = [Queue() for _ in range(num_clients)]
         self.num_actions = len(get_config()['ccs'])
         self.weights = np.ones(self.num_actions)
-        self.gamma = fill_default_key(model_config, 'exp3_explore_parameter', 0.1)
+        self.gamma = fill_default_key_conf_default(model_config, 'exp3_explore_parameter', 0.001)
         self.probabilites = self.calc_probabilities()
         self.should_load = fill_default(model_config, 'should_load_exp3', True)
         self.should_clear_weights = fill_default_key(model_config, 'should_clear_weights', False)

@@ -183,6 +183,14 @@ double SocketHelper::get_qoe(double curr_ssim, double prev_ssim,  uint64_t curr_
 }
 
 
+
+double normalize(double x, double a, double b)
+{
+  const static double PI = std::atan(1.0) * 4;
+  //return std::min(std::max((x-a) / (b-a), 0.0), 1.0);
+  return std::atan(x) / PI + 0.5;
+}
+
 double SocketHelper::get_normalized_qoe()
 {
   if (past_chunks_.size() < 2)
@@ -211,10 +219,7 @@ double SocketHelper::get_normalized_qoe()
   // local normalization
   double min_reward = this->get_qoe(min_ssim, max_ssim, 10000, 0);
   double max_reward = ssim_db(max_ssim);
-
-  double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
-
-  return std::min(std::max(normalized_reward, 0.0), 1.0);
+  return normalize(reward, min_reward, max_reward);
 }
 
 

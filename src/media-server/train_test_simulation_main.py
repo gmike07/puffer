@@ -13,7 +13,7 @@ import time
 
 
 g_pserver = None
-DEFAULT_SLEEP_TIME = 4 * 60
+DEFAULT_SLEEP_TIME = 30
 
 
 def signal_handler(sig, frame):
