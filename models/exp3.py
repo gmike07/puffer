@@ -68,8 +68,8 @@ class Exp3:
         action_chosen = self.last_actions[state['server_id']].get()
         scaled_reward = qoe / self.probabilites[action_chosen]
         self.weights[action_chosen] *= np.exp(self.gamma / self.num_actions * scaled_reward)
-        if np.max(self.weights) > self.max_weight_value:
-            self.weights /= self.max_weight_value
+        # if np.max(self.weights) > self.max_weight_value:
+        #     self.weights /= self.max_weight_value
         self.probabilites = self.calc_probabilities()
 
     def done(self):
