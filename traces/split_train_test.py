@@ -7,9 +7,9 @@ from shutil import copy2
 
 def main(traces_dir, output_dir, seed):
     files = list(sorted(traces_dir + file for file in os.listdir(traces_dir)))
-    
+
     if seed is not None:
-        np.random.seed(seed)
+        np.random.seed(int(seed))
     
     np.random.shuffle(files)
 
