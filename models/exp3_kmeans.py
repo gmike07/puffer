@@ -5,6 +5,7 @@ from models.exp3 import Exp3
 from models.helper_functions import get_config
 import numpy as np
 import time
+import json
 
 class Exp3Kmeans:
     def __init__(self, num_clients, model_config):
@@ -17,7 +18,7 @@ class Exp3Kmeans:
             path = fill_default_key_conf(model_config, 'exp3_model_path')
             self.exp3_contexts[i].save_path = f"{path}{save_name}_{i}.npy"
         self.cluster_counter = np.zeros(self.cluster_model.num_clusters)
-        self.cluster_counter_path = f'{self.cluster_model.cluster_path}{self.cluster_model.cluster_name}_counter.npy'
+        self.exp3_dct_path = f'{self.cluster_model.cluster_path}{self.cluster_model.cluster_name}_dct.json'
         print('created exp3Kmeans')
 
     def predict(self, state):
@@ -26,8 +27,8 @@ class Exp3Kmeans:
 
     def update(self, state):
         id_ = self.cluster_model.get_cluster_id(state['state'])
-        # if not get_config()['test']:
-        #     self.cluster_counter[id] += 1
+        if not get_config()['test']:
+            self.cluster_counter[id] += 1
         self.exp3_contexts[id_].update(state)
 
     def clear(self):
@@ -37,8 +38,12 @@ class Exp3Kmeans:
     def save(self):
         for exp3 in self.exp3_contexts:
             exp3.save()
-        # if not CONFIG['test']:
-        #     np.save(self.cluster_counter_path, self.cluster_counter)
+        if CONFIG['test']:
+            return
+        dct = {str(i): self.exp3_contexts[i].weights for i in range(len(self.exp3_contexts))}
+        dct['counter'] = list(self.cluster_counter)
+        with open(self.exp3_dct_path, 'w') as f:
+            json.dump(dct, f)
 
     def load(self):
         for exp3 in self.exp3_contexts:
