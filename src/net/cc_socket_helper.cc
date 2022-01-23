@@ -214,7 +214,7 @@ double SocketHelper::get_normalized_qoe()
 
   double normalized_reward = (reward - min_reward) / (max_reward - min_reward);
 
-  return normalized_reward;
+  return std::min(std::max(normalized_reward, 0.0), 1.0);
 }
 
 
