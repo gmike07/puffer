@@ -88,7 +88,7 @@ class SLModel(NN_Model):
             if self.scoring_type == 'bin_rebuffer':
                 return self.to_torch(self.get_bin_rebuffer(x))
             if self.output_size in ['ssim', 'bit_rate']:
-                return x[:, QOE_SSIM_INDEX] - self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * (torch.exp(x[:, REBUFFER_INDEX] / 3) - 1)
+                return 30.0 * x[:, QOE_SSIM_INDEX] - 30.0 * self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * x[:, REBUFFER_INDEX]
             if self.scoring_type in ['ssim_bin_rebuffer', 'bit_rate_bin_rebuffer']:
                 return 30.0 * x[:, QOE_SSIM_INDEX] - 30.0 * self.change_coef * x[:, QOE_CHANGE_INDEX] - self.buffer_coef * self.to_torch(self.get_bin_rebuffer(x[:, REBUFFER_INDEX:]))
 

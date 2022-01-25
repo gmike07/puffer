@@ -4,6 +4,7 @@ from models.ae_model import AutoEncoder
 import torch
 import time
 
+
 class AETrainer:
     def __init__(self, config, helper_model):
         self.clean_data = Queue()

@@ -39,8 +39,9 @@ class SLTrainer:
             curr_cc = self.mapping_actions[state['curr_cc']]
             input = torch.from_numpy(np.append(prev_state.reshape(-1), curr_cc.reshape(-1)).reshape(1, -1))
             if self.model.scoring_type in ['ssim', 'bit_rate']:
-                output = output / 10
-                output[0, REBUFFER_INDEX] = 3 * np.log(1 + output[0, REBUFFER_INDEX])
+                output[0, :REBUFFER_INDEX] /= 30.0
+                # output[0, QOE_CHANGE_INDEX] *= self.model.change_coef
+                output[0, REBUFFER_INDEX] = output[0, REBUFFER_INDEX]
             elif self.model.scoring_type == 'rebuffer':
                 output[0, REBUFFER_INDEX] /= get_config()['buffer_length_coef']
                 output = output[:, REBUFFER_INDEX].reshape(-1, 1)

@@ -65,7 +65,7 @@ int ServerSender::send(std::vector<double> state, int boggart_id, bool stateless
   {
     json json_state(state);
     data["state"] = json_state;
-    std::vector<double> helper = {socket_helper.get_ssim(), socket_helper.quality_change_qoef * socket_helper.get_change_ssim(), socket_helper.buffer_length_coef * socket_helper.get_rebuffer()};
+    std::vector<double> helper = {socket_helper.get_ssim(), socket_helper.get_change_ssim(), socket_helper.get_rebuffer()};
     json json_state_qoe(helper);
     data["qoe_state"] = json_state_qoe;
     data["curr_cc"] = socket_helper.get_congestion_control();

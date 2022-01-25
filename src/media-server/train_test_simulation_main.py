@@ -113,7 +113,10 @@ def main_train_test():
         for (model_name, epochs) in args.models:
             create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, epochs, model_name, args.scoring_path, args.default_path)
             train_simulation(model_name)
-            time.sleep(DEFAULT_SLEEP_TIME)
+            if 'Cluster' not in model_name:
+                time.sleep(DEFAULT_SLEEP_TIME)
+            else:
+                time.sleep(15 * 60)
     signal_handler(0, 0)
 
 
