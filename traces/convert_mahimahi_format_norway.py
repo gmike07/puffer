@@ -4,9 +4,8 @@ import numpy as np
 import shutil
 
 DATA_PATH = './datasets.simula.no/hsdpa-tcp-logs/'
-MID_PATH = './mahimahi/'
-OUTPUT_PATH_HELPER = './final_traces'
-OUTPUT_PATH = './final_traces/test'
+MID_PATH = './helper_mahimahi/'
+OUTPUT_PATH = './mahimahi/'
 BYTES_PER_PKT = 1500.0
 MILLISEC_IN_SEC = 1000.0
 BITS_IN_BYTE = 8.0
@@ -35,7 +34,6 @@ def create_mid_files():
 
 def main():
     recreated_dir(MID_PATH)
-    recreated_dir(OUTPUT_PATH_HELPER)
     recreated_dir(OUTPUT_PATH)
     create_mid_files()
 
@@ -55,6 +53,8 @@ def main():
                 parse = line.split()
                 if len(time_ms) > 0 and float(parse[0]) < time_ms[-1]:  # trace error, time not monotonically increasing
                     break
+                if parse[2] == 'NOFIX':
+                    continue
                 time_ms.append(float(parse[0]))
                 bytes_recv.append(float(parse[1]))
                 recv_time.append(float(parse[2]))
@@ -82,7 +82,7 @@ def main():
                     to_send = (millisec_count * pkt_per_millisec) - pkt_count
                     to_send = np.floor(to_send)
 
-                    for i in xrange(int(to_send)):
+                    for _ in xrange(int(to_send)):
                         mf.write(str(millisec_time) + '\n')
 
                     pkt_count += to_send
