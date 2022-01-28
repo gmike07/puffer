@@ -66,6 +66,10 @@ def get_server_model(models_lst):
             finished_server_ids[0] = set()
             return self.default_headers()
 
+        def handle_test(self, is_test):
+            get_config()['test'] = is_test
+            return self.default_headers()
+
         def send_OK_and_prediction(self, prediction):
             self.default_headers()
             self.wfile.write(json.dumps({'cc': str(prediction)}).encode('utf-8'))
@@ -146,6 +150,8 @@ def get_server_model(models_lst):
                     self.handle_clear()
                 elif 'done' in parsed_data:
                     self.handle_done()
+                elif 'test' in parsed_data:
+                    self.handle_test(parsed_data['test'])
                 elif 'switch_model' in parsed_data:
                     self.handle_switch(parsed_data)
                 elif 'message' in parsed_data:

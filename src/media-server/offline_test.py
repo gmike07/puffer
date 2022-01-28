@@ -167,7 +167,7 @@ def start_maimahi_clients(clients, filedir, exit_condition, random_setting=False
                         f_log.write(helper_string + "\n")
                     f_log.write(f"epoch: {epoch} / {get_config()['mahimahi_epochs']}\n")
                     f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
-                if exit_condition(setting):
+                if exit_condition((epoch * int(len(traces) / num_clients)) + int(f / num_clients)):
                     break
     except Exception as e:
         print("exception: " + str(e))
@@ -219,7 +219,7 @@ def start_maimahi_clients_all_cases(clients, filedir, exit_condition, helper_str
                             f_log.write(helper_string + "\n")
                         f_log.write(f"epoch: {epoch} / {get_config()['mahimahi_epochs']}\n")
                         f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
-                    if exit_condition(setting):
+                    if exit_condition((epoch * int(len(traces) / num_clients)) + int(f / num_clients)):
                         break
     except Exception as e:
         print("exception: " + str(e))
