@@ -83,6 +83,9 @@ def send_dct_to_server(dct):
     time.sleep(3)
 
 
+def send_test_to_server():
+    send_dct_to_server({'test': get_config()['test']})
+
 def send_clear_to_server():
     send_dct_to_server({'clear': 'clear'})
 
@@ -296,6 +299,7 @@ def prepare_env(args=None):
 
 def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', models=None, random_setting=False, all_cases=False, helper_string=''):
     create_setting_yaml(test=get_config()['test'])
+    send_test_to_server()
     send_clear_to_server()
     send_switch_to_server(model_name, should_load, helper_model, models)
     scoring_dir = get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1]
