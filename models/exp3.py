@@ -52,6 +52,8 @@ class Exp3:
 
     def calc_probabilities(self):
         sum_weights = self.weights.sum()
+        if get_config()['test']:  # no learning rate in testing
+            return self.weights / sum_weights
         return (1 - self.gamma) * self.weights / sum_weights + self.gamma / self.num_actions
 
     def predict(self, state):

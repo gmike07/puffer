@@ -67,6 +67,7 @@ def get_server_model(models_lst):
             return self.default_headers()
 
         def handle_test(self, is_test):
+            print('testing ', is_test)
             get_config()['test'] = is_test
             return self.default_headers()
 

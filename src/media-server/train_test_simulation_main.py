@@ -15,6 +15,28 @@ import time
 g_pserver = None
 DEFAULT_SLEEP_TIME = 30
 
+class modelData:
+    def __init__(self, model_name):
+        self.model_name = model_name
+        self.epochs = -1
+        self.trace_sets = ''
+        self.load_model = False
+
+    def update_load(self):
+        self.load_model = True
+
+    def update_trace_sets(self, trace_sets: str):
+        self.epochs = len(trace_sets)
+        self.trace_sets = trace_sets
+
+    def update_epochs(self, epochs: int):
+        self.epochs = epochs
+        self.trace_sets = 'l' * epochs
+
+    def __repr__(self):
+        return f'model: {self.model_name}, epochs: {self.epochs}, ' \
+            f'trace_sets: {self.trace_sets}, load: {self.load_model}\n'
+
 
 def signal_handler(sig, frame):
     if g_pserver is not None:
@@ -38,15 +60,22 @@ def parse_arguments():
     parser.add_argument('-m', '--models', nargs='+', default=[])
     args = parser.parse_args()
     new_models = []
+    curr_model = None
     for data in args.models:
         if data.isnumeric():
-            new_models[-1] = (new_models[-1][0], int(data))
+            curr_model.update_epochs(int(data))
+        elif set(data) - {'l', 'm', 's'} == set():
+            curr_model.update_trace_sets(data)
+        elif data == 'load':
+            curr_model.update_load()
         else:
-            new_models.append((data, args.epochs))
-    args.models = new_models
-    args.clients = len(args.models) if args.clients == -1 else args.clients
+            curr_model = modelData(data)
+            new_models.append(curr_model)
+            if args.epochs > 0:
+                curr_model.update_epochs(args.epochs)
+    args.clients = len(args.models) if args.clients == -1 or args.test else args.clients
     create_config(args.yaml_input_dir, args.abr, args.clients, args.test or args.test_seperated, args.eval, args.epochs, '', args.scoring_path, args.default_path)
-    model_folder = '_'.join(sorted([model[0] for model in args.models])) + f"_scoring_{get_config()['buffer_length_coef']}"
+    model_folder = '_'.join(sorted([model_data.model_name for model_data in args.models])) + f"_scoring_{get_config()['buffer_length_coef']}"
     args.scoring_path = get_config()['scoring_path'] + model_folder + '/'
     if args.test:
         create_dir(args.scoring_path)
@@ -78,12 +107,12 @@ done"""
 def eval(args):
     if args.eval:
         create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
-        get_config()['models'] = [model[0] for model in args.models]
+        get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         eval_scores()
         return True
     elif args.eval_seperated:
         create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
-        get_config()['models'] = [model[0] for model in args.models]
+        get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         eval_scores_model(get_config()['models'], get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1])
         return True
     return False
@@ -103,17 +132,17 @@ def main_train_test():
     time.sleep(DEFAULT_SLEEP_TIME)
     if args.test:
         create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
-        get_config()['models'] = [model[0] for model in args.models]
+        get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         test_simulation()
     elif args.test_seperated:
         create_config(args.yaml_input_dir, args.abr, args.clients, args.test_seperated, args.eval, args.epochs, 'stackingModel', args.scoring_path, args.default_path)
-        get_config()['models'] = [model[0] for model in args.models]
+        get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         test_simulation_model(get_config()['models'])
     else:
-        for (model_name, epochs) in args.models:
-            create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, epochs, model_name, args.scoring_path, args.default_path)
-            train_simulation(model_name)
-            if 'Cluster' not in model_name:
+        for model_data in args.models:
+            create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, model_data.epochs, model_data.model_name, args.scoring_path, args.default_path)
+            train_simulation(model_data.model_name)
+            if 'Cluster' not in model_data.model_name:
                 time.sleep(DEFAULT_SLEEP_TIME)
             else:
                 time.sleep(15 * 60)

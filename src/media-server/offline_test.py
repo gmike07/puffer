@@ -122,7 +122,7 @@ def kill_all_proccesses():
     kill_proccesses(plist, 0)
 
 
-def start_maimahi_clients(clients, filedir, exit_condition, random_setting=False, helper_string=''):
+def start_maimahi_clients(clients, exit_condition, random_setting=False, helper_string=''):
     global plist
     plist = []
     try:
@@ -180,7 +180,7 @@ def start_maimahi_clients(clients, filedir, exit_condition, random_setting=False
             executable='/bin/bash')
 
 
-def start_maimahi_clients_all_cases(clients, filedir, exit_condition, helper_string):
+def start_maimahi_clients_all_cases(clients, exit_condition, helper_string):
     global plist
     plist = []
     try:
@@ -267,6 +267,9 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     if to_print and is_max:
         print(df)
         print(df.describe())
+        dct = {'delay': delays, 'loss': losses}
+        dct.update({cc: [np.mean(df[arr%16==i][cc]) for i in range(len(get_config()['settings']))] for cc in ccs_named})
+        print(pd.DataFrame(dct))
     return df
 
 
@@ -304,9 +307,9 @@ def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', 
     send_switch_to_server(model_name, should_load, helper_model, models)
     scoring_dir = get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1]
     if all_cases:
-        start_maimahi_clients_all_cases(get_config()['num_clients'], scoring_dir, f, helper_string)
+        start_maimahi_clients_all_cases(get_config()['num_clients'], f, helper_string)
     else:
-        start_maimahi_clients(get_config()['num_clients'], scoring_dir, f, random_setting, helper_string)
+        start_maimahi_clients(get_config()['num_clients'], f, random_setting, helper_string)
     print('finished part simulation!')
 
 
@@ -325,7 +328,7 @@ def train_simulation(model_name):
     send_done_to_server()
 
 def test_simulation():
-    run_simulation('stackingModel', True, models=get_config()['models'], all_cases=True)
+    run_simulation('stackingModel', True, models=get_config()['models'])
     send_done_to_server()
     eval_scores()
 
@@ -362,7 +365,7 @@ def test_simulation_model(models):
     get_config()['test_seperated'] = True
     for model in models:
         get_config()['models'] = [model] * get_config()['num_clients']
-        run_simulation('stackingModel', True, models=[model] * get_config()['num_clients'], all_cases=False)
+        run_simulation(model, True)
         send_done_to_server()
     eval_scores_model(models, get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1])
 

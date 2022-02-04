@@ -28,14 +28,14 @@ if [ -z "$2" ]; then
     unzip cooked-$month.zip
     mv cooked-$month cooked
 else 
-    echo wget http://data.fcc.gov/download/measuring-broadband-america/$next_year/data-raw-$year-$month.tar.gz --no-check-certificate
-    echo tar -zxvf data-raw-$year-$month.tar.gz $year$month_num/curr_webget_"$year"_$month_num.csv
-    echo rm data-raw-$year-$month.tar.gz
-    echo cd traces
-    echo python load_webget_data.py --file ../$year$month_num/curr_webget_"$year"_$month_num.csv
-    echo cd ..
-    echo rm -rf $year$month_num/
+    wget http://data.fcc.gov/download/measuring-broadband-america/$next_year/data-raw-$year-$month.tar.gz --no-check-certificate
+    tar -zxvf data-raw-$year-$month.tar.gz $year$month_num/curr_webget_"$year"_$month_num.csv
+    rm data-raw-$year-$month.tar.gz
+    cd traces
+    python load_webget_data.py --file ../$year$month_num/curr_webget_"$year"_$month_num.csv
+    cd ..
+    rm -rf $year$month_num/
 fi
-echo cd traces
-echo python3 convert_mahimahi_format.py
-echo python3 split_train_test.py --seed 0
+cd traces
+python3 convert_mahimahi_format.py
+python3 split_train_test.py --seed 0

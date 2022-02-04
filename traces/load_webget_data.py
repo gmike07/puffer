@@ -63,7 +63,7 @@ def plot_tput_distr(tputs):
     sys.stderr.write('Saved plot to {}\n'.format(output))
 
 
-def main(traces_file):
+def main(traces_file, min_average_throughput, max_average_throughput):
     traces = []
 
     line_counter = 0
@@ -100,7 +100,8 @@ def main(traces_file):
         t /= BYTES_IN_MB
         avg_throughput, min_throughput = t.mean(), t.min()
 
-        if not (avg_throughput < 2 and avg_throughput > 0.4 and min_throughput > 0.2):
+        if not (avg_throughput < max_average_throughput and 
+            avg_throughput > min_average_throughput and min_throughput > 0.2):
             print('skipped {}, {}'.format(avg_throughput, min_throughput))
             continue
 
@@ -131,6 +132,19 @@ if __name__ == '__main__':
         "--file",
         help='traces file'
     )
+    parser.add_argument(
+        "-maxat",
+        "--max_average_throughput",
+        default=3.0,
+        type=float
+    )
+    parser.add_argument(
+        "-minat",
+        "--min_average_throughput",
+        default=0.2,
+        type=float
+    )
+
     args = parser.parse_args()
 
-    main(args.file)
+    main(args.file, args.min_average_throughput, args.max_average_throughput)
