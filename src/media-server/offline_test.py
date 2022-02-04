@@ -307,6 +307,7 @@ def train_simulation(model_name):
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: False'
         run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
+        simulationDct['helper_string'] = ''
     get_config()['mahimahi_epochs'] = epochs
     send_done_to_server()
 
