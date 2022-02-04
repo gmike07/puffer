@@ -23,6 +23,7 @@ import random
 
 
 plist = []
+simulationDct = {}
 
 def get_trace_path(trace_dir, file):
     return os.path.join(pathlib.Path().resolve(), trace_dir, file)
@@ -122,55 +123,62 @@ def kill_all_proccesses():
     kill_proccesses(plist, 0)
 
 
-def start_maimahi_clients(clients, exit_condition, random_setting=False, helper_string=''):
+def get_traces():
+    trace_dir = get_config()['trace_dir'] + 'test/' if get_config()['test'] else get_config()['trace_dir'] + 'train/'
+    traces = os.listdir(trace_dir)
+    traces = list(sorted(traces))
+    return trace_dir, traces
+
+
+def run_single_simulation(num_clients, clients, f, setting):
+    p1, p2 = run_offline_media_servers()
+    plist = [p1, p2]
+    sleep_time = 3
+    delay, loss = get_delay_loss(setting)
+
+    traces, trace_dir = simulationDct['traces'], simulationDct['trace_dir']
+    for i in range(1, clients + 1):
+        index = f if get_config()['test'] else f + i - 1
+        time.sleep(sleep_time)
+        mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index % len(traces)], i, delay, loss)
+        p = subprocess.Popen(mahimahi_chrome_cmd, shell=True, preexec_fn=os.setsid)
+        plist.append(p)
+
+    time.sleep(60*10) # - sleep_time * clients
+
+    kill_proccesses(plist[2:], sleep_time)
+    kill_proccesses(plist[:2])
+    
+    # create_failed_files(filedir, setting)
+    send_clear_to_server()
+    subprocess.check_call("rm -rf ./*.profile", shell=True,
+                            executable='/bin/bash')
+    with open(get_config()['logs_path'] + get_config()['train_test_log_file'], 'w') as f_log:
+        f_log.write(f"{get_config()['model_name']}:\n")
+        if simulationDct['helper_string']:
+            f_log.write(simulationDct['helper_string'] + "\n")
+        f_log.write(f"epoch: {simulationDct['epoch']} / {get_config()['mahimahi_epochs']}\n")
+        f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
+
+
+def start_maimahi_clients(clients, exit_condition, random_setting=False):
     global plist
     plist = []
     try:
-        trace_dir = get_config()['trace_dir'] + 'test/' if get_config()['test'] else get_config()['trace_dir'] + 'train/'
-        traces = os.listdir(trace_dir)
-        traces = list(sorted(traces))
-
-        
+        trace_dir, traces = get_traces()
         test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
-
+        num_clients = 1 if get_config()['test'] and not test_seperated else clients
+        simulationDct['traces'] = traces
+        simulationDct['trace_dir'] = trace_dir
         for epoch in range(get_config()['mahimahi_epochs']):
-            num_clients = 1 if get_config()['test'] and not test_seperated else clients
+            simulationDct['epoch'] = epoch
             for f in range(0, len(traces), num_clients):
-
-                p1, p2 = run_offline_media_servers()
-                plist = [p1, p2]
-                sleep_time = 3
-                if random_setting or epoch != 0:
+                index = (epoch * int(len(traces) / num_clients)) + int(f / num_clients)
+                if random_setting:
                     setting = random.randint(0, len(get_config()['settings']))
-                else:
-                    setting = (epoch * int(len(traces) / num_clients)) + int(f / num_clients)
-                delay, loss = get_delay_loss(setting)
-
-
-                for i in range(1, clients + 1):
-                    index = f if get_config()['test'] else f + i - 1
-                    time.sleep(sleep_time)
-                    mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index % len(traces)], i, delay, loss)
-                    p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
-                                         preexec_fn=os.setsid)
-                    plist.append(p)
-
-                time.sleep(60*10) # - sleep_time * clients
-
-                kill_proccesses(plist[2:], sleep_time)
-                kill_proccesses(plist[:2])
-                
-                # create_failed_files(filedir, setting)
-                send_clear_to_server()
-                subprocess.check_call("rm -rf ./*.profile", shell=True,
-                                      executable='/bin/bash')
-                with open(get_config()['logs_path'] + get_config()['train_test_log_file'], 'w') as f_log:
-                    f_log.write(f"{get_config()['model_name']}:\n")
-                    if helper_string:
-                        f_log.write(helper_string + "\n")
-                    f_log.write(f"epoch: {epoch} / {get_config()['mahimahi_epochs']}\n")
-                    f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
-                if exit_condition((epoch * int(len(traces) / num_clients)) + int(f / num_clients)):
+                setting = index
+                run_single_simulation(num_clients, clients, f, setting)
+                if exit_condition(index):
                     break
     except Exception as e:
         print("exception: " + str(e))
@@ -180,49 +188,25 @@ def start_maimahi_clients(clients, exit_condition, random_setting=False, helper_
             executable='/bin/bash')
 
 
-def start_maimahi_clients_all_cases(clients, exit_condition, helper_string):
+def start_maimahi_clients_all_cases(clients, exit_condition):
     global plist
     plist = []
     try:
-        trace_dir = get_config()['trace_dir'] + 'test/' if get_config()['test'] else get_config()['trace_dir'] + 'train/'
-        traces = os.listdir(trace_dir)
-        traces = list(sorted(sorted(traces), key=lambda x: len(open(get_trace_path(trace_dir, x), 'r').readlines()))) # get those with the lowest throughput
+        trace_dir, traces = get_traces()
+        traces = list(sorted(traces), key=lambda x: len(open(get_trace_path(trace_dir, x), 'r').readlines())) # get those with the lowest throughput
         traces = traces[:len(traces)//len(get_config()['settings'])]
-        test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
+        simulationDct['traces'] = traces
+        simulationDct['trace_dir'] = trace_dir
 
+        test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
+        num_clients = 1 if get_config()['test'] and not test_seperated else clients
 
         for epoch in range(get_config()['mahimahi_epochs']):
-            num_clients = 1 if get_config()['test'] and not test_seperated else clients
             for f in range(0, len(traces), num_clients):
                 for setting in range(len(get_config()['settings'])):
-                    p1, p2 = run_offline_media_servers()
-                    plist = [p1, p2]
-                    sleep_time = 3
-                    delay, loss = get_delay_loss(setting)
-                    for i in range(1, clients + 1):
-                        index = f if get_config()['test'] else f + i - 1
-                        time.sleep(sleep_time)
-                        mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index % len(traces)], i, delay, loss)
-                        p = subprocess.Popen(mahimahi_chrome_cmd, shell=True,
-                                            preexec_fn=os.setsid)
-                        plist.append(p)
-
-                    time.sleep(60*10) # - sleep_time * clients
-
-                    kill_proccesses(plist[2:], sleep_time)
-                    kill_proccesses(plist[:2])
-                    
-                    # create_failed_files(filedir, setting)
-                    send_clear_to_server()
-                    subprocess.check_call("rm -rf ./*.profile", shell=True,
-                                        executable='/bin/bash')
-                    with open(get_config()['logs_path'] + get_config()['train_test_log_file'], 'w') as f_log:
-                        f_log.write(f"{get_config()['model_name']}:\n")
-                        if helper_string:
-                            f_log.write(helper_string + "\n")
-                        f_log.write(f"epoch: {epoch} / {get_config()['mahimahi_epochs']}\n")
-                        f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
-                    if exit_condition((epoch * int(len(traces) / num_clients)) + int(f / num_clients)):
+                    run_single_simulation(num_clients, clients, f, setting)
+                    index = (epoch * int(len(traces) / num_clients)) + int(f / num_clients)
+                    if exit_condition(index):
                         break
     except Exception as e:
         print("exception: " + str(e))
@@ -263,7 +247,6 @@ def show_table(filedir, abr, max_iter, func, is_max=True, to_print=True):
     losses = np.array([tup[1] for tup in get_config()['settings']])
     df.insert(0, "loss", losses[(arr - 1) % len(losses)])
     df.insert(0, "delay", delays[(arr - 1) % len(delays)])
-    df = df[df['bbr'] < 17]
     if to_print and is_max:
         print(df)
         print(df.describe())
@@ -291,8 +274,7 @@ def prepare_env(args=None):
     if get_config()['eval']:
         if args is not None:
             create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path)
-            get_config()['models'] = [model[0] for model in args.models]
-            # get_config()['models'] = ['constant_0', 'constant_1', 'constant_2', 'exp3KmeansCustom', 'random', 'idModel']
+            get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         eval_scores()
         exit()
     subprocess.check_call('sudo sysctl -w net.ipv4.ip_forward=1', shell=True)
@@ -300,16 +282,15 @@ def prepare_env(args=None):
                                       executable='/bin/bash')
 
 
-def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', models=None, random_setting=False, all_cases=False, helper_string=''):
+def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', models=None, random_setting=False, all_cases=False):
     create_setting_yaml(test=get_config()['test'])
     send_test_to_server()
     send_clear_to_server()
     send_switch_to_server(model_name, should_load, helper_model, models)
-    scoring_dir = get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1]
     if all_cases:
-        start_maimahi_clients_all_cases(get_config()['num_clients'], f, helper_string)
+        start_maimahi_clients_all_cases(get_config()['num_clients'], f)
     else:
-        start_maimahi_clients(get_config()['num_clients'], f, random_setting, helper_string)
+        start_maimahi_clients(get_config()['num_clients'], f, random_setting)
     print('finished part simulation!')
 
 
@@ -321,11 +302,14 @@ def train_simulation(model_name):
     epochs = get_config()['mahimahi_epochs']
     get_config()['mahimahi_epochs'] = 1
     for epoch in range(epochs):
-        run_simulation(model_name, bool(epoch != 0), helper_model='random', random_setting=(epoch != 0), helper_string=f'epoch: {epoch}/{epochs}, random: True')
+        simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: True'
+        run_simulation(model_name, bool(epoch != 0), helper_model='random')
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
-        run_simulation(model_name, True, f=exit_condition, helper_model='idModel', random_setting=(epoch != 0), helper_string=f'epoch: {epoch}/{epochs}, random: False')
+        simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: False'
+        run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
     get_config()['mahimahi_epochs'] = epochs
     send_done_to_server()
+
 
 def test_simulation():
     run_simulation('stackingModel', True, models=get_config()['models'])
