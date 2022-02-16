@@ -146,7 +146,7 @@ def run_single_simulation(num_clients, clients, f, seed, ms=5000):
                             executable='/bin/bash')
     with open(get_config()['logs_path'] + get_config()['train_test_log_file'], 'w') as f_log:
         f_log.write(f"{get_config()['model_name']}:\n")
-        if simulationDct['helper_string']:
+        if 'helper_string' in simulationDct and simulationDct['helper_string']:
             f_log.write(simulationDct['helper_string'] + "\n")
         f_log.write(f"epoch: {simulationDct['epoch']} / {get_config()['mahimahi_epochs']}\n")
         f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")

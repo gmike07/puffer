@@ -90,9 +90,9 @@ fingerprint:
   cc: bbr # starting cc
 
   #ABRS
-  # abr: linear_bba
-  # # abr_config:
-  # #   upper_reservoir: 0.9
+  abr: linear_bba
+  abr_config:
+    upper_reservoir: 0.9
 
   # abr: pensieve
   # abr_config:
@@ -100,9 +100,9 @@ fingerprint:
   #   nn_path: "/home/puffer/models/pensieve/nn_model_ep_77400.ckpt"
 
 
-  abr: mpc
-  abr_config:
-    rebuffer_length_coeff: 100
+  # abr: mpc
+  # abr_config:
+  #   rebuffer_length_coeff: 100
 
 
   # abr: robust_mpc
