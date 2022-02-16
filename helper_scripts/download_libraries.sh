@@ -15,7 +15,7 @@ sudo apt-get install -y -q gcc-7 g++-7 libmpeg2-4-dev libpq-dev \
                           git automake libtool python python3 cmake wget chromium-browser unzip
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 99
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 99
-sudo apt install -y mahimahi
+# sudo apt install -y mahimahi
 git clone https://github.com/jtv/libpqxx.git
 cd libpqxx && git checkout 7.1.0 && sudo ./configure --enable-documentation=no && sudo make -j3 install
 sudo useradd --create-home --shell /bin/bash user

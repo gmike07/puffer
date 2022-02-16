@@ -25,17 +25,12 @@ class modelData:
     def update_load(self):
         self.load_model = True
 
-    def update_trace_sets(self, trace_sets: str):
-        self.epochs = len(trace_sets)
-        self.trace_sets = trace_sets
-
     def update_epochs(self, epochs: int):
         self.epochs = epochs
         self.trace_sets = 'l' * epochs
 
     def __repr__(self):
-        return f'model: {self.model_name}, epochs: {self.epochs}, ' \
-            f'trace_sets: {self.trace_sets}, load: {self.load_model}\n'
+        return f'model: {self.model_name}, epochs: {self.epochs},  load: {self.load_model}\n'
 
 
 def signal_handler(sig, frame):
@@ -64,8 +59,6 @@ def parse_arguments():
     for data in args.models:
         if data.isnumeric():
             curr_model.update_epochs(int(data))
-        elif set(data) - {'l', 'm', 's'} == set():
-            curr_model.update_trace_sets(data)
         elif data == 'load':
             curr_model.update_load()
         else:
@@ -73,6 +66,7 @@ def parse_arguments():
             new_models.append(curr_model)
             if args.epochs > 0:
                 curr_model.update_epochs(args.epochs)
+    args.models = new_models
     args.clients = len(args.models) if args.clients == -1 or args.test else args.clients
     create_config(args.yaml_input_dir, args.abr, args.clients, args.test or args.test_seperated, args.eval, args.epochs, '', args.scoring_path, args.default_path)
     model_folder = '_'.join(sorted([model_data.model_name for model_data in args.models])) + f"_scoring_{get_config()['buffer_length_coef']}"

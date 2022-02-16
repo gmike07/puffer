@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from concurrent.futures import thread
 import time
 import os
 import subprocess
@@ -28,12 +29,12 @@ simulationDct = {}
 def get_trace_path(trace_dir, file):
     return os.path.join(pathlib.Path().resolve(), trace_dir, file)
 
-def get_delay_loss(index):
-    delay, loss = get_config()['settings'][index % len(get_config()['settings'])]
+def get_delay_loss():
+    delay, loss = get_config()['delays'], get_config()['losses']
     if get_config()['loss'] != -1.0:
         loss = get_config()['loss']
     if get_config()['delay'] != -1.0:
-        delay = get_config()['delay']
+        delay = [get_config()['delay']]
     return delay, loss
 
 
@@ -57,12 +58,13 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
-def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
+def get_mahimahi_command(trace_dir, filename, trace_index, delays, losses, seed=0, ms=5000):
     remote_port = get_config()['remote_base_port'] + trace_index
     port = get_config()['base_port'] + trace_index
-    mahimahi_chrome_cmd = "mm-delay {} ".format(int(delay))
-    if loss != 0:
-        mahimahi_chrome_cmd += "mm-loss downlink {} ".format(loss)
+    # format: delay1,...,delayn#seed-ms
+    mahimahi_chrome_cmd = "mm-delay {}#{}-{} ".format(','.join(str(delay) for delay in delays), seed, ms)
+    if losses:
+        mahimahi_chrome_cmd += "mm-loss downlink {}#{}-{} ".format(','.join(str(loss) for loss in losses), seed, ms)
     mahimahi_chrome_cmd += "mm-link "
     # mahimahi_chrome_cmd += "--meter-uplink "
     # mahimahi_chrome_cmd += "--meter-downlink "
@@ -73,7 +75,8 @@ def get_mahimahi_command(trace_dir, filename, trace_index, delay, loss):
     mahimahi_chrome_cmd += "-- sh -c 'chromium-browser disable-infobars --disable-gpu --disable-software-rasterizer --headless --enable-logging=true --v=1 --remote-debugging-port={} http://$MAHIMAHI_BASE:8080/player/?wsport={} --user-data-dir=./{}.profile'".format(
                         remote_port, port, port)
     # print(mahimahi_chrome_cmd)
-    return mahimahi_chrome_cmd
+    helper_command = f'export PATH="{pathlib.Path().resolve()}/mahimahi/src/frontend:$PATH"'
+    return helper_command + " && " + mahimahi_chrome_cmd
 
 
 def send_dct_to_server(dct):
@@ -101,17 +104,6 @@ def send_switch_to_server(model_name, should_load, helper_model='', models=None)
     send_dct_to_server({'switch_model': 'switch_model', 'model_name': model_name, 'load': should_load, 'helper_model': helper_model, 'models': models})
 
 
-def create_failed_files(filedir, setting):
-    if not get_config()['test']:
-        return
-    arr = get_config()['test_models']
-    for i in range(len(arr)):
-        filepath = f"{filedir}cc_score_{i+1}_abr_{get_config()['abr']}_{arr[i]}_{setting}.txt"
-        if not os.path.exists(filepath):
-            with open(filepath, 'w') as f:
-                pass
-
-
 def kill_proccesses(plist, sleep_time=3):
     for p in plist:
         os.killpg(os.getpgid(p.pid), signal.SIGTERM)
@@ -130,17 +122,17 @@ def get_traces():
     return trace_dir, traces
 
 
-def run_single_simulation(num_clients, clients, f, setting):
+def run_single_simulation(num_clients, clients, f, seed, ms=5000):
     p1, p2 = run_offline_media_servers()
     plist = [p1, p2]
     sleep_time = 3
-    delay, loss = get_delay_loss(setting)
+    delays, losses = get_delay_loss()
 
     traces, trace_dir = simulationDct['traces'], simulationDct['trace_dir']
     for i in range(1, clients + 1):
         index = f if get_config()['test'] else f + i - 1
         time.sleep(sleep_time)
-        mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index % len(traces)], i, delay, loss)
+        mahimahi_chrome_cmd = get_mahimahi_command(trace_dir, traces[index % len(traces)], i, delays, losses, seed, ms)
         p = subprocess.Popen(mahimahi_chrome_cmd, shell=True, preexec_fn=os.setsid)
         plist.append(p)
 
@@ -148,8 +140,7 @@ def run_single_simulation(num_clients, clients, f, setting):
 
     kill_proccesses(plist[2:], sleep_time)
     kill_proccesses(plist[:2])
-    
-    # create_failed_files(filedir, setting)
+
     send_clear_to_server()
     subprocess.check_call("rm -rf ./*.profile", shell=True,
                             executable='/bin/bash')
@@ -161,7 +152,7 @@ def run_single_simulation(num_clients, clients, f, setting):
         f_log.write(f"trace: {f / num_clients} / {len(traces) // num_clients}")
 
 
-def start_maimahi_clients(clients, exit_condition, random_setting=False):
+def start_maimahi_clients(clients, exit_condition):
     global plist
     plist = []
     try:
@@ -174,40 +165,9 @@ def start_maimahi_clients(clients, exit_condition, random_setting=False):
             simulationDct['epoch'] = epoch
             for f in range(0, len(traces), num_clients):
                 index = (epoch * int(len(traces) / num_clients)) + int(f / num_clients)
-                if random_setting:
-                    setting = random.randint(0, len(get_config()['settings']))
-                setting = index
-                run_single_simulation(num_clients, clients, f, setting)
+                run_single_simulation(num_clients, clients, f, index)
                 if exit_condition(index):
                     break
-    except Exception as e:
-        print("exception: " + str(e))
-    finally:
-        kill_proccesses(plist)
-        subprocess.check_call("rm -rf ./*.profile", shell=True,
-            executable='/bin/bash')
-
-
-def start_maimahi_clients_all_cases(clients, exit_condition):
-    global plist
-    plist = []
-    try:
-        trace_dir, traces = get_traces()
-        traces = list(sorted(traces), key=lambda x: len(open(get_trace_path(trace_dir, x), 'r').readlines())) # get those with the lowest throughput
-        traces = traces[:len(traces)//len(get_config()['settings'])]
-        simulationDct['traces'] = traces
-        simulationDct['trace_dir'] = trace_dir
-
-        test_seperated = 'test_seperated' in get_config() and get_config()['test_seperated']
-        num_clients = 1 if get_config()['test'] and not test_seperated else clients
-
-        for epoch in range(get_config()['mahimahi_epochs']):
-            for f in range(0, len(traces), num_clients):
-                for setting in range(len(get_config()['settings'])):
-                    run_single_simulation(num_clients, clients, f, setting)
-                    index = (epoch * int(len(traces) / num_clients)) + int(f / num_clients)
-                    if exit_condition(index):
-                        break
     except Exception as e:
         print("exception: " + str(e))
     finally:
@@ -262,6 +222,44 @@ def find_index(filename):
     return int(filename)
 
 
+def generate_table_models(filedir, models, threshold=np.inf, abr=''):
+    if abr == '':
+        abr == get_config()['abr']
+    models_qoe = {}
+    files = os.listdir(filedir)
+    max_num = max(find_index(file) for file in files if file.endswith('.txt'))
+    for model in models:
+        models_qoe[model] = np.array([None] * max_num)
+        for i in range(max_num):
+            file = [f for f in files if f.find(f'abr_{abr}_{i}_{model}.txt') != -1][0]
+            lines = open(filedir + '/' + file, 'r').readlines()
+            if len(lines) < 100:
+                continue
+            qoe = np.array([float(x) for x in lines]).mean()
+            if qoe < threshold:
+                models_qoe[model][i] = qoe
+    ccs = get_config()['ccs']
+    mapping_conventions = {f'constant_{i}': ccs[i] for i in range(ccs)}
+    mapping_conventions.update({'exp3KmeansCustom': 'exp3CustomContext'})
+
+    f = lambda model: mapping_conventions[model] if model in mapping_conventions else model
+    final_dct = {f(model): models_qoe[model] for model in models}
+    return pd.DataFrame(final_dct)
+
+     
+def eval_scores2():
+    print('mean')
+    df = generate_table_models(get_config()['scoring_path'], get_config()['models'])
+    df = df.dropna()
+    print(df.mean())
+
+
+def eval_scores_model2(models, filedir, threshold=np.inf):
+    print('mean')
+    df = generate_table_models(filedir, models, threshold=threshold)
+    print(df.mean())
+
+
 def eval_scores():
     files = os.listdir(get_config()['scoring_path'])
     print(get_config()['scoring_path'], files)
@@ -282,15 +280,12 @@ def prepare_env(args=None):
                                       executable='/bin/bash')
 
 
-def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', models=None, random_setting=False, all_cases=False):
+def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', models=None):
     create_setting_yaml(test=get_config()['test'])
     send_test_to_server()
     send_clear_to_server()
     send_switch_to_server(model_name, should_load, helper_model, models)
-    if all_cases:
-        start_maimahi_clients_all_cases(get_config()['num_clients'], f)
-    else:
-        start_maimahi_clients(get_config()['num_clients'], f, random_setting)
+    start_maimahi_clients(get_config()['num_clients'], f)
     print('finished part simulation!')
 
 
@@ -330,11 +325,10 @@ def eval_scores_model(models, filedir, threshold=np.inf):
             if len(lines) < 100:
                 continue
             if model not in dct:
-                dct[model] = [[] for _ in range(len(get_config()['settings']))]
+                dct[model] = []
             qoe = np.array([float(x) for x in lines]).mean()
-            setting = find_index(file)
-            if qoe <  threshold:
-                dct[model][setting % len(get_config()['settings'])].append(qoe)
+            if qoe < threshold:
+                dct[model].append(qoe)
     dct = {key: np.array([np.mean(dct[key][setting]) for setting in range(len(get_config()['settings']))]) for key in dct}
     final_dct = {}
     final_dct['delay'] = np.array([delay for (delay, loss) in get_config()['settings']])[np.arange(len(get_config()['settings']))]
