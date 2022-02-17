@@ -10,8 +10,9 @@ sudo apt-get install -y libsdl-pango-dev -y
 sudo apt install git-buildpackage -y
 sudo ./autogen.sh
 sudo ./configure
+cd src
 sudo make
-cd src/frontend
+cd frontend
 for file in *; do
 	if [[ -x "$file" ]]
 	then

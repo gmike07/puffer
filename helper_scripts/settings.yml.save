@@ -1,0 +1,220 @@
+all_models:
+  - model_name: "random"
+
+  - model_name: "idModel"
+
+  - model_name: "constant_0"
+    cc_id: 0
+
+  - model_name: "constant_1"
+    cc_id: 1
+
+  - model_name: "constant_2"
+    cc_id: 2
+
+  - model_name: "exp3" # other properties: max_weight_exp3, exp3_explore_parameter, exp3_save_name, exp3_model_path, should_load_exp3, should_clear_weights
+
+  - model_name: "resettingExp3" # other properties: max_weight_exp3, exp3_explore_parameter, exp3_save_name, exp3_model_path
+    should_clear_weights: true
+    should_load_exp3: false
+
+  # NN traits: model_network_sizes, lr, weights_decay, weights_path
+
+  - model_name: "sl" # other properties: scoring_function_type, sl_model_name, sl_max_bin, sl_bin_size, sl_bin_model_network_sizes + NN traits
+
+  - model_name: "SLTrainer" # other properties: sleep_sec, rounds_to_save, logs_file + SL traits
+
+  - model_name: "ae" # other properties: ae_model_name + NN traits
+
+  - model_name: "AETrainer" # other properties: sleep_sec, rounds_to_save, logs_file, logs_path + AE traits
+
+  - model_name: "rl" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file, logs_path + NN traits
+
+  - model_name: "srl" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file, logs_path + SL traits + context_layers
+    context_type: "sl"
+
+  - model_name: "srlAE" # other properties: rl_batch_size, rl_min_measuremets, sleep_sec, rounds_to_save, logs_file, logs_path + AE traits
+    context_type: "ae"
+
+  - model_name: "contextlessClusterTrainer" # other properties: num_clusters, cluster_name, saving_cluster_path
+    context_type: "contextless"
+
+  - model_name: "boggartClusterTrainer" # other properties: num_clusters, cluster_name, saving_cluster_path
+    context_type: "boggart"
+    boggart_size: 5
+
+  - model_name: "SLClusterTrainer" # other properties: num_clusters, cluster_name, saving_cluster_path + SL traits + context_layers
+    context_type: "sl"
+
+  - model_name: "AEClusterTrainer" # other properties: num_clusters, cluster_name, saving_cluster_path + AE traits
+    context_type: "ae"
+
+  - model_name: "exp3Kmeans" # other properties: save_name + exp3 traits + SLClusterTrainer traits
+    context_type: "sl"
+
+  - model_name: "exp3KmeansCustom" # other properties: save_name + exp3 traits + SLClusterTrainer traits
+    context_type: "custom"
+
+  - model_name: "contextlessExp3Kmeans" # other properties: save_name + exp3 traits + contextlessClusterTrainer traits
+    context_type: "contextless"
+
+  - model_name: "exp3KmeansAutoEncoder" # other properties: save_name + exp3 traits + AEClusterTrainer traits
+    context_type: "ae"
+
+  - model_name: "stackingModel" # other properties: models, scoring_path
+  
+
+
+
+fingerprint:
+  cc_config:
+    # function: q(Ci) - quality_change_qoef * abs(q(Ci) - q(Ci-1)) - buffer_length_coef * rebuffer_time_i, supported scorings: ssim, bit_rate
+    # scoring params
+
+    # scoring_function_type: "bit_rate"
+    # buffer_length_coef: 100.0
+    # quality_change_qoef: 1.0
+    scoring_function_type: "ssim" # the scoring method
+    buffer_length_coef: 100.0
+    quality_change_qoef: 1.0
+
+    #state params
+    history_size: 8 # how much previous chunks does the nn remember
+    random_sample_size: 100 # how much from previous chunks it gets as input
+    abr_time: true # replace cc each abr or once every _ time
+    nn_roundup: 500 # control the rate of change cc in case abr_time is false
+
+    random_cc: false # should replace the cc during runtime, ignored in the code
+
+  ccs: ["bbr", "vegas", "cubic"] # all ccs
+  cc: bbr # starting cc
+
+  #ABRS
+  abr: linear_bba
+  abr_config:
+    upper_reservoir: 0.9
+
+  # abr: pensieve
+  # abr_config:
+  #   pensieve_path: "/home/ubuntu/puffer/third_party/pensieve/multi_video_sim/rl_test.py"
+  #   nn_path: "/home/puffer/models/pensieve/nn_model_ep_77400.ckpt"
+
+
+   abr: mpc
+   abr_config:
+    rebuffer_length_coeff: 100
+
+
+  # abr: robust_mpc
+  # abr_config:
+  #   rebuffer_length_coeff: 100
+
+  # abr: puffer_ttp
+  # abr_config:
+  #   model_dir: ./weights/ttp/original
+  #   rebuffer_length_coeff: 100
+  #   collect_data: true
+  #   hidden2_model_dir: ./weights/ttp/hidden2/
+  #   max_lookahead_horizon: 1
+
+
+constants:
+  deleted_cols: ['file_index', 'chunk_index', 'max_pacing_rate', 'reordering',
+                  'advmss', 'pmtu', 'fackets', 'snd_mss', 'probes']
+  to_delete_cols: ['file_index', 'max_pacing_rate', 'reordering',
+                  'advmss', 'pmtu', 'fackets', 'snd_mss', 'probes']
+
+
+  qualities: ['426x240', '640x360', '854x480', '1280x720', '1920x1080']
+  # quality_cols: ['file_index', 'chunk_index', 'ssim', 'video_buffer',
+  #                 'cum_rebuffer', 'media_chunk_size', 'trans_time',
+
+  #                 'qoe', 'ssim_quality', 'ssim_change', 'rebuffer', 
+  #                 'bit_quality', 'bit_change']
+
+  quality_cols: ['file_index', 'chunk_index', 'qoe', 'video_buffer', 'rebuffer', 'ssim_quality', 'ssim_change']
+
+  cc_cols: ['file_index', 'chunk_index', 'sndbuf_limited', 'rwnd_limited', 'busy_time',
+            'delivery_rate', 'data_segs_out', 'data_segs_in', 'min_rtt', 'notsent_bytes',
+            'segs_in', 'segs_out', 'bytes_received', 'bytes_acked', 'max_pacing_rate',
+            'total_retrans', 'rcv_space', 'rcv_rtt', 'reordering', 'advmss',
+            'snd_cwnd', 'snd_ssthresh', 'rttvar', 'rtt', 'rcv_ssthresh', 'pmtu',
+            'last_ack_recv', 'last_data_recv', 'last_data_sent', 'fackets',
+            'retrans', 'lost', 'sacked', 'unacked', 'rcv_mss', 'snd_mss', 'ato',
+            'rto', 'backoff', 'probes', 'ca_state', 'timestamp']
+
+simulation_constants:
+  clients: 8 # num clients in simulation generating data and training
+
+  # how many iterations over the trace dir
+  epochs_training: 4
+  epochs_testing: 1
+
+  trace_dir: './traces/final_traces/' # the folder that holds the final traces
+  yml_output_dir: './src/' # the folder to contain the final settings.yml for the simulation
+
+  delay: -1.0 # default delay for the simulation, -1.0 means not to use this value
+  loss: -1.0 # default delay for the simulation, -1.0 means not to use this value
+
+  mahimahi_epochs: 1 # how many iterations over the trace dir
+
+  remote_base_port: 9222
+  base_port: 9360
+
+  delays: [40, 60, 80, 100]
+  losses: [0, 0.01, 0.02, 0.05]
+  train_test_log_file: 'train_test_log.txt'
+
+
+nn_model:
+  epochs: 5
+  model_network_sizes: [500, 200, 100, 80, 50, 40, 30, 20]
+  batch_size: 32
+  lr: 1e-4
+  betas: (0.5, 0.999)
+  version: 1.0
+  weights_decay: 1e-4
+  weights_path: './cc_weights/' # start path to the place where to store the nn weights for python
+
+sl_model:
+  scoring_function_type: "ssim_bin_rebuffer" #options: ssim, bit_rate, rebuffer, bin_rebuffer, ssim_bin_rebuffer, bit_rate_bin_rebuffer 
+  sl_bin_size: 0.5
+  sl_max_bin: 20
+  sl_bin_model_network_sizes: [500, 200, 100, 80, 70, 60, 50, 40]
+
+rl_model:
+  rl_gamma: 0.999
+
+srl_model:
+  context_type: 'sl'
+  srl_gamma: 0.999
+
+thread_training_settings:
+  rounds_to_save: 1
+  sleep_sec: 1
+  logs_file: 'server_logs.txt'
+  logs_path: './logs/'
+  #specific to rl:
+  rl_batch_size: 3
+  rl_min_measuremets: 7
+
+exp3:
+  exp3_explore_parameter: 0.001
+  exp3_model_path: './exp3/'
+
+contexts:
+  # [500, 200, 100, 80, 50, 40, 30, 20] = layers
+  context_layers: [7] # the layers of the model to generate context from
+
+clusters:
+# new for clusters
+  num_clusters: 20
+  saving_cluster_path: './clusters/'
+
+servers:
+  server_port: 5675
+  # test_models: ["constant_0", "constant_1", "constant_2", "resettingExp3", "exp3Kmeans", "sl", "contextlessExp3Kmeans"]
+  models: ["constant_0", "constant_1", "constant_2", "srl", "exp3Kmeans", "sl", "rl"]
+
+paths:
+  cc_scoring_path: "./cc_scoring/" # start path to save the scoring file of the abr data
