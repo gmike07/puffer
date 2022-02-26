@@ -344,7 +344,7 @@ def test_simulation_model(models):
     get_config()['test_seperated'] = True
     for model in models:
         get_config()['models'] = [model] * get_config()['num_clients']
-        run_simulation(model, True)
+        run_simulation('stackingModel', True, models=get_config()['models'])
         send_done_to_server()
     eval_scores_model(models, get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1])
 
