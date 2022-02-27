@@ -297,8 +297,12 @@ def train_simulation(model_name):
     epochs = get_config()['mahimahi_epochs']
     get_config()['mahimahi_epochs'] = 1
     for epoch in range(epochs):
+        if model_name == 'contexlessClusterTrainer':
+            exit_condition = lambda setting_number: setting_number == (10 - 1) # 10 iterations
+        else:
+            exit_condition = lambda _: False 
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: True'
-        run_simulation(model_name, bool(epoch != 0), helper_model='random')
+        run_simulation(model_name, bool(epoch != 0), f=exit_condition, helper_model='random')
         exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: False'
         run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
@@ -337,7 +341,7 @@ def eval_scores_model(models, filedir, threshold=np.inf):
     conversion = {'constant_0': 'bbr', 'constant_1': 'vegas', 'constant_2': 'cubic', 'exp3KmeansCustom': 'exp3CustomContext'}
     f = lambda x: x if x not in conversion else conversion[x]
     final_dct = {f(key): final_dct[key] for key in final_dct}
-    print(pd.DataFrame(final_dct))
+    print(pd.DataFrame(final_dct).mean())
 
 
 def test_simulation_model(models):
