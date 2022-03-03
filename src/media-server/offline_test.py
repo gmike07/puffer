@@ -297,7 +297,7 @@ def train_simulation(model_name):
     epochs = get_config()['mahimahi_epochs']
     get_config()['mahimahi_epochs'] = 1
     for epoch in range(epochs):
-        if model_name == 'contexlessClusterTrainer':
+        if model_name == 'contextlessClusterTrainer':
             exit_condition = lambda setting_number: setting_number == (10 - 1) # 10 iterations
         else:
             exit_condition = lambda _: False 
