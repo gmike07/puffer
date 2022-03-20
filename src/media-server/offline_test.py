@@ -298,12 +298,17 @@ def train_simulation(model_name):
     get_config()['mahimahi_epochs'] = 1
     for epoch in range(epochs):
         if model_name == 'contextlessClusterTrainer':
-            exit_condition = lambda setting_number: setting_number == (10 - 1) # 10 iterations
+            exit_condition = lambda setting_number: setting_number == (4 - 1) # 4 iterations
         else:
             exit_condition = lambda _: False 
+
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: True'
         run_simulation(model_name, bool(epoch != 0), f=exit_condition, helper_model='random')
-        exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
+        if model_name == 'contextlessClusterTrainer':
+            exit_condition = lambda setting_number: setting_number == (1 - 1) # 1 iterations
+        else:
+            exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
+
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: False'
         run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
         simulationDct['helper_string'] = ''
