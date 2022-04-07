@@ -23,11 +23,11 @@ month_num="${months[$month]}"
 
 rm -rf cooked mahimahi final_traces
 echo cd ..
-if [ -z "$2" ]; then 
+if [ -z "$2" ]; then
     echo "skipped downloading"
     unzip cooked-$month.zip
     mv cooked-$month cooked
-else 
+else
     wget http://data.fcc.gov/download/measuring-broadband-america/$next_year/data-raw-$year-$month.tar.gz --no-check-certificate
     tar -zxvf data-raw-$year-$month.tar.gz $year$month_num/curr_webget_"$year"_$month_num.csv
     rm data-raw-$year-$month.tar.gz
@@ -38,4 +38,4 @@ else
 fi
 cd traces
 python3 convert_mahimahi_format.py
-python3 split_train_test.py --seed 0
+python3 split_train_test.py
