@@ -7,14 +7,14 @@
 - install Pillow before installing tf-agents,tensorflow
 
 ## Prerequisites
-1. validate cc: bbr and cubic are available with `sysctl net.ipv4.tcp_available_congestion_control`
-2. If not, add bbr:
+1. validate cc: bbr and cubic and vegas are available with `sysctl net.ipv4.tcp_available_congestion_control`
+2. If not, add bbr and vefas:
     - edit the file: `sudo vi /etc/sysctl.conf`
     - add the lines:
         ```
         net.core.default_qdisc=fq
         net.ipv4.tcp_congestion_control=vegas
-	net.ipv4.tcp_congestion_control=bbr
+        net.ipv4.tcp_congestion_control=bbr
         ```
     - restart: `sudo sysctl --system`'
 4. fix ports in `src/portal/puffer/static/puffer/js/puffer.js` the argument that determine `ws_host_port`
@@ -28,7 +28,8 @@
 Generate traces with:
 * `cd traces`
 * `python load_webget_data.py`
-* `python convert_mahimahi_format.py`
+* `python3 convert_mahimahi_format.py`
+* `python3 python3 split_train_test.py`
 
 # How to run experiments?
 0. run `sudo influxd`.
