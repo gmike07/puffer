@@ -13,7 +13,8 @@
     - add the lines:
         ```
         net.core.default_qdisc=fq
-        net.ipv4.tcp_congestion_control=bbr
+        net.ipv4.tcp_congestion_control=vegas
+	net.ipv4.tcp_congestion_control=bbr
         ```
     - restart: `sudo sysctl --system`'
 4. fix ports in `src/portal/puffer/static/puffer/js/puffer.js` the argument that determine `ws_host_port`
