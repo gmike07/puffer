@@ -29,7 +29,7 @@ Generate traces with:
 * `cd traces`
 * `python load_webget_data.py`
 * `python3 convert_mahimahi_format.py`
-* `python3 python3 split_train_test.py`
+* `python3 split_train_test.py`
 
 # How to run experiments?
 0. run `sudo influxd`.
