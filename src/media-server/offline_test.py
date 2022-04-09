@@ -346,7 +346,11 @@ def eval_scores_model(models, filedir, threshold=np.inf):
     conversion = {'constant_0': 'bbr', 'constant_1': 'vegas', 'constant_2': 'cubic', 'exp3KmeansCustom': 'exp3CustomContext'}
     f = lambda x: x if x not in conversion else conversion[x]
     final_dct = {f(key): final_dct[key] for key in final_dct}
+    print('mean')
     print(pd.DataFrame(final_dct).mean())
+    for per in [0.05, 0.1, 0.25]:
+        print(f'{per}% precentile')
+        print(pd.DataFrame(final_dct).quantile(per))
 
 
 def test_simulation_model(models):
