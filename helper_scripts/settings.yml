@@ -184,10 +184,12 @@ sl_model:
 
 rl_model:
   rl_gamma: 0.999
+  lr: 3e-5
 
 srl_model:
   context_type: 'sl'
   srl_gamma: 0.999
+  lr: 3e-5
 
 thread_training_settings:
   rounds_to_save: 1

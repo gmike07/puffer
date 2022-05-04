@@ -25,10 +25,11 @@ def main(traces_dir, output_dir, seed):
     if not os.path.exists(test_dir):
         os.mkdir(test_dir)
 
-    for f in files[:-16 * 8]:
+    split_index = int(len(files) * 0.8)
+    for f in files[:split_index]:
         copy2(f, train_dir)
 
-    for f in files[-16 * 8:]:
+    for f in files[split_index:]:
         copy2(f, test_dir)
 
 
