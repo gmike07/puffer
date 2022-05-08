@@ -20,7 +20,6 @@ SocketHelper::SocketHelper(const WebSocketClient& client, TCPSocket& socket, YAM
   buffer_length_coef = get_attribute(cc_config, "buffer_length_coef", 100.0);
   quality_change_qoef = get_attribute(cc_config, "quality_change_qoef", 1.0);
   scoring_type = get_attribute<std::string>(cc_config, "scoring_function_type", "ssim");
-  is_boggart = get_attribute<bool>(cc_config, "boggart", false);
   stateless = get_attribute<bool>(cc_config, "start_stateless", false);
 
   server_path = get_attribute<std::string>(cc_config, "server_path", "");
@@ -132,13 +131,6 @@ std::vector<double> SocketHelper::get_tcp_full_normalized_vector(const std::vect
     return state;
 }
 
-
-
-std::size_t SocketHelper::get_boggart_qoe_state_id()
-{
-  auto boggart_state = get_boggart_qoe_state();
-  return boggart_state[0] * NUM_OF_ACTIONS + boggart_state[1];
-}
 
 
 
@@ -298,80 +290,15 @@ void SocketHelper::add_chunk(ABRAlgo::Chunk &&c)
     past_chunks_.pop_front();
   }
   reinit();
+}
+
+void SocketHelper::select_new_cc(double new_ssim)
+{
   if(past_chunks_.size() <= 1)
   {
     return;
   }
+  chosen_ssim = ssim_db(new_ssim);
   is_new_chunk_scoring = true;
   is_new_chunk_model = true;
 }
-
-
-std::vector<std::size_t> SocketHelper::find_boggart_state_helper(std::vector<std::size_t> available_actions_idx)
-{
-  // calc expected transmission time for each vformat
-  double expected_trans_time[MAX_LOOKAHEAD_HORIZON + 1][MAX_NUM_FORMATS];
-  for (size_t i = 1; i <= max_lookahead_horizon_; i++)
-  {
-    for (size_t j = 0; j < num_formats_; j++)
-    {
-      expected_trans_time[i][j] = 0;
-      for (size_t k = 0; k < dis_sending_time_; k++)
-      {
-        expected_trans_time[i][j] += sending_time_prob_[i][j][k] * (BINS[k] + BINS[k + 1]) / 2;
-      }
-    }
-  }
-
-  size_t max_conservative = 0;
-  size_t max_risk = 0;
-
-  for (size_t i = 1; i <= 1; i++) // lookahead_horizon_
-  {
-    for (size_t action_idx : available_actions_idx)
-    {
-      int action = actions_.at(action_idx);
-      int sorted_format_idx = last_sorted_format_idx_ + action;
-
-      auto &vformats = client_.channel()->vformats();
-      auto it = std::find(vformats.begin(), vformats.end(), sorted_vformats_.at(sorted_format_idx));
-      int format_idx = it - vformats.begin();
-
-      // get highest format chunk can be downloaded less than chunk duration
-      if (expected_trans_time[i][format_idx] < dis_chunk_length_ * UNIT_BUF_LENGTH)
-      {
-        if (curr_ssims_[i][max_conservative] < curr_ssims_[i][format_idx])
-        {
-          max_conservative = action_idx;
-        }
-      }
-
-      // get highest format chunk can be downloaded less than chunk duration + buffer size
-      if (expected_trans_time[i][format_idx] < curr_buffer_ * UNIT_BUF_LENGTH)
-      {
-        if (curr_ssims_[i][max_risk] < curr_ssims_[i][format_idx])
-        {
-          max_risk = action_idx;
-        }
-      }
-    }
-  }
-  return {max_conservative, max_risk};
-}
-
-std::vector<std::size_t> SocketHelper::get_boggart_qoe_state()
-{
-  std::vector<std::size_t> available_actions_idx;
-  for (std::size_t i = 0; i < actions_.size(); i++)
-  {
-    int action = actions_.at(i);
-    int sorted_format_idx = last_sorted_format_idx_ + action;
-    if (sorted_format_idx >= 0 && (unsigned int)sorted_format_idx < sorted_vformats_.size())
-    {
-      available_actions_idx.push_back(i);
-    }
-  }
-  return find_boggart_state_helper(available_actions_idx);
-}
-
-

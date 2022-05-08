@@ -122,6 +122,8 @@ void serve_video_to_client(WebSocketServer & server,
   /* select a video format using ABR algorithm */
   const VideoFormat & next_vformat = client.select_video_format();
   double ssim = channel->vssim(next_vts).at(next_vformat);
+  SocketHelper* socket_helper = client.get_socket()->socket_helper_p.get();
+  socket_helper->select_new_cc(ssim);
 
   /* check if a new init segment is needed */
   optional<mmap_t> init_mmap;

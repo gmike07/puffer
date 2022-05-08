@@ -1,19 +1,15 @@
 from models.helper_functions import get_config, fill_default
 from models.basic_models import ConstantModel, RandomModel, IdModel
 from models.exp3 import Exp3
-from models.sl_trainer import SLTrainer
+from models.dnn_trainer import DNNTrainer
 from models.ae_trainer import AETrainer
 from models.rl_trainer import RLTrainer
 from models.cluster_trainer import ClusterTrainer
-from models.rl_model import RLModel
-from models.srl_model import SRLModel
+from models.rl_model import DRL
+from models.reinforce_model import REINFORCE
 from models.exp3_kmeans import Exp3Kmeans
-from models.sl_model import SLModel
+from models.dnn_model import DNN
 from models.helper_functions import fill_default_key_conf
-
-
-#models: [constant*, random, idModel, exp3, resettingExp3, sl, ae, slTrainer + random \ idmodel, aeTrainer + random \ idmodel, 
-#           rl, srl, srlAE, 'contextlessExp3Kmeans', 'exp3Kmeans', 'exp3KmeansAutoEncoder', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer', 'stackingModel']
 
 
 class StackingModelsServer:
@@ -70,31 +66,31 @@ def create_model(num_clients, model_name, helper_model=''):
         if model_name == 'idModel':
             return IdModel(conf)
 
-        if model_name == 'sl':
-            return SLModel(conf)
+        if model_name == 'dnn':
+            return DNN(conf)
 
         if model_name in ['resettingExp3', 'exp3']:
             return Exp3(num_clients, conf)
 
-        if model_name == 'SLTrainer':
-            return SLTrainer(num_clients, conf, create_model(num_clients, helper_model))
+        if model_name == 'DNNTrainer':
+            return DNNTrainer(num_clients, conf, create_model(num_clients, helper_model))
 
         if model_name == 'AETrainer':
             return AETrainer(conf, create_model(num_clients, helper_model))
 
-        if model_name == 'rl':
-            return RLTrainer(RLModel(num_clients, conf))
+        if model_name == 'DRL':
+            return RLTrainer(DRL(num_clients, conf))
         
-        if model_name in ['srl', 'srlAE']: # no reason to support srlContextless
-            return RLTrainer(SRLModel(num_clients, conf))
+        if model_name in ['REINFORCE', 'REINFORCE_AE']: # no reason to support srlContextless
+            return RLTrainer(REINFORCE(num_clients, conf))
         
-        if model_name in ['contextlessExp3Kmeans', 'exp3Kmeans', 'exp3KmeansAutoEncoder', 'exp3KmeansCustom']:
+        if model_name in ['input_k_means', 'DNN_k_means', 'AE_k_means', 'Morpheus']:
             return Exp3Kmeans(num_clients, conf)
         
         if model_name == 'stackingModel':
             return StackingModelsServer(conf)
         
-        if model_name in ['contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer', 'boggartClusterTrainer']:
+        if model_name in ['inputClusterTrainer', 'DNNClusterTrainer', 'AEClusterTrainer']:
             return ClusterTrainer(conf, create_model(num_clients, helper_model))
         
         print(model_name)

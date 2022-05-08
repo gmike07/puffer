@@ -140,15 +140,14 @@ enable_logging: true
 enforce_moving_live_edge: false
 experiments:
 - fingerprint:
-    abr: mpc
+    abr: linear_bba
     abr_config:
-      rebuffer_length_coeff: 100
+      upper_reservoir: 0.9
     cc: bbr
     cc_config:
       abr_time: true
       buffer_length_coef: 100.0
       history_size: 8
-      model_name: constant_0
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false
@@ -162,15 +161,14 @@ experiments:
     - cubic
   num_servers: 1
 - fingerprint:
-    abr: mpc
+    abr: linear_bba
     abr_config:
-      rebuffer_length_coeff: 100
-    cc: vegas
+      upper_reservoir: 0.9
+    cc: bbr
     cc_config:
       abr_time: true
       buffer_length_coef: 100.0
       history_size: 8
-      model_name: constant_1
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false
@@ -184,15 +182,14 @@ experiments:
     - cubic
   num_servers: 1
 - fingerprint:
-    abr: mpc
+    abr: linear_bba
     abr_config:
-      rebuffer_length_coeff: 100
-    cc: cubic
+      upper_reservoir: 0.9
+    cc: bbr
     cc_config:
       abr_time: true
       buffer_length_coef: 100.0
       history_size: 8
-      model_name: constant_2
       nn_roundup: 500
       quality_change_qoef: 1.0
       random_cc: false
@@ -205,14 +202,35 @@ experiments:
     - vegas
     - cubic
   num_servers: 1
+- fingerprint:
+    abr: linear_bba
+    abr_config:
+      upper_reservoir: 0.9
+    cc: bbr
+    cc_config:
+      abr_time: true
+      buffer_length_coef: 100.0
+      history_size: 8
+      nn_roundup: 500
+      quality_change_qoef: 1.0
+      random_cc: false
+      random_sample_size: 100
+      scoring_function_type: ssim
+      server_id: 3
+      server_path: http://localhost:5675
+    ccs:
+    - bbr
+    - vegas
+    - cubic
+  num_servers: 1
 influxdb_connection:
   dbname: puffer1
   host: 127.0.0.1
   password: INFLUXDB_PASSWORD
   port: 8086
   user: puffer1
-log_dir: /home/mike/puffer/src/monitoring
-media_dir: /home/mike/puffer/media-181230
+log_dir: /home/ubuntu/puffer/src/monitoring
+media_dir: /home/ubuntu/puffer/media-181230
 portal_settings:
   allowed_hosts:
   - '*'

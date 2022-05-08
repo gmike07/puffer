@@ -67,7 +67,7 @@ def parse_arguments():
                 curr_model.update_epochs(args.epochs)
     args.models = new_models
     args.clients = len(args.models) if args.clients == -1 or args.test else args.clients
-    create_config(args.yaml_input_dir, args.abr, args.clients, args.test or args.test_seperated, args.eval, args.epochs, '', args.scoring_path, True)
+    create_config(args.yaml_input_dir, args.abr, args.clients, args.test or args.test_seperated, args.eval, args.epochs, '', args.scoring_path)
     model_folder = '_'.join(sorted([model_data.model_name for model_data in args.models])) + f"_scoring_{get_config()['buffer_length_coef']}"
     args.scoring_path = get_config()['scoring_path'] + model_folder + '/'
     if args.test:
@@ -99,12 +99,12 @@ done"""
 
 def eval(args):
     if args.eval:
-        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, True)
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path)
         get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         eval_scores()
         return True
     elif args.eval_seperated:
-        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, True)
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path)
         get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         eval_scores_model(get_config()['models'], get_config()['scoring_path'][:get_config()['scoring_path'].rfind('/') + 1])
         return True
@@ -124,16 +124,16 @@ def main_train_test():
     start_server(args)
     time.sleep(DEFAULT_SLEEP_TIME)
     if args.test:
-        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path, True)
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, args.epochs, 'stackingModel', args.scoring_path)
         get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         test_simulation()
     elif args.test_seperated:
-        create_config(args.yaml_input_dir, args.abr, args.clients, args.test_seperated, args.eval, args.epochs, 'stackingModel', args.scoring_path, True)
+        create_config(args.yaml_input_dir, args.abr, args.clients, args.test_seperated, args.eval, args.epochs, 'stackingModel', args.scoring_path)
         get_config()['models'] = list(map(lambda x: x.model_name, args.models))
         test_simulation_model(get_config()['models'])
     else:
         for model_data in args.models:
-            create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, model_data.epochs, model_data.model_name, args.scoring_path, True)
+            create_config(args.yaml_input_dir, args.abr, args.clients, args.test, args.eval, model_data.epochs, model_data.model_name, args.scoring_path)
             train_simulation(model_data.model_name)
             if 'Cluster' not in model_data.model_name:
                 time.sleep(DEFAULT_SLEEP_TIME)

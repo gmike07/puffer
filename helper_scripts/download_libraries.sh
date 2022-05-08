@@ -1,4 +1,3 @@
-# git clone https://github.cs.huji.ac.il/mikeg/puffer.git
 cd ..
 git branch -a
 git checkout amazon_congestion_control

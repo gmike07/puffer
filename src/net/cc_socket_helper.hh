@@ -9,7 +9,6 @@
 class SocketHelper
 {
 private:
-  //copied code from Ofir
   static constexpr size_t MAX_NUM_PAST_CHUNKS = 8;
   static constexpr double UNIT_BUF_LENGTH = 0.5;
   static constexpr size_t MAX_LOOKAHEAD_HORIZON = 5;
@@ -52,7 +51,6 @@ private:
   std::vector<std::string> scoring_types = {"ssim"}; //"bit_rate"
   TCPSocket& sock;
 
-
   static constexpr double MILLION = 1000000;
   static constexpr double PKT_BYTES = 1500;
 
@@ -63,6 +61,7 @@ public:
   //new chunk booleans
   bool is_new_chunk_scoring = false;
   bool is_new_chunk_model = false;
+  double chosen_ssim = 0.0;
 
   //paths
   std::string scoring_path = "";
@@ -75,7 +74,6 @@ public:
   bool abr_time = false;
   int nn_roundup = 1000;
 
-  bool is_boggart = false;
   bool stateless = false;
 
   double quality_change_qoef = 1.0;
@@ -90,8 +88,6 @@ public:
 
   size_t discretize_buffer(double buf);
 
-  std::vector<std::size_t> find_boggart_state_helper(std::vector<std::size_t> available_actions_idx);
-
   std::vector<uint64_t> get_tcp_full_vector();
 
   std::vector<double> get_tcp_full_normalized_vector(const std::vector<uint64_t>& vec);
@@ -105,10 +101,6 @@ public:
   void add_chunk(ABRAlgo::Chunk &&c);
 
   double get_normalized_qoe();
-
-  std::vector<std::size_t> get_boggart_qoe_state();
-
-  std::size_t get_boggart_qoe_state_id();
 
   std::vector<double> get_qoe_vector();
 
@@ -138,6 +130,8 @@ public:
   double get_rebuffer();
 
   int get_congestion_control_index();
+
+  void select_new_cc(double new_ssim);
 
 };
 

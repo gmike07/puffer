@@ -7,7 +7,6 @@
 
 typedef std::vector<double> qoe_sample;
 typedef std::vector<std::vector<double>> chunk_sample;
-typedef std::vector<double> boggart_sample;
 
 
 class DefaultHandler
@@ -38,10 +37,10 @@ class ServerSender
 {
 public:
   ServerSender(SocketHelper& socket_helper_): socket_helper(socket_helper_) {};
-  int send(std::vector<double> state, int boggart_id=0, bool stateless=false);
+  int send(std::vector<double> state, bool stateless=false);
   static std::pair<int, std::string> send_and_receive(const std::string& host, const json& js);
   static std::pair<int, std::string> send_and_receive_str(const std::string& host, const std::string& str, int server_id);
-  void send_state_and_replace_cc(std::vector<double> state, int boggart_id=0, bool stateless=false);
+  void send_state_and_replace_cc(std::vector<double> state, bool stateless=false);
 private:
   SocketHelper& socket_helper;
 };
@@ -58,8 +57,6 @@ public:
   virtual void update_chunk(std::uint64_t start_time) = 0;
 
   virtual void push_statistic() = 0;
-
-  virtual int get_boggart_id(){return 0;}
 
   /*
   * adds to vec a random sample of each chunk of the history
@@ -158,48 +155,6 @@ public:
   }
 private:
   const int sample_size;
-};
-
-
-class BoggartCustomHistory: public virtual AbstractHistoryHelper<boggart_sample, qoe_sample>
-{
-public:
-  BoggartCustomHistory(SocketHelper& socket_helper_): AbstractHistory(socket_helper_), AbstractHistoryHelper(socket_helper_), counter(0){}
-  virtual ~BoggartCustomHistory()=default;
-
-  /*
-  * adds a cc sample to the current chunk
-  */
-  void update_chunk(std::uint64_t) {
-    auto sample = socket_helper.get_custom_cc_state();
-    if(counter == 0 or curr_chunk.size() == 0)
-    {
-      curr_chunk = sample;
-      counter = 1;
-    }
-    else{
-      for(unsigned int i = 0; i < curr_chunk.size(); i++)
-      {
-        counter++;
-        double n = counter;
-        curr_chunk[i] = (n - 1) / n * curr_chunk[i] + sample[i] / n;
-      }
-    }
-  }
-
-  void push_statistic(){counter = 0; push_statistic_helper(socket_helper.get_qoe_vector());}
-  /*
-  * adds to vec a random sample of each chunk of the history
-  */
-  void get_state(std::vector<double>& vec)
-  {
-    vec.insert(std::end(vec), std::begin(curr_chunk), std::end(curr_chunk));
-  }
-
-  int get_boggart_id(){return socket_helper.get_boggart_qoe_state_id();}
-
-private:
-  std::size_t counter = 0;
 };
 
 

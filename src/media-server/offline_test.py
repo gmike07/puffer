@@ -136,7 +136,7 @@ def run_single_simulation(num_clients, clients, f, seed, ms=5000):
         p = subprocess.Popen(mahimahi_chrome_cmd, shell=True, preexec_fn=os.setsid)
         plist.append(p)
 
-    time.sleep(60*10) # - sleep_time * clients
+    time.sleep(60*11.5) # - sleep_time * clients
 
     kill_proccesses(plist[2:], sleep_time)
     kill_proccesses(plist[:2])
@@ -291,25 +291,30 @@ def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', 
 
 def train_simulation(model_name):
     if not requires_helper_model(model_name):
-        run_simulation(model_name, False)
+        _, traces = get_traces()
+        exit_condition = lambda x: x % (len(traces) // get_config()['num_clients']) == (2 - 1)
+        run_simulation(model_name, False, f=exit_condition)
         send_done_to_server()
         return
     epochs = get_config()['mahimahi_epochs']
     get_config()['mahimahi_epochs'] = 1
     for epoch in range(epochs):
-        if model_name == 'contextlessClusterTrainer':
+        if model_name == 'inputClusterTrainer':
             exit_condition = lambda setting_number: setting_number == (4 - 1) # 4 iterations
         else:
-            exit_condition = lambda _: False 
+            exit_condition = lambda _: False
+        
+        exit_condition = lambda x: x == (2 - 1)
 
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: True'
         run_simulation(model_name, bool(epoch != 0), f=exit_condition, helper_model='random')
-        if model_name == 'contextlessClusterTrainer':
+        if model_name == 'inputClusterTrainer':
             exit_condition = lambda setting_number: setting_number == (1 - 1) # 1 iterations
         else:
             exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
 
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: False'
+        exit_condition = lambda x: x == (2 - 1)
         run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
         simulationDct['helper_string'] = ''
     get_config()['mahimahi_epochs'] = epochs

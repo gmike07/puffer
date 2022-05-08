@@ -14,14 +14,7 @@ void create_handlers(SocketHelper& socket_helper, std::vector<std::unique_ptr<De
   }
   if(socket_helper.server_path != "")
   {
-    if(socket_helper.is_boggart)
-    {
-      handlers.push_back(std::unique_ptr<DefaultHandler>(new StateServerHandler(socket_helper, std::make_shared<BoggartCustomHistory>(socket_helper))));
-    }
-    else
-    {
-      handlers.push_back(std::unique_ptr<DefaultHandler>(new StateServerHandler(socket_helper, std::make_shared<ChunkHistory>(socket_helper))));
-    }
+    handlers.push_back(std::unique_ptr<DefaultHandler>(new StateServerHandler(socket_helper, std::make_shared<ChunkHistory>(socket_helper))));
   }
 }
 
@@ -54,7 +47,8 @@ void logging_cc_func(TCPSocket* socket)
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(MILLISECONDS_TO_SLEEP));
     }
-  }catch (const std::exception& e)
+  }
+  catch (const std::exception& e)
   {
       ServerSender::send_and_receive_str(server_path, "sock finished", server_id);
       std::cerr << e.what() << "hmmm" << std::endl;

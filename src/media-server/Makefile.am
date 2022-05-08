@@ -31,8 +31,7 @@ libnethelper_a_SOURCES = ws_client.hh ws_client.cc channel.hh channel.cc \
 	../abr/puffer_ttp.cc ../abr/puffer_ttp.hh \
 	../abr/puffer_reinforce.cc ../abr/puffer_reinforce.hh \
 	../abr/reinforce_policy.cc ../abr/reinforce_policy.hh \
-	../abr/puffer_exp3.cc ../abr/puffer_exp3.hh \
-	../abr/exp3_policy.cc ../abr/exp3_policy.hh \
+	../abr/puffer_exp3.cc ../abr/puffer_exp3.hh 
 	../../third_party/json.upstream/single_include/nlohmann/json.hpp
 
 

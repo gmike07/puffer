@@ -8,14 +8,11 @@ import pathlib
 CONFIG = {}
 BATCH_SIZE = -1
 
-def is_boggart_model(model_name):
-    return model_name in ['BoggartClusterTrainer']
-
 def requires_helper_model(model_name):
-    return model_name in ['SLTrainer', 'AETrainer', 'contextlessClusterTrainer', 'SLClusterTrainer', 'AEClusterTrainer']
+    return model_name in ['DNNTrainer', 'AETrainer', 'inputClusterTrainer', 'DNNClusterTrainer', 'AEClusterTrainer']
 
 def is_threaded_model(model_name):
-    return model_name in ['rl', 'srl'] or requires_helper_model(model_name)
+    return model_name in ['DRL', 'REINFORCE', 'REINFORCE_AE'] or requires_helper_model(model_name)
 
 
 def create_dir(path):
@@ -45,9 +42,6 @@ def add_server_index_to_config(config):
 
 def create_setting_yaml(test=False):
     copy_fingerprint = copy.deepcopy(CONFIG['fingerprint'])
-    # if test:
-    #     copy_fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
-
     copy_fingerprint['cc_config']['random_cc'] = False
     experiments_dct = {'experiments': [{'fingerprint': copy.deepcopy(copy_fingerprint), 
                                         'num_servers': 1} for _ in range(CONFIG['num_clients'])]
@@ -59,14 +53,11 @@ def create_setting_yaml(test=False):
         model_name = CONFIG['model_name']
         if test:
             model_config = CONFIG['all_models_config'][CONFIG['models'][i]]
-            # fingerprint['cc_config']['cc_scoring_path'] = CONFIG['scoring_path']
             fingerprint['cc_config']['model_name'] = model_config['model_name']
             model_name = model_config['model_name']
         
         if requires_helper_model(model_name):
             fingerprint['cc_config']['start_stateless'] = True
-        if is_boggart_model(model_name):
-            fingerprint['cc_config']['boggart'] = True
     
         fingerprint['cc'] = 'bbr'
         if 'constant' in model_name:
@@ -124,7 +115,7 @@ def update_key_not_empty(key, val):
     if val:
         CONFIG[key] = val
 
-def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, epochs=-1, model_name='', scoring_path='', use_default=True):
+def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=False, epochs=-1, model_name='', scoring_path=''):
     global BATCH_SIZE
     CONFIG.clear()
     with open(yaml_input_path + 'settings.yml', 'r') as f:
@@ -151,8 +142,7 @@ def create_config(yaml_input_path, abr='', num_clients=-1, test=False, eval=Fals
         for path in [CONFIG['scoring_path'], CONFIG['exp3_model_path'], CONFIG['weights_path'], CONFIG['saving_cluster_path'], CONFIG['logs_path']]:
             create_dir(path)
 
-        if use_default:
-            CONFIG['default_path'] = pathlib.Path().resolve()
+        CONFIG['default_path'] = pathlib.Path().resolve()
         BATCH_SIZE = CONFIG['batch_size']
         
 

@@ -2,7 +2,7 @@ import torch
 from models.helper_functions import create_actions, fill_default_key_conf, merge_state_actions
 import numpy as np
 from models.helper_functions import fill_default_key_conf, fill_default_key, get_updated_config_model, get_config
-from models.sl_model import SLModel, REBUFFER_INDEX, QOE_SSIM_INDEX, QOE_CHANGE_INDEX
+from models.dnn_model import DNN, REBUFFER_INDEX, QOE_SSIM_INDEX, QOE_CHANGE_INDEX
 
 from models.ae_model import AutoEncoder
 
@@ -10,20 +10,20 @@ class ContextModel(torch.nn.Module):
     def __init__(self, model_config):
         super(ContextModel, self).__init__()
         self.model_config = model_config
-        self.context_type = fill_default_key(model_config, 'context_type', 'sl')
+        self.context_type = fill_default_key(model_config, 'context_type', 'DNN')
         #contextless case
         self.forward_lambda = self.to_torch
         self.generate_context_lambda = self.to_numpy
         self.output_size = get_config()['nn_input_size'] - len(get_config()['ccs'])
-        if self.context_type == 'sl':
-            self.base_model = SLModel(get_updated_config_model('sl', model_config))
+        if self.context_type == 'DNN' or self.context_type == 'dnn':
+            self.base_model = DNN(get_updated_config_model('DNN', model_config))
             self.base_model.load()
             self.base_model.eval()
             self.context_layers = fill_default_key_conf(model_config, 'context_layers')
             self.context_layers = set(self.context_layers)
             self.actions = create_actions()
-            self.forward_lambda = self.forward_sl
-            self.generate_context_lambda = self.generate_context_sl
+            self.forward_lambda = self.forward_dnn
+            self.generate_context_lambda = self.generate_context_dnn
             self.output_size = sum(self.base_model.sizes[i + 1] for i in self.context_layers) * len(get_config()['ccs'])
         elif self.context_type == 'ae':
             self.base_model = AutoEncoder(get_updated_config_model('ae', model_config))
@@ -32,10 +32,8 @@ class ContextModel(torch.nn.Module):
             self.forward_lambda = self.forward_ae
             self.generate_context_lambda = self.generate_context_ae
             self.output_size = self.base_model.encoder_sizes[-1]
-        elif self.context_type == 'boggart':
-            self.output_size = fill_default_key_conf(model_config, 'boggart_size')
         elif self.context_type == 'custom':
-            self.base_model = SLModel(get_updated_config_model('sl', model_config))
+            self.base_model = DNN(get_updated_config_model('DNN', model_config))
             self.base_model.load()
             self.base_model.eval()
             self.actions = create_actions()
@@ -63,14 +61,14 @@ class ContextModel(torch.nn.Module):
     def generate_context_ae(self, x):
         return self.base_model.get_context(self.to_torch(x)).detach().cpu().numpy()
     
-    def generate_context_sl(self, x):
+    def generate_context_dnn(self, x):
         x = self.to_numpy(x)
         context_action = []
         for action in self.actions:
             context_action.append(self(merge_state_actions(x, action)))
         return np.hstack(context_action)
 
-    def forward_sl(self, x):
+    def forward_dnn(self, x):
         x = self.to_torch(x)
         context_layers = []
         if -1 in self.context_layers:

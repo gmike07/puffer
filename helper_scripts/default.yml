@@ -11,7 +11,7 @@ postgres_connection:
   user: puffer1 # change to DB username
   password: PUFFER_PORTAL_DB_KEY # change to DB export password
 enable_logging: true
-log_dir: /home/mike/puffer/src/monitoring # change to your own logging dir
+log_dir: /home/ubuntu/puffer/src/monitoring # change to your own logging dir
 influxdb_connection:
   host: 127.0.0.1
   port: 8086 # change to the port setup for the DB, default is 8086
@@ -19,7 +19,7 @@ influxdb_connection:
   user: puffer1 # change to DB username
   password: INFLUXDB_PASSWORD # change to DB export password
 enforce_moving_live_edge: false
-media_dir: /home/mike/puffer/media-181230 # change to your own media dir
+media_dir: /home/ubuntu/puffer/media-181230 # change to your own media dir
 channels:
   - nbc
 channel_configs:
@@ -140,13 +140,13 @@ channel_configs:
   #     abr_config:
   #       upper_reservoir: 0.9
   #     cc_config:
-  #       cc_monitoring_path: "/home/mike/cc_monitoring/cc_"
+  #       cc_monitoring_path: "/home/ubuntu/cc_monitoring/cc_"
   #       random_cc: false
-  #       cc_scoring_path: "/home/mike/cc_scoring/cc_score_"
+  #       cc_scoring_path: "/home/ubuntu/cc_scoring/cc_score_"
   #       scoring_type: "ssim"
   #       scoring_mu: 1.0
   #       scoring_lambda: 1.0
-        # model_path: "/home/mike/cc_monitoring/shit"
+        # model_path: "/home/ubuntu/cc_monitoring/other"
         # history_size: 5
         # sample_size: 40
   # - num_servers: 4

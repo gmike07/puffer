@@ -58,14 +58,14 @@ std::pair<int, std::string> ServerSender::send_and_receive(const std::string& ho
   return {-1, "error"};
 }
 
-int ServerSender::send(std::vector<double> state, int boggart_id, bool stateless)
+int ServerSender::send(std::vector<double> state, bool stateless)
 { 
   json data;
   if(not stateless)
   {
     json json_state(state);
     data["state"] = json_state;
-    std::vector<double> helper = {socket_helper.get_ssim(), socket_helper.get_change_ssim(), socket_helper.get_rebuffer()};
+    std::vector<double> helper = {socket_helper.chosen_ssim, std::abs(socket_helper.chosen_ssim - socket_helper.get_ssim()), socket_helper.get_rebuffer()};
     json json_state_qoe(helper);
     data["qoe_state"] = json_state_qoe;
     data["curr_cc"] = socket_helper.get_congestion_control();
@@ -77,7 +77,6 @@ int ServerSender::send(std::vector<double> state, int boggart_id, bool stateless
   data["server_id"] = socket_helper.server_id;
   data["qoe"] = socket_helper.get_qoe();
   data["normalized qoe"] = socket_helper.get_normalized_qoe();
-  data["boggart_id"] = boggart_id;
 
   auto pair = ServerSender::send_and_receive(socket_helper.server_path, data);
   int status = pair.first;
@@ -97,9 +96,9 @@ int ServerSender::send(std::vector<double> state, int boggart_id, bool stateless
   return -1;
 }
 
-void ServerSender::send_state_and_replace_cc(std::vector<double> state, int boggart_id, bool stateless)
+void ServerSender::send_state_and_replace_cc(std::vector<double> state, bool stateless)
 {
-  int cc_index = send(state, boggart_id, stateless);
+  int cc_index = send(state, stateless);
   if(cc_index != -1)
   {
     change_cc(socket_helper, cc_index);
@@ -126,13 +125,13 @@ void StateServerHandler::operator()()
   {
     if(socket_helper.stateless)
     {
-      std::thread([this](){sender.send_state_and_replace_cc({}, history_p.get()->get_boggart_id(), true);}).detach();
+      std::thread([this](){sender.send_state_and_replace_cc({}, true);}).detach();
     }
     return;
   }
   std::vector<double> state(0);
   history_p.get()->get_state(state);
-  std::thread([this, state](){sender.send_state_and_replace_cc(state, history_p.get()->get_boggart_id());}).detach();
+  std::thread([this, state](){sender.send_state_and_replace_cc(state);}).detach();
 }
 
 

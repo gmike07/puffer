@@ -6,7 +6,7 @@ import sys
 from models.model_creator import create_model
 from models.ae_trainer import train_ae
 from models.rl_trainer import train_rl
-from models.sl_trainer import train_sl
+from models.dnn_trainer import train_dnn
 from config_creator import get_config, requires_helper_model, is_threaded_model
 from argument_parser import parse_arguments
 from contextlib import redirect_stdout, redirect_stderr
@@ -25,11 +25,11 @@ def signal_handler(sig, frame):
 
 
 def get_lambda_trainer(model, model_name, event, f=None):
-    if model_name == 'SLTrainer':
-        return lambda: train_sl(model, event, f)
+    if model_name == 'DNNTrainer':
+        return lambda: train_dnn(model, event, f=f)
     if model_name == 'AETrainer':
-        return lambda: train_ae(model, event, f)
-    if model_name in ['rl', 'srl']:
+        return lambda: train_ae(model, event, f=f)
+    if model_name in ['DRL', 'REINFORCE', 'REINFORCE_AE']:
         return lambda: train_rl(model, event)
 
 def get_server_model(models_lst):   

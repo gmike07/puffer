@@ -24,7 +24,7 @@ libnet_a_SOURCES = address.cc address.hh body_parser.hh \
                    http_request_parser.hh http_response.cc http_response.hh \
                    http_response_parser.cc http_response_parser.hh \
                    mime_type.cc mime_type.hh \
-                   secure_socket.cc secure_socket.hh socket.cc socket.hh cc_logging_socket.cc cc_socket_helper.cc \
+                   secure_socket.cc secure_socket.hh socket.cc socket.hh cc_socket_helper.cc \
                    serialization.cc serialization.hh \
                    strict_conversions.hh strict_conversions.cc \
                    nb_secure_socket.hh nb_secure_socket.cc \

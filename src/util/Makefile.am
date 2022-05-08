@@ -38,8 +38,7 @@ libutil_a_SOURCES = \
 	sender.hh sender.cc \
 	exp3.cc ex3.hh \
 	context.cc context.hh \
-	exp3_kmeans.cc exp3_kmeans.hh \
-	exp3_boggart.cc exp3_boggart.hh 
+	exp3_kmeans.cc exp3_kmeans.hh
 
 libutil_a_LDFLAGS = -L../../third_party/libtorch/lib \
 	'-Wl,-rpath,$$ORIGIN/../../third_party/libtorch/lib' \
