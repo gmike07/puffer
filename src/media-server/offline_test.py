@@ -291,8 +291,9 @@ def run_simulation(model_name, should_load, f=lambda _: False, helper_model='', 
 
 def train_simulation(model_name):
     if not requires_helper_model(model_name):
-        _, traces = get_traces()
-        exit_condition = lambda x: x % (len(traces) // get_config()['num_clients']) == (2 - 1)
+        # _, traces = get_traces()
+        # exit_condition = lambda x: x % (len(traces) // get_config()['num_clients']) == (2 - 1)
+        exit_condition = lambda x: False
         run_simulation(model_name, False, f=exit_condition)
         send_done_to_server()
         return
@@ -304,7 +305,7 @@ def train_simulation(model_name):
         else:
             exit_condition = lambda _: False
         
-        exit_condition = lambda x: x == (2 - 1)
+        # exit_condition = lambda x: x == (2 - 1)
 
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: True'
         run_simulation(model_name, bool(epoch != 0), f=exit_condition, helper_model='random')
@@ -314,7 +315,7 @@ def train_simulation(model_name):
             exit_condition = lambda setting_number: setting_number == (3 - 1) # 3 iterations
 
         simulationDct['helper_string'] = f'epoch: {epoch} / {epochs}, random: False'
-        exit_condition = lambda x: x == (2 - 1)
+        # exit_condition = lambda x: x == (2 - 1)
         run_simulation(model_name, True, f=exit_condition, helper_model='idModel')
         simulationDct['helper_string'] = ''
     get_config()['mahimahi_epochs'] = epochs
